@@ -1,0 +1,40 @@
+﻿using ProPayments.Service.Data.Entities.Enums;
+
+namespace ProPayments.Service.Dtos.Orders.Response
+{
+    public class OrderResponse
+    {
+        public ulong Id { get; set; }
+        public UserResponse User { get; set; }
+        public InvoiceResponse Invoice { get; set; } 
+    }
+
+    public class UserResponse
+    {
+        public ulong Id { get; set; }
+        public string Username { get; set; }
+        public string WalletAddress { get; set; }
+    }
+
+    public class InvoiceResponse
+    {
+        //Invoice details
+        public ulong Id { get; set; }
+
+        //User details
+        public string PaymentAddress { get; set; }
+
+        //Order details
+        public DateTimeOffset OrderExpiryTime { get; set; }
+
+        //Plan details
+        public ulong? PlanRoleId { get; set; }
+        public int PlanPeriod { get; set; }
+        public string PeriodDescription { get; set; }
+
+        //Transaction details
+        public decimal TotalAmount { get; set; }
+        public string RecipientAddress { get; set; }
+        public Token Token { get; set; }
+    }
+}

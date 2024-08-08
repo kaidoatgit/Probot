@@ -1,0 +1,35 @@
+﻿using ProPayments.Service.Data.Entities.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ProPayments.Service.Data.Entities
+{
+    public class Transaction
+    {
+        [Column(Order = 0)]
+        public ulong Id { get; set; }
+        [Column(Order = 1)]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        [Column(Order = 2)]
+        public string? Hash { get; set; }
+        [Column(Order = 3)]
+        public decimal TotalAmount { get; set; }
+        [Column(Order = 4)]
+        public Token Token { get; set; }
+        [Column(Order = 5)]
+        public DateTime? PaymentDate { get; set; }
+        [Column(Order = 6)]
+        public string? PaymentAddress { get; set; }
+        [Column(Order = 7)]
+        public string RecipientAddress { get; set; } = string.Empty;
+
+        [Column(Order = 8)]
+        public ulong OrderId { get; set; }
+        public Order? Order { get; set; } //Navigation purpose
+
+        internal void CloseTransaction(string hash)
+        {
+            Hash = hash;
+            PaymentDate = DateTime.UtcNow;
+        }
+    }
+}
