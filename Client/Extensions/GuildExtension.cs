@@ -63,7 +63,36 @@ namespace ProPayments.Client.Extensions
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine($"[Error][AddSubscriptionProcess] {ex.Message}");
+            }
+            return false;
+        }
+
+        public static async Task<bool> AddAlphabotCommandsInfo(this DiscordGuild guild, ulong channelId)
+        {
+            try
+            {
+                var embed = EmbedHelper.CreateAlphabotCommandsInfoEmbed();
+                var message = new DiscordMessageBuilder()
+                    .WithEmbed(embed);
+
+                var channel = guild.GetChannel(channelId);
+                var firstMessage = (await channel.GetMessagesAsync()).LastOrDefault();
+
+                if (firstMessage == null)
+                {
+                    var result = await channel.SendMessageAsync(message);
+                }
+                else
+                {
+                    var existingMessage = await channel.GetMessageAsync(firstMessage.Id);
+                    await existingMessage.ModifyAsync(embed);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error][AddAlphabotCommandsInfo] {ex.Message}");
             }
             return false;
         }

@@ -126,13 +126,20 @@ namespace ProPayments.Client
             }
             Console.WriteLine($"Total users: {_userManager.Users.Count}");
 
-            bool subscriptionProcessLoadedSuccessfully = await args.Guild.AddSubscriptionProcess(_appSettings.SubscriptionChannelId);
-            if (!subscriptionProcessLoadedSuccessfully)
+            bool subscriptionProcessAddedSuccessfully = await args.Guild.AddSubscriptionProcess(_appSettings.SubscriptionChannelId);
+            if (!subscriptionProcessAddedSuccessfully)
             {
                 _tokenManager.Cancel();
                 return;
             }
 
+            bool commandsAddedSuccessfully = await args.Guild.AddAlphabotCommandsInfo(_appSettings.BotChannelId);
+            if (!commandsAddedSuccessfully)
+            {
+                _tokenManager.Cancel();
+                return;
+            }
+            
             _hubManager.RegisterHandlers(args.Guild);
             await _hubManager.StartAsync();
         }

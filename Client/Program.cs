@@ -24,7 +24,7 @@ namespace ProPayments.Client
                 await bot.RunAsync(services);
 
                 //just to read the message
-                Console.ReadKey();
+                // Console.ReadKey();
             }
             catch (Exception e)
             {

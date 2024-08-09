@@ -203,6 +203,28 @@ namespace ProPayments.Client.Helpers
             return embed.Build();
         }
 
+        public static DiscordEmbed CreateAlphabotCommandsInfoEmbed()
+        {
+            StringBuilder description = new();
+            description.AppendLine();
+            description.AppendLine("`/add-key`");
+            description.AppendLine("__Add__ or __update__ your Alphabot API key to enable raffle automation.");
+            description.AppendLine();
+            description.AppendLine("`/status`");
+            description.AppendLine("Displays your current API key and indicates whether the raffle automation bot is running.");
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = $"Commands info",
+                Description = description.ToString(),
+                Color = DiscordColor.Orange,
+                Footer = new() { Text = "Pro Payments" },
+                Timestamp = DateTime.UtcNow
+            };
+
+            return embed.Build();
+        }
+
 
         //public static DiscordEmbed CreateOrderFailureEmbed(string reason, string imageUrl)
         //{
