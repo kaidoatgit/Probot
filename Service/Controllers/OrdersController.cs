@@ -47,9 +47,9 @@ namespace ProPayments.Service.Controllers
         [HttpPost("complete")]
         public async Task<IActionResult> CompleteOrderAsync([FromBody] CompleteOrderRequest request)
         {
-            var subscription = await _orderService.CompleteOrderAsync(request);
-            SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
-            return Ok(subscriptionResponse);
+            // var subscription = await _orderService.CompleteOrderAsync(request);
+            // SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
+            return Ok(await _orderService.CompleteOrderAsync(request));
         }
     }
 }

@@ -10,13 +10,16 @@ namespace ProPayments.Service.Data
 
         public virtual DbSet<User> Users { get; set; } = null!;
         public virtual DbSet<Order> Orders { get; set; } = null!;
+        public virtual DbSet<OrderItem> OrderItems { get; set; } = null!;
         public virtual DbSet<Transaction> Transactions { get; set; } = null!;
         public virtual DbSet<Invoice> Invoices { get; set; } = null!;
+        public virtual DbSet<InvoiceItem> InvoiceItems { get; set; } = null!;
         public virtual DbSet<Subscription> Subscriptions { get; set; } = null!;
         public virtual DbSet<Plan> Plans { get; set; } = null!;
         public virtual DbSet<PlanOption> PlanOptions { get; set; } = null!;
         public virtual DbSet<LogEntry> LogEntries { get; set; } = null!;
-
+        public virtual DbSet<AccessCode> AccessCodes { get; set; } = null!;
+        
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -65,7 +68,7 @@ namespace ProPayments.Service.Data
                 .HasForeignKey<Invoice>(i => i.OrderId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Configure one-to-one relationship between Order and Invoice
+            // Configure one-to-one relationship between Order and Transaction
             // Deleting a order, will delete the respective transaction
             modelBuilder.Entity<Order>()
                 .HasOne(s => s.Transaction)
@@ -74,10 +77,11 @@ namespace ProPayments.Service.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Configure unique index for Subscriptions
-            // A unique index ensures that the combination of UserId and PlanId values must be unique across all rows in the Subscription table. In other words, no two Subscription entities can have the same combination of UserId and PlanId.
-            modelBuilder.Entity<Subscription>()
-             .HasIndex(s => new { s.UserId, s.PlanId })
-             .IsUnique();
+            // A unique index ensures that the combination of UserId and PlanId values must be unique across all rows in the Subscription table. 
+            // In other words, no two Subscription entities can have the same combination of UserId and PlanId.
+            // modelBuilder.Entity<Subscription>()
+            //  .HasIndex(s => new { s.UserId, s.PlanId })
+            //  .IsUnique();
 
             //modelBuilder.Entity<Order>()
             //   .HasOne(s => s.Subscription)
@@ -98,17 +102,23 @@ namespace ProPayments.Service.Data
                 os => os.ToString(),
                 os => (OrderStatus)Enum.Parse(typeof(OrderStatus), os));
 
-            modelBuilder.Entity<Invoice>()
-            .Property(p => p.PlanType)
-            .HasConversion(
-                pt => pt.ToString(),
-                pt => (PlanType)Enum.Parse(typeof(PlanType), pt));
+            // modelBuilder.Entity<Invoice>()
+            // .Property(p => p.PlanType)
+            // .HasConversion(
+            //     pt => pt.ToString(),
+            //     pt => (PlanType)Enum.Parse(typeof(PlanType), pt));
 
             modelBuilder.Entity<Invoice>()
             .Property(o => o.OrderStatus)
             .HasConversion(
                 os => os.ToString(),
                 os => (OrderStatus)Enum.Parse(typeof(OrderStatus), os));
+
+             modelBuilder.Entity<InvoiceItem>()
+            .Property(p => p.PlanType)
+            .HasConversion(
+                pt => pt.ToString(),
+                pt => (PlanType)Enum.Parse(typeof(PlanType), pt));
 
             modelBuilder.Entity<Invoice>()
             .Property(t => t.Token)

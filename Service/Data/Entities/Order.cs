@@ -15,12 +15,10 @@ namespace ProPayments.Service.Data.Entities
         [Column(Order = 3)]
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
-
         //User details
         [Column(Order = 4)]
         public ulong UserId { get; set; }
-        public User? User { get; set; } //Navigation purpose
-
+        public User User { get; set; } = null!; //Navigation purpose
 
         //Tansaction details
         [Column(Order = 5)]
@@ -33,14 +31,11 @@ namespace ProPayments.Service.Data.Entities
         public ulong InvoiceId { get; set; }
         public Invoice? Invoice { get; set; } // Navigation purpose
 
-
-        //Subscription details
-        [Column(Order = 7)]
-        public ulong? SubscriptionId { get; set; }
-        public Subscription? Subscription { get; set; }  // Navigation purpose
+        // OrderItems details
+        public ICollection<OrderItem> OrderItems { get; set; } = null!; // Navigation purpose
 
 
-        internal void CompleteOrder()
+        internal void Complete()
         {
             Status = OrderStatus.Completed;
         }

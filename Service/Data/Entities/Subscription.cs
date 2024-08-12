@@ -36,8 +36,5 @@ namespace ProPayments.Service.Data.Entities
         public int PlanOptionId { get; set; }
         [Column(Order = 11)]
         public PlanOption? PlanOption { get; set; }  //Navigation purpose
-
-
-        public ICollection<Order>? Orders { get; set; }  //Navigation purpose
     }
 }

@@ -59,7 +59,7 @@ namespace ProPayments.Service.Services.Services
         {
             var existingSubscription = await _context.Subscriptions
                 .Include(s => s.Plan)
-                .Where(s => s.UserId == userId && s.PlanId == invoice.PlanId)
+                .Where(s => s.UserId == userId && s.PlanId == 1)//invoice.PlanId)
                .FirstOrDefaultAsync();
 
             var subscription = existingSubscription;
@@ -68,18 +68,18 @@ namespace ProPayments.Service.Services.Services
             {
                 if (subscription.IsActive)
                 {
-                    subscription.EndDate = subscription.EndDate.AddMonths(invoice.PlanPeriod);
+                    // subscription.EndDate = subscription.EndDate.AddMonths(invoice.PlanPeriod);
                 }
                 else
                 {
-                    subscription.EndDate = currentDate.AddMonths(invoice.PlanPeriod);
+                    // subscription.EndDate = currentDate.AddMonths(invoice.PlanPeriod);
                     subscription.IsActive = true;
                 }
                 subscription.UpdatedAt = currentDate;
                 subscription.StartDate = currentDate;
                 subscription.LastNotificationCheck = currentDate;
                 subscription.Username = invoice.Username;
-                subscription.PlanOptionId = invoice.PlanOptionId;
+                // subscription.PlanOptionId = invoice.PlanOptionId;
 
                 _context.Subscriptions.Update(subscription);
                 await _context.SaveChangesAsync();
@@ -89,11 +89,11 @@ namespace ProPayments.Service.Services.Services
                 subscription = new Subscription
                 {
                     StartDate = currentDate,
-                    EndDate = currentDate.AddMonths(invoice.PlanPeriod),
+                    // EndDate = currentDate.AddMonths(invoice.PlanPeriod),
                     UserId = userId,
                     Username = invoice.Username,
-                    PlanId = invoice.PlanId,
-                    PlanOptionId = invoice.PlanOptionId,
+                    // PlanId = invoice.PlanId,
+                    // PlanOptionId = invoice.PlanOptionId,
                 };
                 _context.Subscriptions.Add(subscription);
                 await _context.SaveChangesAsync();

@@ -26,7 +26,7 @@ namespace ProPayments.Service.Data.Entities
         public ulong OrderId { get; set; }
         public Order? Order { get; set; } //Navigation purpose
 
-        internal void CloseTransaction(string hash)
+        internal void Close(string hash)
         {
             Hash = hash;
             PaymentDate = DateTime.UtcNow;

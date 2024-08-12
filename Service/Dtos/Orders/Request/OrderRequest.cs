@@ -7,7 +7,7 @@ namespace ProPayments.Service.Dtos.Orders.Request
         [Required]
         public ulong UserId { get; set; }
         [Required]
-        public int PlanOptionId { get; set; }
+        public List<int> PlanOptionsId { get; set; }
         public bool IsManual { get; set; } = false;
     }
 }

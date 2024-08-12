@@ -27,7 +27,7 @@ namespace ProPayments.Service.Services.Services
             _memoryCache = memoryCache;
         }
 
-        public async Task<Transaction> CreateTransaction(Order order, PlanOption planOption)
+        public async Task<Transaction> CreateTransaction(Order order, decimal totalPrice)
         {
             if (!_memoryCache.TryGetValue(_cacheKey, out decimal currentSolanaUsdPrice))
             {
@@ -45,13 +45,13 @@ namespace ProPayments.Service.Services.Services
                 _memoryCache.Set(_cacheKey, currentSolanaUsdPrice, cacheEntryOptions);
             }
 
-            decimal amountToPay = Math.Round(planOption.Price / currentSolanaUsdPrice, 4, MidpointRounding.AwayFromZero);
+            decimal amountToPay = Math.Round(totalPrice / currentSolanaUsdPrice, 4, MidpointRounding.AwayFromZero);
             Transaction transaction = new()
             {
                 TotalAmount = amountToPay,
                 Token = Token.SOL,
                 OrderId = order.Id,
-                PaymentAddress = order.User!.WalletAddress,
+                PaymentAddress = order.User.WalletAddress,
                 RecipientAddress = _serviceConfiguration.RecipientAddress
             };
 

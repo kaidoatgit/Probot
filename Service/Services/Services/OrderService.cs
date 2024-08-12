@@ -19,6 +19,7 @@ namespace ProPayments.Service.Services.Services
     {
         private readonly SubscriptionContext _context;
         private readonly ISubscriptionService _subscriptionService;
+        private readonly IAccessCodeService _accessCodeService;
         private readonly IInvoiceService _invoiceService;
         private readonly ITransactionService _transactionService;
         private readonly IOrderQueueService _orderQueueService;
@@ -26,11 +27,13 @@ namespace ProPayments.Service.Services.Services
         private readonly IHubContext<NotificationHub, INotificationClient> _hubContext;
         private readonly IMonitorService _monitorService;
 
-        public OrderService(SubscriptionContext context, Mapper mapper, ISubscriptionService subscriptionService, ITransactionService transactionService, IInvoiceService invoiceService, IOrderQueueService orderQueueService, IHubContext<NotificationHub, INotificationClient> hubContext, IMonitorService monitorService)
+        public OrderService(SubscriptionContext context, Mapper mapper, ISubscriptionService subscriptionService, IAccessCodeService accessCodeService, ITransactionService transactionService, IInvoiceService invoiceService, 
+        IOrderQueueService orderQueueService, IHubContext<NotificationHub, INotificationClient> hubContext, IMonitorService monitorService)
         {
             _context = context;
             _mapper = mapper;
             _subscriptionService = subscriptionService;
+            _accessCodeService = accessCodeService;
             _transactionService = transactionService;
             _invoiceService = invoiceService;
             _orderQueueService = orderQueueService;
@@ -43,13 +46,13 @@ namespace ProPayments.Service.Services.Services
             var user = await _context.Users.FindAsync(request.UserId);
             if (user == null) throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
 
-            var planOption = await _context.PlanOptions
-                .Where(po => po.Id == request.PlanOptionId)
+            var distinctPlanOptions = await _context.PlanOptions
+                .Where(po => request.PlanOptionsId.Contains(po.Id))
                 .Include(po => po.Plan)
-                .FirstOrDefaultAsync();
-            if (planOption == null) throw new ServiceException(StatusCodes.Status404NotFound, "Plan option not found");
-            if (planOption.Plan != null && planOption.Plan.Type == PlanType.Free)
-                throw new ServiceException(StatusCodes.Status400BadRequest, $"Invalid plan option: {planOption.Plan.Type}");
+                .ToListAsync();
+
+            if (distinctPlanOptions.Count != request.PlanOptionsId.Distinct().Count())
+                throw new ServiceException(StatusCodes.Status404NotFound, "One or more Plan options were not found");
 
             if (!request.IsManual)
             {
@@ -60,14 +63,24 @@ namespace ProPayments.Service.Services.Services
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                
+                var planOptions = request.PlanOptionsId
+                    .Select(id => distinctPlanOptions.First(po => po.Id == id))
+                    .ToList();   
+
                 Order order = _mapper.MapToOrderEntity(request);
+                order.OrderItems = planOptions
+                    .Select(po => new OrderItem
+                    {
+                        PlanOptionId = po.Id
+                    }).ToList();
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
 
-                Transaction transaction = await _transactionService.CreateTransaction(order, planOption);
+                Transaction transaction = await _transactionService.CreateTransaction(order, planOptions.Sum(po => po.Price));
                 order.TransactionId = transaction.Id;
 
-                Invoice invoice = await _invoiceService.CreateInvoiceAsync(user, order, planOption);
+                Invoice invoice = await _invoiceService.CreateInvoiceAsync(user, order, planOptions);
                 order.InvoiceId = invoice.Id;
 
                 await _context.SaveChangesAsync();
@@ -95,10 +108,12 @@ namespace ProPayments.Service.Services.Services
             return order;
         }
 
-        public async Task<Subscription> CompleteOrderAsync(CompleteOrderRequest request)
+        public async Task<List<AccessCode>> CompleteOrderAsync(CompleteOrderRequest request)
         {
             var order = await _context.Orders
                 .Where(o => o.Id == request.OrderId)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.PlanOption) 
                 .Include(o => o.Invoice)
                 .Include(o => o.Transaction)
                 .FirstOrDefaultAsync();
@@ -115,20 +130,21 @@ namespace ProPayments.Service.Services.Services
                 var invoice = order.Invoice!;
                 var transaction = order.Transaction!;
 
-                order.CompleteOrder();
-                transaction.CloseTransaction(request.Transaction.Hash);
+                order.Complete();
+                transaction.Close(request.Transaction.Hash);
+                List<PlanOption> planOptions = order.OrderItems.Select(oi => oi.PlanOption).ToList();
+                List<AccessCode> accessCodes = await _accessCodeService.GenerateCodes(planOptions);
+                // Subscription subscription = await _subscriptionService.CreatePaidSubscriptionAsync(order.UserId, invoice);
 
-                Subscription subscription = await _subscriptionService.CreatePaidSubscriptionAsync(order.UserId, invoice);
-
-                order.SubscriptionId = subscription.SubscriptionId;
+                // order.SubscriptionId = subscription.SubscriptionId;
                 invoice.UpdateOrderData(OrderStatus.Completed);
-                invoice.UpdateSubscriptionData(subscription);
+                // invoice.UpdateSubscriptionData(subscription);
                 invoice.UpdateTransactionData(transaction);
 
                 await _context.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
 
-                return subscription;
+                return accessCodes;
             }
             catch (Exception)
             {
@@ -144,7 +160,7 @@ namespace ProPayments.Service.Services.Services
             try
             {
                 var invoice = order.Invoice!;
-                invoice.UpdateOrderData(OrderStatus.Expired);
+                // invoice.UpdateOrderData(OrderStatus.Expired);
                 _context.Entry(invoice).State = EntityState.Modified;
 
                 _context.Orders.Remove(order);
@@ -175,14 +191,16 @@ namespace ProPayments.Service.Services.Services
                 var invoice = order.Invoice!;
                 var transaction = order.Transaction!;
 
-                order.CompleteOrder();
-                transaction.CloseTransaction(transaction.Hash!);
+                order.Complete();
+                transaction.Close(transaction.Hash!);
+                List<PlanOption> planOptions = order.OrderItems.Select(oi => oi.PlanOption).ToList();
+                List<AccessCode> accessCodes = await _accessCodeService.GenerateCodes(planOptions);
 
                 subscription = await _subscriptionService.CreatePaidSubscriptionAsync(order.UserId, invoice);
 
-                order.SubscriptionId = subscription.SubscriptionId;
+                // order.SubscriptionId = subscription.SubscriptionId;
                 invoice.UpdateOrderData(OrderStatus.Completed);
-                invoice.UpdateSubscriptionData(subscription);
+                // invoice.UpdateSubscriptionData(subscription);
                 invoice.UpdateTransactionData(transaction);
 
                 _context.Orders.Update(order);
