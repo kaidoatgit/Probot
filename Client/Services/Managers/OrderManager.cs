@@ -22,13 +22,12 @@ namespace ProPayments.Client.Services.Managers
             Console.WriteLine("Order Manager created");
         }
 
-        public async Task<Order> CreateOrderAsync(ulong userId, Plan plan, int period)
+        public async Task<Order> CreateOrderAsync(ulong userId, Cart cart)
         {
-            int planOptionId = plan.GetPlanOptionId(period);
             var orderRequest = new OrderRequest
             {
                 UserId = userId,
-                PlanOptionId = planOptionId
+                PlanOptionsId = cart.CartItems.Select(ci => ci.PlanOptionId).ToList()
             };
             var apiResponse = await _orderClient.RegisterOrderAsync(orderRequest);
             if (apiResponse.Data == null || apiResponse.Data.Invoice == null)
@@ -58,11 +57,6 @@ namespace ProPayments.Client.Services.Managers
             return order;
         }
 
-        public IEnumerable<Order> Orders => _orders.Values.AsEnumerable();
-
-        //public IEnumerable<Order> GetOrdersByType(OrderStatus orderType)
-        //{
-        //    return _orders.Values.Where(o => o.Status == orderType);
-        //}        
+        public IEnumerable<Order> Orders => _orders.Values.AsEnumerable();      
     }
 }

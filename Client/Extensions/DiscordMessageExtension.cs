@@ -54,12 +54,12 @@ namespace ProPayments.Client.Extensions
             var planSelect = components.OfType<DiscordActionRowComponent>()
                 .SelectMany(row => row.Components)
                 .OfType<DiscordSelectComponent>()
-                .FirstOrDefault(c => c.CustomId.StartsWith("plan_selection"));
+                .FirstOrDefault(c => c.CustomId.StartsWith("product_selection_menu"));
 
             var durationSelect = components.OfType<DiscordActionRowComponent>()
                 .SelectMany(row => row.Components)
                 .OfType<DiscordSelectComponent>()
-                .FirstOrDefault(c => c.CustomId.StartsWith("duration_selection"));
+                .FirstOrDefault(c => c.CustomId.StartsWith("duration_selection_menu"));
 
             return (planSelect, durationSelect);
         }

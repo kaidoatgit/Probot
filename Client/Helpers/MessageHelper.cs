@@ -8,6 +8,8 @@ namespace ProPayments.Client.Helpers
 
         public static readonly string MissingPlanOrDuration = "You need to select both a role and a month before subscribing.";
 
+        public static readonly string CartIsEmpty = "The cart is empty. To confirm your order, you must have at least 1 product.";
+
         public static string GenericErrorMessage()
         {
             DateTimeOffset tryLater = DateTimeOffset.UtcNow.AddMinutes(5);

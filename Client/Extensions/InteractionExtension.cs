@@ -1,4 +1,5 @@
-﻿using DSharpPlus;
+﻿using System.Text;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using ProPayments.Client.Helpers;
 using ProPayments.Client.Models;
@@ -7,7 +8,7 @@ namespace ProPayments.Client.Extensions
 {
     public static class InteractionHelper
     {
-
+        private const string _emptySpace = "ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ";
         public static async Task NotifyWithMessage(this DiscordInteraction interaction, string reason, bool defer = false, bool deleteMsg = false, TimeSpan? after = null)
         {
             if (defer)
@@ -40,17 +41,26 @@ namespace ProPayments.Client.Extensions
             var planOptions = plans
                .Select(p => new DiscordSelectComponentOption(p.Type.ToString(), p.RoleId.ToString()))
                .AsEnumerable();
-            var planDropdown = new DiscordSelectComponent("plan_selection", "Select a subscription role", planOptions);
+            var planDropdown = new DiscordSelectComponent("product_selection_menu", "Select a subscription role", planOptions);
+            var addItemButton = new DiscordButtonComponent(ButtonStyle.Primary, "add_item_cart_btn", "Add Items 🛒");
+            var removeItemButton = new DiscordButtonComponent(ButtonStyle.Danger, "remove_item_cart_btn", "Remove Items 🗑️");
+            var confirmButton = new DiscordButtonComponent(ButtonStyle.Success, "confirm_cart_btn", "Confirm ✅");
 
-            var confirmButton = new DiscordButtonComponent(ButtonStyle.Primary, "confirm_subscription_btn", "Confirm Subscription");
+            StringBuilder description = new();
+            description.AppendLine($"\u200B");
+            description.Append("Cart is empty");
+            description.AppendLine(_emptySpace);
+            description.AppendLine($"\u200B");
 
             var msg = new DiscordMessageBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
-                      .WithTitle("Subscription")
-                      .WithDescription("Choose your **plan** and **numbers of months** you wish to subscribe.")
-                      .WithColor(DiscordColor.Gold))
+                      .WithTitle("🛒 Your Shopping Cart")
+                      .WithDescription(description.ToString())
+                      .WithColor(DiscordColor.Gold)
+                      .WithTimestamp(DateTimeOffset.UtcNow)
+                      .WithFooter(text: "Pro Payments"))
                 .AddComponents(planDropdown)
-                .AddComponents(confirmButton);
+                .AddComponents(addItemButton, removeItemButton, confirmButton);
 
             await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
                     new DiscordInteractionResponseBuilder(msg)
@@ -59,14 +69,27 @@ namespace ProPayments.Client.Extensions
 
         public static async Task NotifyWithWalletModal(this DiscordInteraction interaction)
         {
-            var walletInput = new TextInputComponent("Solana address", "payment_wallet_input", "Enter your wallet address");
+            var walletInput = new TextInputComponent("Solana address", "solana_wallet_input", "Enter your wallet address");
 
             var modal = new DiscordInteractionResponseBuilder()
                 .WithTitle("Register wallet")
-                .WithCustomId("wallet_submission_modal")
+                .WithCustomId($"solana_submission_modal")
                 .AddComponents(walletInput);
 
             await interaction.CreateResponseAsync(InteractionResponseType.Modal, modal);
+        }
+
+        public static async Task<string> NotifyWithItemRemovalModal(this DiscordInteraction interaction)
+        {
+            var walletInput = new TextInputComponent("Product ID", "cart_product_id", "Enter the product ID you wish to remove");
+
+            var modal = new DiscordInteractionResponseBuilder()
+                .WithTitle("Remove Item")
+                .WithCustomId($"cart_item_removal_submission_modal")
+                .AddComponents(walletInput);
+
+            await interaction.CreateResponseAsync(InteractionResponseType.Modal, modal);
+            return modal.CustomId;
         }
 
         public static async Task NotifyWithPlanDetails(this DiscordInteraction interaction, List<Plan> plans)
@@ -110,7 +133,7 @@ namespace ProPayments.Client.Extensions
 
         public static async Task NotifyUserToSendPayment(this DiscordInteraction interaction, Order order)
         {
-            var embed = EmbedHelper.CreateInvoiceEmbed(order.Invoice!);
+            var embed = EmbedHelper.CreateInvoiceEmbed(order.Invoice);
             var builder = new DiscordMessageBuilder().WithEmbed(embed);
             await interaction.EditFollowupMessageAsync(order.Interaction!.FollowUpMessageId, new DiscordWebhookBuilder(builder));
             await interaction.DeleteOriginalResponseAsync();

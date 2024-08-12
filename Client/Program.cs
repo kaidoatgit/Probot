@@ -52,6 +52,7 @@ namespace ProPayments.Client
             services.AddSingleton<OrderManager>();
             services.AddSingleton<PlanManager>();
             services.AddSingleton<UserManager>();
+            services.AddSingleton<CartManager>();
             services.AddSingleton<Mapper>();
             services.AddSingleton<SubscriptionService>();
             services.AddSingleton<HubManager>();

@@ -13,14 +13,12 @@ namespace ProPayments.Client.Services.Managers
         private readonly UserClient _userClient;
         private readonly OrderManager _orderManager;
         private readonly Mapper _mapper;
-        private readonly CancelationTokenManager _tokenManager;
 
-        public UserManager(UserClient userClient, OrderManager orderManager, Mapper mapper, CancelationTokenManager tokenManager)
+        public UserManager(UserClient userClient, OrderManager orderManager, Mapper mapper)
         {
             _userClient = userClient;
             _orderManager = orderManager;
             _mapper = mapper;
-            _tokenManager = tokenManager;
             Console.WriteLine("User Manager created");
         }
 

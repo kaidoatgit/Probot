@@ -17,7 +17,7 @@ namespace ProPayments.Client.Models
 
         public int GetPlanOptionId(int period)
         {
-            return PlanOptions.FirstOrDefault(po => po.Period == period)!.Id;
+            return PlanOptions.First(po => po.Period == period).Id;
         }
     }
 }

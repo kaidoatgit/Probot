@@ -3,6 +3,6 @@
     public class OrderRequest
     {
         public ulong UserId { get; set; }
-        public int PlanOptionId { get; set; }
+        public List<int> PlanOptionsId { get; set; }
     }
 }

@@ -1,8 +1,9 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProPayments.Client.Commands;
@@ -11,12 +12,8 @@ using ProPayments.Client.Exceptions;
 using ProPayments.Client.Extensions;
 using ProPayments.Client.Helpers;
 using ProPayments.Client.Models;
-using ProPayments.Client.Models.Enums;
 using ProPayments.Client.Services.Managers;
 using ProPayments.Client.Services.Services;
-using System;
-using System.Diagnostics.Metrics;
-using System.Threading.Channels;
 
 namespace ProPayments.Client
 {
@@ -31,10 +28,11 @@ namespace ProPayments.Client
         private readonly CancelationTokenManager _tokenManager;
         private readonly AppSettings _appSettings;
         private readonly DiscordManager _discordManager;
+        private readonly CartManager _cartManager;
 
         public SlashCommandsExtension? SlashCommands { get; private set; }
 
-        public ProPayments(IOptions<AppSettings> appSettings, PlanManager planManager, UserManager userManager, OrderManager orderManager, SubscriptionService subscriptionService, HubManager hubManager, DiscordManager discordManager, CancelationTokenManager tokenManager)
+        public ProPayments(IOptions<AppSettings> appSettings, PlanManager planManager, UserManager userManager, OrderManager orderManager, SubscriptionService subscriptionService, HubManager hubManager, DiscordManager discordManager, CancelationTokenManager tokenManager, CartManager cartManager)
         {
             _appSettings = appSettings.Value;
             _discordClient = new DiscordClient(new DiscordConfiguration
@@ -53,12 +51,17 @@ namespace ProPayments.Client
             _hubManager = hubManager;
             _discordManager = discordManager;
             _tokenManager = tokenManager;
+            _cartManager = cartManager;
 
             Console.WriteLine("Probot created");
         }
 
         public async Task RunAsync(IServiceProvider services)
         {
+            _discordClient.UseInteractivity(new InteractivityConfiguration()
+            {
+               //Timeout = TimeSpan.FromMinutes(2)
+            });
             _discordClient.Ready += OnClientReady;
             _discordClient.ClientErrored += OnClientErrored;
             _discordClient.ComponentInteractionCreated += OnClientComponentInteractionCreated;
@@ -174,6 +177,7 @@ namespace ProPayments.Client
 
         private async Task OnClientComponentInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
+            Console.WriteLine($"args.message.id={args.Message.Id}");
             switch (args.Id)
             {
                 case "subscribe_btn":
@@ -186,11 +190,15 @@ namespace ProPayments.Client
                         else
                         {
                             await args.Interaction.NotifyWithSubscribeOptions(_planManager.Plans);
+
+                            var responseMessage = await args.Interaction.GetOriginalResponseAsync();
+                            ulong messageId = responseMessage.Id;
+                            _cartManager.InitCart(messageId);
                         }
                         break;
                     }
 
-                case "wallet_submission_btn":
+                case "wallet_btn":
                     {
                         await args.Interaction.NotifyWithWalletModal();
                         break;
@@ -202,11 +210,11 @@ namespace ProPayments.Client
                         break;
                     }
 
-                case "plan_selection":
+                case "product_selection_menu":
                     {
                         var selectedPlanId = args.Values.First();
 
-                        var durationDropdown = ComponentHelper.GetDurationsPricesBasedOnPlanSelected(_planManager, selectedPlanId);
+                        var durationDropdown = GetDurationsPricesBasedOnPlanSelected(selectedPlanId);
                         var components = args.Message.SetDropdownDefaultValue(args.Id, selectedPlanId, durationDropdown);
                         var planMessageBuilder = args.Message.ReplaceComponents(components);
 
@@ -215,7 +223,7 @@ namespace ProPayments.Client
                         break;
                     }
 
-                case "duration_selection":
+                case "duration_selection_menu":
                     {
                         var selectedDurationPrice = args.Values.First();
 
@@ -227,61 +235,94 @@ namespace ProPayments.Client
                         break;
                     }
 
-                case "confirm_subscription_btn":
+                case "add_item_cart_btn":
+                {
+                    var (planSelect, durationSelect) = args.Message.ParseComponentSelections();
+                    var selectedPlan = planSelect?.Options.FirstOrDefault(o => o.Default);
+                    var selectedDuration = durationSelect?.Options.FirstOrDefault(o => o.Default);
+
+                    if (selectedPlan == null || selectedDuration == null)
                     {
-                        var (planSelect, durationSelect) = args.Message.ParseComponentSelections();
-                        var selectedPlan = planSelect?.Options.FirstOrDefault(o => o.Default);
-                        var selectedDuration = durationSelect?.Options.FirstOrDefault(o => o.Default);
+                        await args.Interaction.NotifyWithMessage(MessageHelper.MissingPlanOrDuration, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                    }
+                    else
+                    {
+                        Console.WriteLine($"{selectedPlan.Label}|{selectedDuration.Label}");
 
-                        if (selectedPlan == null || selectedDuration == null)
+                        Plan plan = _planManager.GetPlanByRoleId(selectedPlan.Value)!;
+                        int selectedPeriod = int.Parse(selectedDuration.Value);
+                        CartItem cartItem = new()
+                        { 
+                            ItemId = _cartManager.GetMaxCartItemId(args.Message.Id) + 1,
+                            SelectedPlan = selectedPlan.Label,
+                            SelectedDuration = selectedDuration.Label,
+                            Price = plan.GetPrice(selectedPeriod),
+                            PlanOptionId = plan.GetPlanOptionId(selectedPeriod)
+                        };
+                        _cartManager.AddItemToCart(args.Message.Id, cartItem);
+
+                        var originalComponents = args.Message.Components;
+                        var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(args.Message.Id)!);
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
+                            .AddEmbed(embed)
+                            .AddComponents(originalComponents));
+                    }
+                    break;
+                }
+
+                case "remove_item_cart_btn":
+                {
+                    Console.WriteLine("antes da modal");
+                    var modalCustomId = await args.Interaction.NotifyWithItemRemovalModal();
+                    var interactivity = _discordClient.GetInteractivity();
+                    var modal = await interactivity.WaitForModalAsync(modalCustomId);
+                    await modal.Result.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
+
+                    Console.WriteLine("depois da modal");
+                    var inputValue = modal.Result.Values.Values.First().Trim();
+                    if (int.TryParse(inputValue, out int productId))
+                    {
+                        _cartManager.RemoveItemFromCart(args.Message.Id, productId);
+                        var originalComponents = args.Message.Components;
+                        var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(args.Message.Id)!);
+
+                        // var msg = new DiscordMessageBuilder(){
+                        //     Embed = embed
+                        // }.AddComponents(originalComponents);
+                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
+                            .AddEmbed(embed)
+                            .AddComponents(originalComponents));
+                    }
+                    break;
+                }
+
+                case "confirm_cart_btn":
+                    {
+                        try
                         {
-                            await args.Interaction.NotifyWithMessage(MessageHelper.MissingPlanOrDuration, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                            if(!_cartManager.GetCart(args.Message.Id)!.CartItems.Any())
+                            {
+                                await args.Interaction.NotifyWithMessage(MessageHelper.CartIsEmpty, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                                return;
+                            }
+                            await args.Interaction.DeferAsync(true);
+                            DiscordUser user = args.User;
+                            Cart cart = _cartManager.GetCart(args.Message.Id)!;
+
+                            var order = await _orderManager.CreateOrderAsync(user.Id, cart);
+                            order.Interaction = new(args.Message.Id, args.Interaction);
+                            _orderManager.AddOrder(order);
+                            await args.Interaction.NotifyUserToSendPayment(order);   
                         }
-                        else
+                        catch (OrderException)
                         {
-                            try
-                            {
-                                Console.WriteLine($"{selectedPlan.Label}|{selectedDuration.Label}");
-                                await args.Interaction.DeferAsync(true);
-
-                                int selectedPeriod = int.Parse(selectedDuration.Value);
-                                Plan plan = _planManager.GetPlanByRoleId(selectedPlan.Value)!;
-                                DiscordUser user = args.User;
-                        
-                                if (plan.Type == PlanType.Free)
-                                {
-                                    var subscription = await _subscriptionService.CreateSubscriptionAsync(user.Id, plan, selectedPeriod);
-                                    await args.Interaction.NotifyWithFreeSubscription(args.Message.Id, subscription);
-                                    await args.Guild.GrantRoleAsync(user, subscription.PlanRoleId);
-                                }
-                                else
-                                {
-                                    var order = await _orderManager.CreateOrderAsync(user.Id, plan, selectedPeriod);
-                                    order.Interaction = new(args.Message.Id, args.Interaction);
-                                    _orderManager.AddOrder(order);
-                                    await args.Interaction.NotifyUserToSendPayment(order);                                    
-                                }
-                            }
-                            catch (SubscriptionException ex)
-                            {
-                                if (ex.StatusCodes == StatusCodes.Status409Conflict)
-                                {
-                                    await args.Interaction.NotifyWithFreePlanUsed(args.Message.Id);
-                                }
-                                else
-                                {
-                                    await args.Interaction.NotifyWithServerError(args.Message.Id);
-                                }
-                            }
-                            catch (OrderException)
-                            {
-                                await args.Interaction.NotifyWithServerError(args.Message.Id);
-                            }
-                            catch (Exception ex)
-                            {
-                                await args.Interaction.NotifyWithServerError(args.Message.Id);
-                                Console.WriteLine(ex.Message);
-                            }
+                            await args.Interaction.NotifyWithServerError(args.Message.Id);
+                        }
+                        catch (Exception ex)
+                        {
+                            await args.Interaction.NotifyWithServerError(args.Message.Id);
+                            Console.WriteLine(ex.Message);
                         }
                         break;
                     }
@@ -290,36 +331,67 @@ namespace ProPayments.Client
 
         private async Task OnClientModalSubmitted(DiscordClient sender, ModalSubmitEventArgs args)
         {
+            Console.WriteLine("entrei");
             if (args.Interaction.Type == InteractionType.ModalSubmit)
             {
-                await args.Interaction.DeferAsync(true);
-                var userId = args.Interaction.User.Id;
-                var walletAddress = args.Values.Values.First().Trim();
+                switch (args.Interaction.Data.CustomId)
+                {
+                    case "solana_submission_modal":
+                    {
+                        await args.Interaction.DeferAsync(true);
+                        var userId = args.Interaction.User.Id;
+                        var walletAddress = args.Values.Values.First().Trim();
 
-                var walletStatus = _userManager.GetWalletAddressStatus(userId, walletAddress);
-                switch (walletStatus.Result)
-                {
-                    case Result.WalletExist:
+                        var walletStatus = _userManager.GetWalletAddressStatus(userId, walletAddress);
+                        switch (walletStatus.Result)
                         {
-                            await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(5));
-                            return;
+                            case Result.WalletExist:
+                                {
+                                    await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                                    return;
+                                }
+                            case Result.WalletFoundInOrder:
+                                {
+                                    await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
+                                    return;
+                                }
                         }
-                    case Result.WalletFoundInOrder:
-                        {
-                            await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
-                            return;
-                        }
-                }
 
-                var username = args.Interaction.User.Username;
-                var isResultSuccess = await _userManager.AddOrUpdateUserAsync(userId, username, walletAddress);
-                if (isResultSuccess)
-                {
-                    await args.Interaction.NotifyWithMessage(MessageHelper.WalletSubmitSuccess(walletAddress), defer: true);
-                }
-                else
-                {
-                    await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
+                        var username = args.Interaction.User.Username;
+                        var isResultSuccess = await _userManager.AddOrUpdateUserAsync(userId, username, walletAddress);
+                        if (isResultSuccess)
+                        {
+                            await args.Interaction.NotifyWithMessage(MessageHelper.WalletSubmitSuccess(walletAddress), defer: true);
+                        }
+                        else
+                        {
+                            await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
+                        }
+                        break;
+                    }
+
+                    // case "cart_item_removal_submission_modal":
+                    // {
+                    //     Console.WriteLine($"int: {args.Interaction.Id}");
+
+                    //     var inputValue = args.Values.Values.First().Trim();
+                    //     if (int.TryParse(inputValue, out int productId))
+                    //     {
+                    //         var responseMessage = await args.Interaction.GetOriginalResponseAsync();
+                    //         ulong messageId = responseMessage.Id;
+                    //         _cartManager.RemoveItemFromCart(args.Interaction.Id, productId);
+                    //         // if (result)
+                    //         // {
+                    //         //     await args.NotifyWithMessage($"Item {productId} has been removed from your cart.", defer: true);
+                    //         // }
+                    //         // else
+                    //         // {
+                    //         //     await args.NotifyWithMessage($"Failed to remove item {productId} from your cart. Please try again.", defer: true);
+                    //         // }
+                    //     }
+                    //     await args.Interaction.NotifyWithMessage("Just testing", deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                    //     break;
+                    // }
                 }
             }
         }
@@ -334,6 +406,17 @@ namespace ProPayments.Client
             {
                 Console.WriteLine($"Exception during shutdown: {e}");
             }
+        }
+
+        
+
+        public DiscordSelectComponent GetDurationsPricesBasedOnPlanSelected(string selectedPlan)
+        {
+            var durationOptions = _planManager
+                        .GetDurationsWithPrices(selectedPlan)!
+                        .Select(option => new DiscordSelectComponentOption(option.PeriodDescription, option.Period.ToString()))
+                        .AsEnumerable();
+            return new DiscordSelectComponent("duration_selection_menu", "Month(s) subscription", durationOptions);
         }
     }
 }

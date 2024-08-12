@@ -1,12 +1,13 @@
 ﻿using DSharpPlus.Entities;
 using ProPayments.Client.Models;
+using ProPayments.Client.Services.Managers;
 using System.Text;
 
 namespace ProPayments.Client.Helpers
 {
     public static class EmbedHelper
     {
-        private const string SuccessImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1259290567586611321/order_success.webp?ex=668b253b&is=6689d3bb&hm=e28adeb3921b55b82a540207b43f9d7044cd6fb7be7fd36fae1c8c8b9229e450&";
+        private const string successImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1259290567586611321/order_success.webp?ex=668b253b&is=6689d3bb&hm=e28adeb3921b55b82a540207b43f9d7044cd6fb7be7fd36fae1c8c8b9229e450&";
 
         public static DiscordEmbed CreatePlanDetailsEmbed(List<Plan> Plans)
         {
@@ -73,17 +74,60 @@ namespace ProPayments.Client.Helpers
 
             embed.AddField($"{EmojisHelper.Calendar_Spiral} Start Date", $"<t:{((DateTimeOffset)startDate).ToUnixTimeSeconds()}:D>", true);
             embed.AddField($"{EmojisHelper.Calendar_Spiral} End Date", $"<t:{((DateTimeOffset)endDate).ToUnixTimeSeconds()}:D>", true);
-            embed.WithImageUrl(SuccessImageUrl);
+            embed.WithImageUrl(successImageUrl);
 
+            return embed.Build();
+        }
+
+        public static DiscordEmbed CreateShoppingCartEmbed(List<CartItem> cartItems)
+        {
+            StringBuilder description = new("Here are the items currently in your cart:");
+            description.AppendLine("```");
+            description.AppendLine("Id | Item            | Duration      | Price");
+            description.AppendLine("---|-----------------|---------------|---------");
+
+            decimal total = 0;
+            foreach (var cartItem in cartItems)
+            {
+                description.AppendLine(cartItem.ToString());
+                total+=cartItem.Price;
+            }
+
+            description.AppendLine("-----------------------------------------------");
+            description.Append("Total".PadRight(39));
+            description.AppendLine($"${total.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture).PadRight(8)}");
+            description.AppendLine("```");
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = $"🛒 Your Shopping Cart",
+                Description = description.ToString(),
+                Color = DiscordColor.Gold,
+                Footer = new() { Text = "Pro Payments" },
+                Timestamp = DateTimeOffset.UtcNow
+            };
             return embed.Build();
         }
 
         public static DiscordEmbed CreateInvoiceEmbed(Invoice invoice)
         {
             StringBuilder description = new();
-            description.Append($"Plan: <@&{invoice.PlanRoleId}>");
-            description.Append("ㅤㅤㅤㅤㅤㅤㅤㅤㅤ");
-            description.Append($"Duration: {invoice.PeriodDescription}");
+            description.AppendLine("```");
+            description.AppendLine("Item                  | Duration      | Price");
+            description.AppendLine("----------------------|---------------|---------");
+
+            decimal total = 0;
+            foreach (var invoiceItem in invoice.InvoiceItems)
+            {
+                description.AppendLine(invoiceItem.ToString());
+                total+=invoiceItem.PlanOptionPrice;
+            }
+
+            description.AppendLine("------------------------------------------------");
+            description.Append("Total".PadRight(40));
+            description.AppendLine($"${total.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture).PadRight(8)}");
+            description.AppendLine("```");
+
             var embed = new DiscordEmbedBuilder
             {
                 Title = "Invoice",
@@ -120,7 +164,7 @@ namespace ProPayments.Client.Helpers
 
             embed.AddField($"{EmojisHelper.Calendar_Spiral} Start Date", $"<t:{((DateTimeOffset)startDate).ToUnixTimeSeconds()}:D>", true);
             embed.AddField($"{EmojisHelper.Calendar_Spiral} End Date", $"<t:{((DateTimeOffset)endDate).ToUnixTimeSeconds()}:D>", true);
-            embed.WithImageUrl(SuccessImageUrl);
+            embed.WithImageUrl(successImageUrl);
 
             return embed.Build();
         }
@@ -225,6 +269,25 @@ namespace ProPayments.Client.Helpers
             return embed.Build();
         }
 
+        public static DiscordEmbed CreateSubscriptionEmbed()
+        {
+            StringBuilder instructions = new();
+            instructions.AppendLine("1. Register the wallet you will use for payment.");
+            instructions.AppendLine("2. Click the 'Subscribe' button to initiate the process.");
+            instructions.AppendLine("3. Send the requested amount from the wallet registered in Step 1.");
+            instructions.AppendLine("4. Enjoy our 100% AFK bot service!");
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Become a privileged member",
+                Description = instructions.ToString(),
+                Color = DiscordColor.Gold,
+                Footer = new() { Text = "Pro Payments" },
+                Timestamp = DateTime.UtcNow
+            };
+
+            return embed.Build();
+        }
 
         //public static DiscordEmbed CreateOrderFailureEmbed(string reason, string imageUrl)
         //{

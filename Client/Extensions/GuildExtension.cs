@@ -1,4 +1,5 @@
-﻿using DSharpPlus.Entities;
+﻿using DSharpPlus;
+using DSharpPlus.Entities;
 using ProPayments.Client.Helpers;
 using ProPayments.Client.Models;
 
@@ -46,18 +47,25 @@ namespace ProPayments.Client.Extensions
         {
             try
             {
-                var subscriptionMsgBuilder = ComponentHelper.CreateSubscriptionMessage();
-                var channel = guild.GetChannel(channelId);
-                var firstMessage = (await channel.GetMessagesAsync()).LastOrDefault();
+                var walletSubmissionButton = new DiscordButtonComponent(ButtonStyle.Success, "wallet_btn", "Payment Wallet 💳");
+                var subscribeButton = new DiscordButtonComponent(ButtonStyle.Primary, "subscribe_btn", "Subscribe 📝");
+                var planDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "plan_details_btn", "Plan Details 📋");
+                
+                var embed = EmbedHelper.CreateSubscriptionEmbed();
+                var message = new DiscordMessageBuilder()
+                    .WithEmbed(embed)
+                    .AddComponents(subscribeButton, walletSubmissionButton, planDetailsButton);
 
-                if (firstMessage == null)
+                var channel = guild.GetChannel(channelId);
+                var existingMessage = (await channel.GetMessagesAsync()).LastOrDefault();
+
+                if (existingMessage == null)
                 {
-                    var result = await channel.SendMessageAsync(subscriptionMsgBuilder);
+                    var result = await channel.SendMessageAsync(message);
                 }
                 else
                 {
-                    var existingMessage = await channel.GetMessageAsync(firstMessage.Id);
-                    await existingMessage.ModifyAsync(subscriptionMsgBuilder);
+                    await existingMessage.ModifyAsync(message);
                 }
                 return true;
             }
