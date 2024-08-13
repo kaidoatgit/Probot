@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Microsoft.VisualBasic;
 using ProPayments.Client.Models;
 
 namespace ProPayments.Client.Services.Managers;
@@ -8,26 +7,37 @@ public class CartManager
 {
     private readonly ConcurrentDictionary<ulong, Cart> _shoppingCarts = new();
 
-    public void InitCart(ulong messageId)
+    public ConcurrentDictionary<ulong, Cart> ShoppingCarts => _shoppingCarts;
+    public void InitCart(ulong cartId)
     {
-        _shoppingCarts.TryAdd(messageId, new Cart());
+        _shoppingCarts.TryAdd(cartId, new Cart());
     }
 
-    public List<CartItem>? GetItemsFromCart(ulong messageId)
+    public Cart? GetCart(ulong cartId)
     {
-        _shoppingCarts.TryGetValue(messageId, out var cart);
+        _shoppingCarts.TryGetValue(cartId, out var cart);
+        return cart;
+    }
+    public void RemoveCart(ulong id)
+    {
+        _shoppingCarts.TryRemove(id, out _);
+    }
+
+    public List<CartItem>? GetItemsFromCart(ulong cartId)
+    {
+        _shoppingCarts.TryGetValue(cartId, out var cart);
         return cart?.CartItems;
     }
 
-    public void AddItemToCart(ulong messageId, CartItem item)
+    public void AddItemToCart(ulong cartId, CartItem item)
     {
-        _shoppingCarts.TryGetValue(messageId, out var cart);
+        _shoppingCarts.TryGetValue(cartId, out var cart);
         cart?.CartItems.Add(item);
     }
 
-    public int GetMaxCartItemId(ulong messageId)
+    public int GetMaxCartItemId(ulong cartId)
     {
-        if (!_shoppingCarts.TryGetValue(messageId, out var cart) || !cart.CartItems.Any())
+        if (!_shoppingCarts.TryGetValue(cartId, out var cart) || !cart.CartItems.Any())
         {
             return 0; 
         }
@@ -35,18 +45,23 @@ public class CartManager
         return cart.CartItems.Max(item => item.ItemId);
     }
 
-    public Cart? GetCart(ulong messageId)
+
+    public bool RemoveItemFromCart(ulong cartId, int productId)
     {
-        _shoppingCarts.TryGetValue(messageId, out var cart);
-        return cart;
+        var cart = GetCart(cartId);
+        if(cart == null || !cart.CartItems.Any())
+        {   
+            return false;
+        }
+        
+        var cartItem = cart.CartItems.FirstOrDefault(ci => ci.ItemId == productId);
+        if(cartItem == null)
+        {
+            return false;
+        } 
+
+        cart.CartItems.Remove(cartItem);
+        return true;
     }
 
-    public void RemoveItemFromCart(ulong messageId, int productId)
-    {
-        var cart = GetCart(messageId);
-        if(cart != null && cart.CartItems.Any()){
-            var cartItem = cart.CartItems.First(ci => ci.ItemId == productId);
-            cart.CartItems.Remove(cartItem);
-        }
-    }
 }

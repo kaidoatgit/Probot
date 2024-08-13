@@ -8,7 +8,7 @@ namespace ProPayments.Client.Extensions
 {
     public static class InteractionHelper
     {
-        private const string _emptySpace = "ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ";
+        private const string _emptySpace = "ㅤ";
         public static async Task NotifyWithMessage(this DiscordInteraction interaction, string reason, bool defer = false, bool deleteMsg = false, TimeSpan? after = null)
         {
             if (defer)
@@ -49,12 +49,12 @@ namespace ProPayments.Client.Extensions
             StringBuilder description = new();
             description.AppendLine($"\u200B");
             description.Append("Cart is empty");
-            description.AppendLine(_emptySpace);
+            description.AppendLine(string.Concat(Enumerable.Repeat(_emptySpace, 23)));
             description.AppendLine($"\u200B");
 
             var msg = new DiscordMessageBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
-                      .WithTitle("🛒 Your Shopping Cart")
+                      .WithTitle("Shopping Cart")
                       .WithDescription(description.ToString())
                       .WithColor(DiscordColor.Gold)
                       .WithTimestamp(DateTimeOffset.UtcNow)
@@ -79,13 +79,13 @@ namespace ProPayments.Client.Extensions
             await interaction.CreateResponseAsync(InteractionResponseType.Modal, modal);
         }
 
-        public static async Task<string> NotifyWithItemRemovalModal(this DiscordInteraction interaction)
+        public static async Task<string> NotifyWithItemRemovalModal(this DiscordInteraction interaction, ulong messageId)
         {
             var walletInput = new TextInputComponent("Product ID", "cart_product_id", "Enter the product ID you wish to remove");
 
             var modal = new DiscordInteractionResponseBuilder()
                 .WithTitle("Remove Item")
-                .WithCustomId($"cart_item_removal_submission_modal")
+                .WithCustomId($"cart_item_removal_submission_modal_{messageId}")
                 .AddComponents(walletInput);
 
             await interaction.CreateResponseAsync(InteractionResponseType.Modal, modal);

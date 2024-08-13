@@ -60,7 +60,7 @@ namespace ProPayments.Client
         {
             _discordClient.UseInteractivity(new InteractivityConfiguration()
             {
-               //Timeout = TimeSpan.FromMinutes(2)
+               Timeout = TimeSpan.FromSeconds(60)
             });
             _discordClient.Ready += OnClientReady;
             _discordClient.ClientErrored += OnClientErrored;
@@ -177,12 +177,13 @@ namespace ProPayments.Client
 
         private async Task OnClientComponentInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
         {
-            Console.WriteLine($"args.message.id={args.Message.Id}");
+            DiscordMessage discordMessage = args.Message;
+            DiscordUser discordUser = args.User;
             switch (args.Id)
             {
                 case "subscribe_btn":
                     {
-                        var user = _userManager.GetUserFromMemory(args.User.Id);
+                        var user = _userManager.GetUserFromMemory(discordUser.Id);
                         if (user == null || string.IsNullOrWhiteSpace(user.WalletAddress))
                         {
                             await args.Interaction.NotifyWithMessage(MessageHelper.PaymentWalletNotFoundMessage, deleteMsg: true, after: TimeSpan.FromSeconds(5));
@@ -215,8 +216,8 @@ namespace ProPayments.Client
                         var selectedPlanId = args.Values.First();
 
                         var durationDropdown = GetDurationsPricesBasedOnPlanSelected(selectedPlanId);
-                        var components = args.Message.SetDropdownDefaultValue(args.Id, selectedPlanId, durationDropdown);
-                        var planMessageBuilder = args.Message.ReplaceComponents(components);
+                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedPlanId, durationDropdown);
+                        var planMessageBuilder = discordMessage.ReplaceComponents(components);
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
                             new DiscordInteractionResponseBuilder(planMessageBuilder));
@@ -227,8 +228,8 @@ namespace ProPayments.Client
                     {
                         var selectedDurationPrice = args.Values.First();
 
-                        var components = args.Message.SetDropdownDefaultValue(args.Id, selectedDurationPrice);
-                        var durationMessageBuilder = args.Message.ReplaceComponents(components);
+                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedDurationPrice);
+                        var durationMessageBuilder = discordMessage.ReplaceComponents(components);
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
                             new DiscordInteractionResponseBuilder(durationMessageBuilder));
@@ -237,13 +238,13 @@ namespace ProPayments.Client
 
                 case "add_item_cart_btn":
                 {
-                    var (planSelect, durationSelect) = args.Message.ParseComponentSelections();
+                    var (planSelect, durationSelect) = discordMessage.ParseComponentSelections();
                     var selectedPlan = planSelect?.Options.FirstOrDefault(o => o.Default);
                     var selectedDuration = durationSelect?.Options.FirstOrDefault(o => o.Default);
 
                     if (selectedPlan == null || selectedDuration == null)
                     {
-                        await args.Interaction.NotifyWithMessage(MessageHelper.MissingPlanOrDuration, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                        await args.Interaction.NotifyWithMessage(MessageHelper.MissingProductOrDuration, deleteMsg: true, after: TimeSpan.FromSeconds(5));
                     }
                     else
                     {
@@ -253,16 +254,16 @@ namespace ProPayments.Client
                         int selectedPeriod = int.Parse(selectedDuration.Value);
                         CartItem cartItem = new()
                         { 
-                            ItemId = _cartManager.GetMaxCartItemId(args.Message.Id) + 1,
+                            ItemId = _cartManager.GetMaxCartItemId(discordMessage.Id) + 1,
                             SelectedPlan = selectedPlan.Label,
                             SelectedDuration = selectedDuration.Label,
                             Price = plan.GetPrice(selectedPeriod),
                             PlanOptionId = plan.GetPlanOptionId(selectedPeriod)
                         };
-                        _cartManager.AddItemToCart(args.Message.Id, cartItem);
+                        _cartManager.AddItemToCart(discordMessage.Id, cartItem);
 
-                        var originalComponents = args.Message.Components;
-                        var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(args.Message.Id)!);
+                        var originalComponents = discordMessage.Components;
+                        var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(discordMessage.Id)!);
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
                             .AddEmbed(embed)
@@ -273,27 +274,38 @@ namespace ProPayments.Client
 
                 case "remove_item_cart_btn":
                 {
-                    Console.WriteLine("antes da modal");
-                    var modalCustomId = await args.Interaction.NotifyWithItemRemovalModal();
-                    var interactivity = _discordClient.GetInteractivity();
-                    var modal = await interactivity.WaitForModalAsync(modalCustomId);
-                    await modal.Result.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
-
-                    Console.WriteLine("depois da modal");
-                    var inputValue = modal.Result.Values.Values.First().Trim();
-                    if (int.TryParse(inputValue, out int productId))
+                    try
                     {
-                        _cartManager.RemoveItemFromCart(args.Message.Id, productId);
-                        var originalComponents = args.Message.Components;
-                        var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(args.Message.Id)!);
+                        var modalCustomId = await args.Interaction.NotifyWithItemRemovalModal(args.Interaction.Id);
+                        var interactivity = _discordClient.GetInteractivity();
+                        var modal = await interactivity.WaitForModalAsync(modalCustomId, discordUser);
+                        if(modal.TimedOut)
+                        {
+                            return;
+                        }
 
-                        // var msg = new DiscordMessageBuilder(){
-                        //     Embed = embed
-                        // }.AddComponents(originalComponents);
-                        await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
-                            .AddEmbed(embed)
-                            .AddComponents(originalComponents));
+                        await modal.Result.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
+                        Console.WriteLine($"Ja nao estou: discordMessage.id={discordMessage.Id}");
+
+                        var inputValue = modal.Result.Values.Values.First().Trim();
+                        if (int.TryParse(inputValue, out int productId))
+                        {
+                            var successfullyRemoved = _cartManager.RemoveItemFromCart(discordMessage.Id, productId);
+                            if(successfullyRemoved)
+                            {
+                                var originalComponents = discordMessage.Components;
+                                var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(discordMessage.Id)!);
+
+                                await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
+                                    .AddEmbed(embed)
+                                    .AddComponents(originalComponents));
+                            }
+                        }
                     }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message + ex.StackTrace + ex.InnerException);
+                    } 
                     break;
                 }
 
@@ -301,27 +313,30 @@ namespace ProPayments.Client
                     {
                         try
                         {
-                            if(!_cartManager.GetCart(args.Message.Id)!.CartItems.Any())
+                            if(!_cartManager.GetCart(discordMessage.Id)!.CartItems.Any())
                             {
                                 await args.Interaction.NotifyWithMessage(MessageHelper.CartIsEmpty, deleteMsg: true, after: TimeSpan.FromSeconds(5));
                                 return;
                             }
-                            await args.Interaction.DeferAsync(true);
-                            DiscordUser user = args.User;
-                            Cart cart = _cartManager.GetCart(args.Message.Id)!;
+                            Console.WriteLine($"Total carts: {_cartManager.ShoppingCarts.Count()}");
 
-                            var order = await _orderManager.CreateOrderAsync(user.Id, cart);
-                            order.Interaction = new(args.Message.Id, args.Interaction);
+                            await args.Interaction.DeferAsync(true);
+                            Cart cart = _cartManager.GetCart(discordMessage.Id)!;
+                            var order = await _orderManager.CreateOrderAsync(discordUser.Id, cart);
+                            order.Interaction = new(discordMessage.Id, args.Interaction);
                             _orderManager.AddOrder(order);
-                            await args.Interaction.NotifyUserToSendPayment(order);   
+                            await args.Interaction.NotifyUserToSendPayment(order);
+                            _cartManager.RemoveCart(discordMessage.Id);
+
+                            Console.WriteLine($"Total carts: {_cartManager.ShoppingCarts.Count()}");
                         }
                         catch (OrderException)
                         {
-                            await args.Interaction.NotifyWithServerError(args.Message.Id);
+                            await args.Interaction.NotifyWithServerError(discordMessage.Id);
                         }
                         catch (Exception ex)
                         {
-                            await args.Interaction.NotifyWithServerError(args.Message.Id);
+                            await args.Interaction.NotifyWithServerError(discordMessage.Id);
                             Console.WriteLine(ex.Message);
                         }
                         break;
@@ -331,7 +346,6 @@ namespace ProPayments.Client
 
         private async Task OnClientModalSubmitted(DiscordClient sender, ModalSubmitEventArgs args)
         {
-            Console.WriteLine("entrei");
             if (args.Interaction.Type == InteractionType.ModalSubmit)
             {
                 switch (args.Interaction.Data.CustomId)

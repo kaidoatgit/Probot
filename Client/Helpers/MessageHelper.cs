@@ -6,7 +6,7 @@ namespace ProPayments.Client.Helpers
     {
         public static readonly string PaymentWalletNotFoundMessage = "Payment wallet not found.";
 
-        public static readonly string MissingPlanOrDuration = "You need to select both a role and a month before subscribing.";
+        public static readonly string MissingProductOrDuration = "You need to select a product and a duration before subscribing.";
 
         public static readonly string CartIsEmpty = "The cart is empty. To confirm your order, you must have at least 1 product.";
 

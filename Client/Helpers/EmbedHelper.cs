@@ -100,7 +100,7 @@ namespace ProPayments.Client.Helpers
 
             var embed = new DiscordEmbedBuilder
             {
-                Title = $"🛒 Your Shopping Cart",
+                Title = $"Shopping Cart",
                 Description = description.ToString(),
                 Color = DiscordColor.Gold,
                 Footer = new() { Text = "Pro Payments" },
