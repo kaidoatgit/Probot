@@ -1,28 +1,28 @@
 ﻿using Microsoft.AspNetCore.Http;
 using ProPayments.Client.Clients.ProPayments.Dtos;
-using ProPayments.Client.Dtos.Plan.Request;
-using ProPayments.Client.Dtos.Plan.Response;
+using ProPayments.Client.Dtos.Product.Request;
+using ProPayments.Client.Dtos.Product.Response;
 using System.Net.Http.Json;
 
 namespace ProPayments.Client.Clients.ProPayments
 {
-    public class PlanClient
+    public class ProductClient
     {
         private readonly HttpClient _httpClient;
-        public PlanClient(HttpClient client)
+        public ProductClient(HttpClient client)
         {
             _httpClient = client;
         }
 
-        public async Task<ApiResponse<IEnumerable<PlanWithOptionsResponse>>> GetPlansWithOptionsAsync()
+        public async Task<ApiResponse<IEnumerable<ProductWithOptionsResponse>>> GetProductsWithOptionsAsync()
         {
-            ApiResponse<IEnumerable<PlanWithOptionsResponse>> apiResponse = new();
+            ApiResponse<IEnumerable<ProductWithOptionsResponse>> apiResponse = new();
             try
             {
                 var response = await _httpClient.GetAsync("with_options");
                 if (response.IsSuccessStatusCode)
                 {
-                    apiResponse.Data = await response.Content.ReadFromJsonAsync<IEnumerable<PlanWithOptionsResponse>>();
+                    apiResponse.Data = await response.Content.ReadFromJsonAsync<IEnumerable<ProductWithOptionsResponse>>();
                 }
                 else
                 {
@@ -37,19 +37,19 @@ namespace ProPayments.Client.Clients.ProPayments
                         apiResponse.StatusCode = (int)response.StatusCode;
                         apiResponse.ErrorMessage = response.ReasonPhrase;
                     }
-                    Console.WriteLine($"[GetPlansWithOptionsAsync] {apiResponse.ErrorMessage}");
+                    Console.WriteLine($"[GetProductsWithOptionsAsync] {apiResponse.ErrorMessage}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetPlansWithOptionsAsync] {ex.Message}");
+                Console.WriteLine($"[GetProductsWithOptionsAsync] {ex.Message}");
                 apiResponse.ErrorMessage = ex.Message;
                 apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
             }
             return apiResponse;
         }
-
-        public async Task<bool> UpdatePlansRoleIdAsync(IEnumerable<UpdatePlanRoleIdRequest> updateRequest)
+        
+        public async Task<bool> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> updateRequest)
         {
             bool apiResponse;
             try
@@ -61,13 +61,13 @@ namespace ProPayments.Client.Clients.ProPayments
                 }
                 else
                 {
-                    Console.WriteLine($"[UpdatePlansRoleIdAsync] {response.ReasonPhrase}");
+                    Console.WriteLine($"[UpdateProductsRoleIdAsync] {response.ReasonPhrase}");
                     apiResponse = false;
                 }
             }
             catch (Exception ex)
             {
-                string message = $"[UpdatePlansRoleIdAsync] Server Error: {ex.Message}";
+                string message = $"[UpdateProductsRoleIdAsync] Server Error: {ex.Message}";
                 Console.WriteLine(message);
                 apiResponse = false;
             }

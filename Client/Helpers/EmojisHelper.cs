@@ -17,5 +17,8 @@
         public const string Bell = "🔔";
         public const string Reload = "🔄";
         public const string QuestionMark = "❓";
+        public const string WhiteCheckMark = "✅";
+        public const string Key = "🔑";
+        public const string Robot = "🤖";
     }
 }

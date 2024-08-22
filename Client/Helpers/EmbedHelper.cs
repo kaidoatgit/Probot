@@ -9,30 +9,31 @@ namespace ProPayments.Client.Helpers
     {
         private const string successImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1259290567586611321/order_success.webp?ex=668b253b&is=6689d3bb&hm=e28adeb3921b55b82a540207b43f9d7044cd6fb7be7fd36fae1c8c8b9229e450&";
 
-        public static DiscordEmbed CreatePlanDetailsEmbed(List<Plan> Plans)
+        public static DiscordEmbed CreateProductDetailsEmbed(List<Product> Products)
         {
             var embed = new DiscordEmbedBuilder
             {
-                Title = "Plan Details",
+                Title = "Product Details",
                 Color = DiscordColor.Gold,
                 Footer = new() { Text = "Pro Payments" },
                 Timestamp = DateTime.UtcNow
             };
 
-            //Determine maximum lengths for Duration and PriceUSD columns across all plans
-            int maxDurationLength = Plans
-               .SelectMany(p => p.PlanOptions.Select(pd => pd.PeriodDescription.Length))
+            //Determine maximum lengths for Duration and PriceUSD columns across all products
+            int maxDurationLength = Products
+               .SelectMany(p => p.ProductOptions.Select(pd => pd.PeriodDescription.Length))
                .Max();
-            int maxPriceLength = Plans
-                .SelectMany(p => p.PlanOptions.Select(pd => pd.Price.ToString("0.00").Length + 1)) // +1 for '$' symbol
+            int maxPriceLength = Products
+                .SelectMany(p => p.ProductOptions.Select(pd => pd.Price.ToString("0.00").Length + 1)) // +1 for '$' symbol
             .Max();
 
-            foreach (var plan in Plans)
+            StringBuilder description = new();
+            foreach (var product in Products)
             {
-                var planDetails = plan.PlanOptions;
+                var productDetails = product.ProductOptions;
 
-                StringBuilder description = new();
-
+                description.AppendLine($"<@&{product.RoleId}>");
+                description.Append("```");
                 // Calculate the necessary spaces for Duration and PriceUSD headers
                 string durationHeader = "Duration";
                 string priceHeader = "PriceUSD";
@@ -43,10 +44,10 @@ namespace ProPayments.Client.Helpers
                 string headerLine = $"{durationHeader}{new string(' ', spacesForDuration)}\t{priceHeader}";
                 description.AppendLine(headerLine);
 
-                foreach (var planDetail in planDetails)
+                foreach (var productDetail in productDetails)
                 {
-                    string duration = planDetail.PeriodDescription;
-                    string price = planDetail.Price.ToString("0.00");
+                    string duration = productDetail.PeriodDescription;
+                    string price = productDetail.Price.ToString("0.00");
 
                     // Calculate spaces for Duration and PriceUSD columns
                     string spacesForDurationValue = new string(' ', Math.Max(0, maxDurationLength - duration.Length + 2));
@@ -54,19 +55,21 @@ namespace ProPayments.Client.Helpers
                     // Append the formatted line to the description
                     description.AppendLine($"{duration}{spacesForDurationValue}\t{price}$");
                 }
+                description.Append("```");
 
                 // Add the formatted description to the Discord embed field
-                embed.AddField("\u200B", $"**Plan**: <@&{plan.RoleId}>\n```{description}```");
+                // embed.AddField("\u200B", $"<@&{product.RoleId}>\n```{description}```");
             }
+            embed.Description = description.ToString();
             return embed.Build();
         }
 
-        public static DiscordEmbed CreateFreePlanEmbed(DateTime startDate, DateTime endDate, ulong? plan)
+        public static DiscordEmbed CreateFreeProductEmbed(DateTime startDate, DateTime endDate, ulong? product)
         {
             var embed = new DiscordEmbedBuilder
             {
                 Title = $"Order Completed",
-                Description = $"Your order for the **<@&{plan}>** plan has been completed successfully! {EmojisHelper.Tada}",
+                Description = $"Your order for the **<@&{product}>** product has been completed successfully! {EmojisHelper.Tada}",
                 Color = DiscordColor.Green,
                 Footer = new() { Text = $"Enjoy your testing phase! {EmojisHelper.Smile}" },
                 Timestamp = DateTime.UtcNow
@@ -120,7 +123,7 @@ namespace ProPayments.Client.Helpers
             foreach (var invoiceItem in invoice.InvoiceItems)
             {
                 description.AppendLine(invoiceItem.ToString());
-                total+=invoiceItem.PlanOptionPrice;
+                total+=invoiceItem.ProductOptionPrice;
             }
 
             description.AppendLine("------------------------------------------------");
@@ -138,7 +141,7 @@ namespace ProPayments.Client.Helpers
             };
 
             StringBuilder details = new();
-            details.AppendLine("🔑\u2000|\u2000Your wallet:");
+            details.AppendLine($"{EmojisHelper.Key}\u2000|\u2000Your wallet:");
             details.AppendLine($"```{invoice.PaymentAddress}```");
             details.AppendLine("📬\u2000|\u2000Send to:");
             details.AppendLine($"```{invoice.RecipientAddress}```");
@@ -151,28 +154,32 @@ namespace ProPayments.Client.Helpers
             return embed.Build();
         }
 
-        public static DiscordEmbed CreatePaidPlanEmbed(DateTime startDate, DateTime endDate, ulong plan)
+        public static DiscordEmbed CreatePaidProductEmbed(int totalProductKeys, DiscordChannel? channel = null)
         {
+            StringBuilder description = new();
+            description.AppendLine($"**{totalProductKeys}** Product Key{(totalProductKeys > 1 ? "s" : "")} have been acquired.");
+            if(channel != null)
+            {
+                description.AppendLine($"Use command: `/product-keys`  in {channel.Mention} to view all purchased keys details.");
+            }
+
             var embed = new DiscordEmbedBuilder
             {
-                Title = $"Order Completed",
-                Description = $"Your order for the **<@&{plan}>** plan has been completed successfully! {EmojisHelper.Tada}",
+                Title = $"Order Completed {EmojisHelper.Tada}",
+                Description = description.ToString(),
                 Color = DiscordColor.Gold,
                 Footer = new() { Text = $"Thank you for your purchase! {EmojisHelper.Pray}" },
                 Timestamp = DateTime.UtcNow
             };
-
-            embed.AddField($"{EmojisHelper.Calendar_Spiral} Start Date", $"<t:{((DateTimeOffset)startDate).ToUnixTimeSeconds()}:D>", true);
-            embed.AddField($"{EmojisHelper.Calendar_Spiral} End Date", $"<t:{((DateTimeOffset)endDate).ToUnixTimeSeconds()}:D>", true);
             embed.WithImageUrl(successImageUrl);
 
             return embed.Build();
         }
         
-        public static DiscordEmbed CreatePaidPlanEmbed(ulong plan)
+        public static DiscordEmbed CreatePaidProductEmbed(ulong product)
         {
             StringBuilder description = new();
-            description.AppendLine($"Your order for the **<@&{plan}>** plan has been completed successfully! {EmojisHelper.Tada}");
+            description.AppendLine($"Your order for the **<@&{product}>** product has been completed successfully! {EmojisHelper.Tada}");
             description.AppendLine($"Thank you for your purchase! {EmojisHelper.Pray}");
             var embed = new DiscordEmbedBuilder
             {
@@ -225,19 +232,19 @@ namespace ProPayments.Client.Helpers
             return embed.Build();
         }
 
-        public static DiscordEmbed CreatePlanAlreadyUsedEmbed()
+        public static DiscordEmbed CreateProductAlreadyUsedEmbed()
         {
             StringBuilder description = new();
             description.AppendLine($"\u200B");
-            description.AppendLine($"To continue enjoying our services, please upgrade to one of our paid plans.");
-            description.AppendLine($"Don't miss out on the exclusive benefits that come with our subscription plans!");
+            description.AppendLine($"To continue enjoying our services, please upgrade to one of our paid products.");
+            description.AppendLine($"Don't miss out on the exclusive benefits that come with our subscription products!");
             description.AppendLine($"\u200B");
             description.AppendLine($"{EmojisHelper.QuestionMark} Need help or have questions? Contact our support team anytime.");
             description.AppendLine($"\u200B");
 
             var embed = new DiscordEmbedBuilder
             {
-                Title = $"{EmojisHelper.Bell} Free Plan Already Used",
+                Title = $"{EmojisHelper.Bell} Free Product Already Used",
                 Description = description.ToString(),
                 Color = DiscordColor.Orange,
                 Footer = new() { Text = "Pro Payments" },
@@ -251,18 +258,24 @@ namespace ProPayments.Client.Helpers
         {
             StringBuilder description = new();
             description.AppendLine();
-            description.AppendLine("`/add-key`");
-            description.AppendLine("__Add__ or __update__ your Alphabot API key to enable raffle automation.");
+            description.AppendLine("`/product-keys`");
+            description.AppendLine("List all product keys and respective details.");
             description.AppendLine();
-            description.AppendLine("`/status`");
-            description.AppendLine("Displays your current API key and indicates whether the raffle automation bot is running.");
+            description.AppendLine("`/activate-key`");
+            description.AppendLine("Activate a product key by associating it with your Alphabot API key. Once activated, Pro Raffle automation will be enabled automatically.");
+            description.AppendLine();
+            description.AppendLine("`/update-alphabot-key`");
+            description.AppendLine("Replace the current alphabot key with a new one.");
+            description.AppendLine();
+            description.AppendLine("`/bot-status`");
+            description.AppendLine("Displays your settings for each API key and indicates if Pro Raffle is running");
 
             var embed = new DiscordEmbedBuilder
             {
                 Title = $"Commands info",
                 Description = description.ToString(),
                 Color = DiscordColor.Orange,
-                Footer = new() { Text = "Pro Payments" },
+                Footer = new() { Text = "Pro Raffles" },
                 Timestamp = DateTime.UtcNow
             };
 
@@ -285,6 +298,49 @@ namespace ProPayments.Client.Helpers
                 Footer = new() { Text = "Pro Payments" },
                 Timestamp = DateTime.UtcNow
             };
+
+            return embed.Build();
+        }
+
+        public static DiscordEmbed CreateActivationCodeEmbed(ProductKey productKey, string alphabotKey)
+        {
+            var description = new StringBuilder();
+            description.Append($"🎟️ Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
+            description.AppendLine($"```{productKey.Code}```");
+            description.Append($"{EmojisHelper.Key} Key");
+            description.AppendLine($"```{alphabotKey}```");
+            description.AppendLine($"Are you sure you want to __create__ or __extend__ your ProRaffle subscription with this product code and key{EmojisHelper.QuestionMark}");
+            description.AppendLine($"\u200B");
+            description.AppendLine("**Note: this action is irreversible.**");
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Description = description.ToString(),
+                Color = DiscordColor.Gold
+            };
+
+            return embed.Build();
+        }
+
+        public static DiscordEmbed CreateActivationCodeResultEmbed(ProductKey productKey, Subscription subscription, string alphabotKey)
+        {
+            var description = new StringBuilder();
+            description.Append($"🎟️ Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
+            description.AppendLine($"```{subscription.Code}```");
+            description.Append($"{EmojisHelper.Key} Key");
+            description.AppendLine($"```{alphabotKey}```\u200B");
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Description = description.ToString(),
+                Color = DiscordColor.Gold
+            };
+
+            embed.Description = description.ToString();
+            embed.Color = DiscordColor.Green;
+            embed.AddField($"{EmojisHelper.Calendar_Spiral} Start Date", $"<t:{((DateTimeOffset)subscription.StartDate).ToUnixTimeSeconds()}:D>", true);
+            embed.AddField($"{EmojisHelper.Calendar_Spiral} End Date", $"<t:{((DateTimeOffset)subscription.EndDate).ToUnixTimeSeconds()}:D>", true);
+            embed.AddField($"\u200B", $"Use command: `/bot-status` to view Pro raffle details of each Alphabot Key.");
 
             return embed.Build();
         }

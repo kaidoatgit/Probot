@@ -14,7 +14,7 @@ namespace ProPayments.Client.Clients.ProPayments
             _httpClient = client;
         }
 
-        public async Task<ApiResponse<OrderResponse>> RegisterOrderAsync(OrderRequest request)
+        public async Task<ApiResponse<OrderResponse>> CreateOrderAsync(OrderRequest request)
         {
             ApiResponse<OrderResponse> apiResponse = new();
             try

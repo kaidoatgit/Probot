@@ -38,17 +38,17 @@ namespace ProPayments.Client.Models
             return stringBuilder.ToString();
         }
 
-        public void RemoveSubscription(ulong subscriptionPlanRoleId)
+        public void RemoveSubscription(ulong subscriptionProductRoleId)
         {
             if (Subscriptions != null)
             {
-                Subscriptions.RemoveAll(s => s.PlanRoleId == subscriptionPlanRoleId);
+                Subscriptions.RemoveAll(s => s.ProductRoleId == subscriptionProductRoleId);
             }
         }
 
         public void AddOrUpdateSubscription(Subscription subscription)
         {
-            var existingSubscription = Subscriptions.FirstOrDefault(s => s.PlanRoleId == subscription.PlanRoleId);
+            var existingSubscription = Subscriptions.FirstOrDefault(s => s.ProductRoleId == subscription.ProductRoleId);
             if (existingSubscription != null)
             {
                 var index = Subscriptions.IndexOf(existingSubscription);

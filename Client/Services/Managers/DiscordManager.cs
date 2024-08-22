@@ -20,7 +20,7 @@ namespace ProPayments.Client.Services.Managers
 
                 foreach (var subscription in subscriptions)
                 {
-                    if (roles.TryGetValue(subscription.PlanRoleId, out var role))
+                    if (roles.TryGetValue(subscription.ProductRoleId, out var role))
                     {
                         if (!member.Roles.Contains(role))
                         {

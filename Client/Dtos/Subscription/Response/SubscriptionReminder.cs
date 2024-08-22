@@ -6,7 +6,7 @@ namespace ProPayments.Client.Dtos.Subscription.Response
     {
         public ulong UserId { get; set; }
         public string? Username { get; set; }
-        public ulong PlanRoleId { get; set; }
+        public ulong ProductRoleId { get; set; }
         public bool IsToNotifyUser { get; set; }
         public bool IsSubscriptionActive { get; set; }
         public DateTimeOffset SubscriptionEndDate { get; set; }

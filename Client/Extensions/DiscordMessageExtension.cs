@@ -47,11 +47,11 @@ namespace ProPayments.Client.Extensions
             return discordComponents;
         }
 
-        public static (DiscordSelectComponent? planSelect, DiscordSelectComponent? durationSelect) ParseComponentSelections(this DiscordMessage message)
+        public static (DiscordSelectComponent? productSelect, DiscordSelectComponent? durationSelect) ParseComponentSelections(this DiscordMessage message)
         {
             var components = message.Components;
 
-            var planSelect = components.OfType<DiscordActionRowComponent>()
+            var productSelect = components.OfType<DiscordActionRowComponent>()
                 .SelectMany(row => row.Components)
                 .OfType<DiscordSelectComponent>()
                 .FirstOrDefault(c => c.CustomId.StartsWith("product_selection_menu"));
@@ -61,7 +61,7 @@ namespace ProPayments.Client.Extensions
                 .OfType<DiscordSelectComponent>()
                 .FirstOrDefault(c => c.CustomId.StartsWith("duration_selection_menu"));
 
-            return (planSelect, durationSelect);
+            return (productSelect, durationSelect);
         }
 
         private static DiscordSelectComponent SetDefaultValue(this DiscordSelectComponent dropdown, string selectedValue)

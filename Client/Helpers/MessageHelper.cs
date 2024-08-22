@@ -8,14 +8,14 @@ namespace ProPayments.Client.Helpers
 
         public static readonly string MissingProductOrDuration = "You need to select a product and a duration before subscribing.";
 
-        public static readonly string CartIsEmpty = "The cart is empty. To confirm your order, you must have at least 1 product.";
+        public static readonly string CartIsEmpty = "The cart is empty. To confirm your order, you must have at least 1 item.";
 
         public static string GenericErrorMessage()
         {
             DateTimeOffset tryLater = DateTimeOffset.UtcNow.AddMinutes(5);
             StringBuilder errorMessage = new();
 
-            errorMessage.AppendLine($"We're sorry, but we are currently unable to complete your request due to server issues. Please try again <t:{tryLater.ToUnixTimeSeconds()}:R>.");
+            errorMessage.AppendLine($"We're sorry, but we are currently unable to complete your request. Please try again <t:{tryLater.ToUnixTimeSeconds()}:R>.");
             errorMessage.AppendLine();
             errorMessage.AppendLine("If the problem persists, contact our support team for assistance. We apologize for the inconvenience.");
 

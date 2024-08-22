@@ -16,18 +16,18 @@ namespace ProPayments.Client.Models
 
     public class InvoiceItem
     {
-        public PlanType PlanType { get; set; }
-        public ulong PlanRoleId { get; set; }
-        public decimal PlanOptionPrice { get; set; }
-        public int PlanOptionPeriod { get; set; }
+        public ProductName ProductName { get; set; }
+        public ulong ProductRoleId { get; set; }
+        public decimal ProductOptionPrice { get; set; }
+        public int ProductOptionPeriod { get; set; }
         public string PeriodDescription { get; set; } = string.Empty;
 
         public override string ToString()
         {
             StringBuilder invoiceItem = new();
-            invoiceItem.Append($"{PlanType.ToString().PadRight(22)}| ");
+            invoiceItem.Append($"{ProductName.ToString().PadRight(22)}| ");
             invoiceItem.Append($"{PeriodDescription.PadRight(14)}| ");
-            invoiceItem.Append($"${PlanOptionPrice.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture).PadRight(8)}");
+            invoiceItem.Append($"${ProductOptionPrice.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture).PadRight(8)}");
             return invoiceItem.ToString();
         }
     }

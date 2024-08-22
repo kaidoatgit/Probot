@@ -1,6 +1,6 @@
 ﻿namespace ProPayments.Client.Models
 {
-    public class PlanOption
+    public class ProductOption
     {
         public int Id { get; set; }
         public decimal Price { get; set; }

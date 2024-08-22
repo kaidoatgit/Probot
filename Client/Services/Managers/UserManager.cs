@@ -137,11 +137,11 @@ namespace ProPayments.Client.Services.Managers
             return user;
         }
 
-        public void RemoveSubscriptionForUser(ulong userId, ulong subscriptionPlanRoleId)
+        public void RemoveSubscriptionForUser(ulong userId, ulong subscriptionProductRoleId)
         {
             var user = GetUserFromMemory(userId);
             Console.WriteLine("Before Removing:\n" + user?.ToString());
-            user?.RemoveSubscription(subscriptionPlanRoleId);
+            user?.RemoveSubscription(subscriptionProductRoleId);
             Console.WriteLine("After Removing\n" + user?.ToString());
         }
 

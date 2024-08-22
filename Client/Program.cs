@@ -4,7 +4,6 @@ using ProPayments.Client.Clients.ProPayments;
 using ProPayments.Client.Configs;
 using ProPayments.Client.Mappers;
 using ProPayments.Client.Services.Managers;
-using ProPayments.Client.Services.Services;
 
 namespace ProPayments.Client
 {
@@ -44,17 +43,16 @@ namespace ProPayments.Client
             var services = new ServiceCollection();
             services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
             services.AddHttpClient<UserClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/users/"); });
-            services.AddHttpClient<PlanClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/plans/"); });
+            services.AddHttpClient<ProductClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/products/"); });
             services.AddHttpClient<OrderClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/orders/"); });
-            services.AddHttpClient<SubscriptionClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/subscriptions/"); });
+            services.AddHttpClient<ProRaffleClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/pro_raffles/"); });
             services.AddSingleton<CancelationTokenManager>();
             services.AddSingleton<DiscordManager>();
             services.AddSingleton<OrderManager>();
-            services.AddSingleton<PlanManager>();
+            services.AddSingleton<ProductManager>();
             services.AddSingleton<UserManager>();
             services.AddSingleton<CartManager>();
             services.AddSingleton<Mapper>();
-            services.AddSingleton<SubscriptionService>();
             services.AddSingleton<HubManager>();
             //services.AddSingleton(provider =>
             //{

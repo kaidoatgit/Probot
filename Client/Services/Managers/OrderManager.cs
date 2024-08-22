@@ -3,7 +3,6 @@ using ProPayments.Client.Dtos.Order.Request;
 using ProPayments.Client.Exceptions;
 using ProPayments.Client.Mappers;
 using ProPayments.Client.Models;
-using ProPayments.Client.Models.Enums;
 using System.Collections.Concurrent;
 
 namespace ProPayments.Client.Services.Managers
@@ -22,14 +21,14 @@ namespace ProPayments.Client.Services.Managers
             Console.WriteLine("Order Manager created");
         }
 
-        public async Task<Order> CreateOrderAsync(ulong userId, Cart cart)
+        public async Task<Order> CreateOrderAsync(ulong userId, Cart? cart)
         {
             var orderRequest = new OrderRequest
             {
                 UserId = userId,
-                PlanOptionsId = cart.CartItems.Select(ci => ci.PlanOptionId).ToList()
+                ProductOptionsId = cart!.CartItems.Select(ci => ci.ProductOptionId).ToList()
             };
-            var apiResponse = await _orderClient.RegisterOrderAsync(orderRequest);
+            var apiResponse = await _orderClient.CreateOrderAsync(orderRequest);
             if (apiResponse.Data == null || apiResponse.Data.Invoice == null)
             {
                 throw new OrderException(apiResponse.StatusCode, string.Empty);

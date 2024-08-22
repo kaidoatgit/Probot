@@ -1,5 +1,4 @@
-﻿using DSharpPlus;
-using DSharpPlus.Entities;
+﻿using DSharpPlus.Entities;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
 using ProPayments.Client.Configs;
@@ -9,7 +8,6 @@ using ProPayments.Client.Extensions;
 using ProPayments.Client.Helpers;
 using ProPayments.Client.Mappers;
 using ProPayments.Client.Models.Enums;
-using System;
 
 namespace ProPayments.Client.Services.Managers
 {
@@ -85,25 +83,28 @@ namespace ProPayments.Client.Services.Managers
                 {
                     case OrderStatus.Expired:
                         {
-                            await discordInteraction.DeleteFollowupMessageAsync(orderInteraction.FollowUpMessageId);
+                            await discordInteraction.DeleteFollowupMessageAsync(orderInteraction.MessageId);
                             Console.WriteLine($"[Expired] Order: {order.Id}");
                             break;
                         }
                     case OrderStatus.DbError:
                         {
                             //informar ao utilizador que a transação foi confirmada mas existiu erro na DB
-                            await discordInteraction.DeleteFollowupMessageAsync(orderInteraction.FollowUpMessageId);
+                            await discordInteraction.DeleteFollowupMessageAsync(orderInteraction.MessageId);
                             Console.WriteLine($"[DbError] Order: {order.Id}");
                             break;
                         }
                     case OrderStatus.Completed:
                         {
-                            var subscription = _mapper.MapToSubscription(orderResult.Subscription!);
-                            await discordInteraction.NotifyWithPaidSubscription(orderInteraction.FollowUpMessageId, subscription);
-                            await guild.NotifyOnSubscriptionAlertChannel(_appSettings.NotificationChannelId, subscription);
+                            ulong userId = orderResult.UserId;
+                            int totalProductKeys = orderResult.TotalProductKeys;
+                            var guildRoles = guild.Roles;
+                            DiscordMember member = (DiscordMember)discordInteraction.User;
 
-                            _userManager.AddOrUpdateSubscriptionForUser(order.User!.Id, subscription);
-                            await guild.GrantRoleAsync(discordInteraction.User, subscription.PlanRoleId);
+                            await discordInteraction.NotifyWithPaidSubscription(orderInteraction.MessageId, _appSettings.BotChannelId, totalProductKeys);
+                            await guild.NotifyOnSubscriptionAlertChannel(_appSettings.NotificationChannelId, userId, totalProductKeys);
+                            Console.WriteLine($"Total product roles: {orderResult.ProductRoleIds.Count}");
+                            await member.AddRolesAsync(guildRoles, orderResult.ProductRoleIds);
                             Console.WriteLine($"[Completed] Order: {order.Id}");
                             break;
                         }
@@ -141,7 +142,7 @@ namespace ProPayments.Client.Services.Managers
                 }
                 else
                 {
-                    var role = guild.GetRole(subscriptionReminder.PlanRoleId);
+                    var role = guild.GetRole(subscriptionReminder.ProductRoleId);
                     if (subscriptionReminder.IsToNotifyUser)
                     {
                         var message = new DiscordMessageBuilder()
@@ -165,7 +166,7 @@ namespace ProPayments.Client.Services.Managers
             {
                 if (!subscriptionReminder.IsSubscriptionActive)
                 {
-                    _userManager.RemoveSubscriptionForUser(subscriptionReminder.UserId, subscriptionReminder.PlanRoleId);
+                    _userManager.RemoveSubscriptionForUser(subscriptionReminder.UserId, subscriptionReminder.ProductRoleId);
                 }
             }
         }

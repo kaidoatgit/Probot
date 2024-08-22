@@ -46,7 +46,7 @@ public class CartManager
     }
 
 
-    public bool RemoveItemFromCart(ulong cartId, int productId)
+    public bool RemoveItemFromCart(ulong cartId, int itemId)
     {
         var cart = GetCart(cartId);
         if(cart == null || !cart.CartItems.Any())
@@ -54,7 +54,7 @@ public class CartManager
             return false;
         }
         
-        var cartItem = cart.CartItems.FirstOrDefault(ci => ci.ItemId == productId);
+        var cartItem = cart.CartItems.FirstOrDefault(ci => ci.ItemId == itemId);
         if(cartItem == null)
         {
             return false;

@@ -36,15 +36,15 @@ namespace ProPayments.Client.Extensions
             }
         }
 
-        public static async Task NotifyWithSubscribeOptions(this DiscordInteraction interaction, List<Plan> plans)
+        public static async Task NotifyWithSubscribeOptions(this DiscordInteraction interaction, List<Product> products)
         {
-            var planOptions = plans
-               .Select(p => new DiscordSelectComponentOption(p.Type.ToString(), p.RoleId.ToString()))
+            var productOptions = products
+               .Select(p => new DiscordSelectComponentOption(p.Name.ToString(), p.RoleId.ToString()))
                .AsEnumerable();
-            var planDropdown = new DiscordSelectComponent("product_selection_menu", "Select a subscription role", planOptions);
+            var productDropdown = new DiscordSelectComponent("product_selection_menu", "Select a subscription role", productOptions);
             var addItemButton = new DiscordButtonComponent(ButtonStyle.Primary, "add_item_cart_btn", "Add Items 🛒");
             var removeItemButton = new DiscordButtonComponent(ButtonStyle.Danger, "remove_item_cart_btn", "Remove Items 🗑️");
-            var confirmButton = new DiscordButtonComponent(ButtonStyle.Success, "confirm_cart_btn", "Confirm ✅");
+            var confirmButton = new DiscordButtonComponent(ButtonStyle.Success, "confirm_cart_btn", $"Confirm {EmojisHelper.WhiteCheckMark}");
 
             StringBuilder description = new();
             description.AppendLine($"\u200B");
@@ -59,7 +59,7 @@ namespace ProPayments.Client.Extensions
                       .WithColor(DiscordColor.Gold)
                       .WithTimestamp(DateTimeOffset.UtcNow)
                       .WithFooter(text: "Pro Payments"))
-                .AddComponents(planDropdown)
+                .AddComponents(productDropdown)
                 .AddComponents(addItemButton, removeItemButton, confirmButton);
 
             await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
@@ -81,7 +81,7 @@ namespace ProPayments.Client.Extensions
 
         public static async Task<string> NotifyWithItemRemovalModal(this DiscordInteraction interaction, ulong messageId)
         {
-            var walletInput = new TextInputComponent("Product ID", "cart_product_id", "Enter the product ID you wish to remove");
+            var walletInput = new TextInputComponent("Item ID", "cart_item_id", "Enter the item ID you wish to remove");
 
             var modal = new DiscordInteractionResponseBuilder()
                 .WithTitle("Remove Item")
@@ -92,56 +92,64 @@ namespace ProPayments.Client.Extensions
             return modal.CustomId;
         }
 
-        public static async Task NotifyWithPlanDetails(this DiscordInteraction interaction, List<Plan> plans)
+        public static async Task NotifyWithProductDetails(this DiscordInteraction interaction, List<Product> products)
         {
-            var embed = EmbedHelper.CreatePlanDetailsEmbed(plans);
-            var planMessageBuilder = new DiscordMessageBuilder()
+            var embed = EmbedHelper.CreateProductDetailsEmbed(products);
+            var productMessageBuilder = new DiscordMessageBuilder()
                 .AddEmbed(embed);
 
             await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
-                new DiscordInteractionResponseBuilder(planMessageBuilder).AsEphemeral(true));
+                new DiscordInteractionResponseBuilder(productMessageBuilder).AsEphemeral(true));
         }
 
         public static async Task NotifyWithFreeSubscription(this DiscordInteraction interaction, ulong messageId, Subscription subscription)
         {
-            var embed = EmbedHelper.CreateFreePlanEmbed(subscription.StartDate, subscription.EndDate, subscription.PlanRoleId);
+            var embed = EmbedHelper.CreateFreeProductEmbed(subscription.StartDate, subscription.EndDate, subscription.ProductRoleId);
             var builder = new DiscordMessageBuilder().WithEmbed(embed);
             await interaction.EditFollowupMessageAsync(messageId, new DiscordWebhookBuilder(builder));
             await interaction.DeleteOriginalResponseAsync();
         }
 
-        public static async Task NotifyWithFreePlanUsed(this DiscordInteraction interaction, ulong messageId)
+        public static async Task NotifyWithFreeProductUsed(this DiscordInteraction interaction, ulong messageId)
         {
-            var builder = new DiscordMessageBuilder().WithEmbed(EmbedHelper.CreatePlanAlreadyUsedEmbed());
+            var builder = new DiscordMessageBuilder().WithEmbed(EmbedHelper.CreateProductAlreadyUsedEmbed());
             await interaction.EditFollowupMessageAsync(messageId, new DiscordWebhookBuilder(builder));
             await interaction.DeleteOriginalResponseAsync();
         }
 
         public static async Task NotifyWithServerError(this DiscordInteraction interaction, ulong messageId)
         {
-            var embed = new DiscordEmbedBuilder
+            try
             {
-                Title = $"{EmojisHelper.Pensive}  Action Unsuccessful",
-                Description = MessageHelper.GenericErrorMessage(),
-                Color = DiscordColor.Red
-            };
+                var embed = new DiscordEmbedBuilder
+                {
+                    Title = $"{EmojisHelper.Pensive}  Action Unsuccessful",
+                    Description = MessageHelper.GenericErrorMessage(),
+                    Color = DiscordColor.Red
+                };
 
-            var builder = new DiscordMessageBuilder().WithEmbed(embed);
-            await interaction.EditFollowupMessageAsync(messageId, new DiscordWebhookBuilder(builder));
-            await interaction.DeleteOriginalResponseAsync();
+                var message = new DiscordMessageBuilder().WithEmbed(embed);
+                await interaction.DeleteOriginalResponseAsync();
+                await interaction.EditFollowupMessageAsync(messageId, new DiscordWebhookBuilder(message));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NotifyWithServerError] {ex.Message}");
+            }
         }
 
         public static async Task NotifyUserToSendPayment(this DiscordInteraction interaction, Order order)
         {
             var embed = EmbedHelper.CreateInvoiceEmbed(order.Invoice);
-            var builder = new DiscordMessageBuilder().WithEmbed(embed);
-            await interaction.EditFollowupMessageAsync(order.Interaction!.FollowUpMessageId, new DiscordWebhookBuilder(builder));
+            var message = new DiscordMessageBuilder().WithEmbed(embed);
             await interaction.DeleteOriginalResponseAsync();
+            await interaction.EditFollowupMessageAsync(order.Interaction!.MessageId, new DiscordWebhookBuilder(message));
         }
 
-        public static async Task NotifyWithPaidSubscription(this DiscordInteraction interaction, ulong messageId, Subscription subscription)
+        public static async Task NotifyWithPaidSubscription(this DiscordInteraction interaction, ulong messageId, ulong channelId, int totalProductKeys)
         {
-            var embed = EmbedHelper.CreatePaidPlanEmbed(subscription.StartDate, subscription.EndDate, subscription.PlanRoleId);
+            var channel = interaction.Guild.GetChannel(channelId);
+            var embed = EmbedHelper.CreatePaidProductEmbed(totalProductKeys, channel);
             var builder = new DiscordMessageBuilder().WithEmbed(embed);
             await interaction.EditFollowupMessageAsync(messageId, new DiscordWebhookBuilder(builder));
         }

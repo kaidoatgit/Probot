@@ -8,13 +8,21 @@ namespace ProPayments.Client.Extensions
     public static class GuildExtension
     {
 
-        public static async Task GrantRoleAsync(this DiscordGuild guild, DiscordUser user, ulong roleId)
+        public static async Task AddRolesAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles,  List<ulong> productRolesIds)
         {
             try
             {
-                DiscordRole role = guild.Roles.Values.FirstOrDefault(r => r.Id == roleId)!;
-                DiscordMember member = (DiscordMember)user;
-                await member.GrantRoleAsync(role);
+                foreach (var id in productRolesIds)
+                {
+                    if (guildRoles.TryGetValue(id, out var role))
+                    {
+                        if (!member.Roles.Contains(role))
+                        {
+                            await member.GrantRoleAsync(role);
+                        }
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
             }
             catch (Exception ex)
             {
@@ -22,14 +30,14 @@ namespace ProPayments.Client.Extensions
             }
         }
 
-        public static async Task NotifyOnSubscriptionAlertChannel(this DiscordGuild guild, ulong channelId, Subscription subscription)
+        public static async Task NotifyOnSubscriptionAlertChannel(this DiscordGuild guild, ulong channelId, ulong userId, int totalProductKeys)
         {
             try
             {
                 var channel = guild.GetChannel(channelId);
-                var member = await guild.GetMemberAsync(subscription.UserId);
+                var member = await guild.GetMemberAsync(userId);
                 var mention = new UserMention(member);
-                var embed = EmbedHelper.CreatePaidPlanEmbed(subscription.PlanRoleId);
+                var embed = EmbedHelper.CreatePaidProductEmbed(totalProductKeys);
 
                 var message = new DiscordMessageBuilder()
                     .WithEmbed(embed)
@@ -49,12 +57,12 @@ namespace ProPayments.Client.Extensions
             {
                 var walletSubmissionButton = new DiscordButtonComponent(ButtonStyle.Success, "wallet_btn", "Payment Wallet 💳");
                 var subscribeButton = new DiscordButtonComponent(ButtonStyle.Primary, "subscribe_btn", "Subscribe 📝");
-                var planDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "plan_details_btn", "Plan Details 📋");
+                var productDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "product_details_btn", "Product Details 📋");
                 
                 var embed = EmbedHelper.CreateSubscriptionEmbed();
                 var message = new DiscordMessageBuilder()
                     .WithEmbed(embed)
-                    .AddComponents(subscribeButton, walletSubmissionButton, planDetailsButton);
+                    .AddComponents(subscribeButton, walletSubmissionButton, productDetailsButton);
 
                 var channel = guild.GetChannel(channelId);
                 var existingMessage = (await channel.GetMessagesAsync()).LastOrDefault();

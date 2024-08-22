@@ -1,17 +1,17 @@
 ﻿using ProPayments.Client.Models.Enums;
 
-namespace ProPayments.Client.Dtos.Plan.Response
+namespace ProPayments.Client.Dtos.Product.Response
 {
-    public class PlanWithOptionsResponse
+    public class ProductWithOptionsResponse
     {
         public int Id { get; set; }
         public ulong? RoleId { get; set; }
-        public PlanType Type { get; set; }
+        public ProductName Name { get; set; }
         public string? Description { get; set; }
-        public List<PlanOptionResponse> PlanOptions { get; set; } = new();
+        public List<ProductOptionResponse> ProductOptions { get; set; } = new();
     }
 
-    public class PlanOptionResponse
+    public class ProductOptionResponse
     {
         public int Id { get; set; }
         public decimal Price { get; set; }

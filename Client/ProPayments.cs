@@ -8,23 +8,20 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ProPayments.Client.Commands;
 using ProPayments.Client.Configs;
-using ProPayments.Client.Exceptions;
 using ProPayments.Client.Extensions;
 using ProPayments.Client.Helpers;
 using ProPayments.Client.Models;
 using ProPayments.Client.Services.Managers;
-using ProPayments.Client.Services.Services;
 
 namespace ProPayments.Client
 {
     public class ProPayments
     {
         private readonly DiscordClient _discordClient;
-        private readonly PlanManager _planManager;
+        private readonly ProductManager _productManager;
         private readonly UserManager _userManager;
         private readonly OrderManager _orderManager;
         private readonly HubManager _hubManager;
-        private readonly SubscriptionService _subscriptionService;
         private readonly CancelationTokenManager _tokenManager;
         private readonly AppSettings _appSettings;
         private readonly DiscordManager _discordManager;
@@ -32,7 +29,7 @@ namespace ProPayments.Client
 
         public SlashCommandsExtension? SlashCommands { get; private set; }
 
-        public ProPayments(IOptions<AppSettings> appSettings, PlanManager planManager, UserManager userManager, OrderManager orderManager, SubscriptionService subscriptionService, HubManager hubManager, DiscordManager discordManager, CancelationTokenManager tokenManager, CartManager cartManager)
+        public ProPayments(IOptions<AppSettings> appSettings, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager, DiscordManager discordManager, CancelationTokenManager tokenManager, CartManager cartManager)
         {
             _appSettings = appSettings.Value;
             _discordClient = new DiscordClient(new DiscordConfiguration
@@ -44,10 +41,9 @@ namespace ProPayments.Client
                 AutoReconnect = false
             });
 
-            _planManager = planManager;
+            _productManager = productManager;
             _orderManager = orderManager;
             _userManager = userManager;
-            _subscriptionService = subscriptionService;
             _hubManager = hubManager;
             _discordManager = discordManager;
             _tokenManager = tokenManager;
@@ -73,9 +69,7 @@ namespace ProPayments.Client
             {
                 Services = services
             });
-
             slash.RegisterCommands<UserCommands>();
-
             await _discordClient.ConnectAsync();
 
             try
@@ -88,16 +82,17 @@ namespace ProPayments.Client
             }
             finally
             {
-                _discordClient!.Ready -= OnClientReady;
-                _discordClient!.ClientErrored -= OnClientErrored;
-                _discordClient!.ComponentInteractionCreated -= OnClientComponentInteractionCreated;
-                _discordClient!.ModalSubmitted -= OnClientModalSubmitted;
-                _discordClient!.GuildAvailable -= OnGuildAvailable;
+                _discordClient.Ready -= OnClientReady;
+                _discordClient.ClientErrored -= OnClientErrored;
+                _discordClient.ComponentInteractionCreated -= OnClientComponentInteractionCreated;
+                _discordClient.ModalSubmitted -= OnClientModalSubmitted;
+                _discordClient.GuildAvailable -= OnGuildAvailable;
                 _discordClient.GuildMemberUpdated -= OnGuildMemberUpdated;
                 await _hubManager.StopAsync();
                 await _discordClient.DisconnectAsync();
                 await _hubManager.DisposeAsync();
                 _tokenManager.Dispose();
+                slash.Dispose();
                 _discordClient.Dispose();
             }
         }
@@ -113,13 +108,13 @@ namespace ProPayments.Client
             Console.WriteLine("[Event] guild available fired [Event]");
 
             var guildRoles = args.Guild.Roles.Values.ToList();
-            bool plansLoadedSuccessfully = await _planManager.LoadPlansAsync(guildRoles);
-            if (!plansLoadedSuccessfully)
+            bool productsLoadedSuccessfully = await _productManager.LoadProductsAsync(guildRoles);
+            if (!productsLoadedSuccessfully)
             {
                 _tokenManager.Cancel();
                 return;
             }
-            Console.WriteLine($"Total plans: {_planManager.Plans.Count}");
+            Console.WriteLine($"Total products: {_productManager.Products.Count}");
 
             bool usersLoadedSuccessfully = await _userManager.LoadUsersToMemoryAsync();
             if (!usersLoadedSuccessfully)
@@ -190,7 +185,7 @@ namespace ProPayments.Client
                         }
                         else
                         {
-                            await args.Interaction.NotifyWithSubscribeOptions(_planManager.Plans);
+                            await args.Interaction.NotifyWithSubscribeOptions(_productManager.Products);
 
                             var responseMessage = await args.Interaction.GetOriginalResponseAsync();
                             ulong messageId = responseMessage.Id;
@@ -205,22 +200,22 @@ namespace ProPayments.Client
                         break;
                     }
 
-                case "plan_details_btn":
+                case "product_details_btn":
                     {
-                        await args.Interaction.NotifyWithPlanDetails(_planManager.Plans);
+                        await args.Interaction.NotifyWithProductDetails(_productManager.Products);
                         break;
                     }
 
                 case "product_selection_menu":
                     {
-                        var selectedPlanId = args.Values.First();
+                        var selectedProductId = args.Values.First();
 
-                        var durationDropdown = GetDurationsPricesBasedOnPlanSelected(selectedPlanId);
-                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedPlanId, durationDropdown);
-                        var planMessageBuilder = discordMessage.ReplaceComponents(components);
+                        var durationDropdown = GetDurationsPricesBasedOnProductSelected(selectedProductId);
+                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedProductId, durationDropdown);
+                        var productMessageBuilder = discordMessage.ReplaceComponents(components);
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
-                            new DiscordInteractionResponseBuilder(planMessageBuilder));
+                            new DiscordInteractionResponseBuilder(productMessageBuilder));
                         break;
                     }
 
@@ -238,27 +233,27 @@ namespace ProPayments.Client
 
                 case "add_item_cart_btn":
                 {
-                    var (planSelect, durationSelect) = discordMessage.ParseComponentSelections();
-                    var selectedPlan = planSelect?.Options.FirstOrDefault(o => o.Default);
+                    var (productSelect, durationSelect) = discordMessage.ParseComponentSelections();
+                    var selectedProduct = productSelect?.Options.FirstOrDefault(o => o.Default);
                     var selectedDuration = durationSelect?.Options.FirstOrDefault(o => o.Default);
 
-                    if (selectedPlan == null || selectedDuration == null)
+                    if (selectedProduct == null || selectedDuration == null)
                     {
                         await args.Interaction.NotifyWithMessage(MessageHelper.MissingProductOrDuration, deleteMsg: true, after: TimeSpan.FromSeconds(5));
                     }
                     else
                     {
-                        Console.WriteLine($"{selectedPlan.Label}|{selectedDuration.Label}");
+                        Console.WriteLine($"{selectedProduct.Label}|{selectedDuration.Label}");
 
-                        Plan plan = _planManager.GetPlanByRoleId(selectedPlan.Value)!;
+                        Product product = _productManager.GetProductByRoleId(selectedProduct.Value)!;
                         int selectedPeriod = int.Parse(selectedDuration.Value);
                         CartItem cartItem = new()
                         { 
                             ItemId = _cartManager.GetMaxCartItemId(discordMessage.Id) + 1,
-                            SelectedPlan = selectedPlan.Label,
+                            SelectedProduct = selectedProduct.Label,
                             SelectedDuration = selectedDuration.Label,
-                            Price = plan.GetPrice(selectedPeriod),
-                            PlanOptionId = plan.GetPlanOptionId(selectedPeriod)
+                            Price = product.GetPrice(selectedPeriod),
+                            ProductOptionId = product.GetProductOptionId(selectedPeriod)
                         };
                         _cartManager.AddItemToCart(discordMessage.Id, cartItem);
 
@@ -288,9 +283,9 @@ namespace ProPayments.Client
                         Console.WriteLine($"Ja nao estou: discordMessage.id={discordMessage.Id}");
 
                         var inputValue = modal.Result.Values.Values.First().Trim();
-                        if (int.TryParse(inputValue, out int productId))
+                        if (int.TryParse(inputValue, out int itemId))
                         {
-                            var successfullyRemoved = _cartManager.RemoveItemFromCart(discordMessage.Id, productId);
+                            var successfullyRemoved = _cartManager.RemoveItemFromCart(discordMessage.Id, itemId);
                             if(successfullyRemoved)
                             {
                                 var originalComponents = discordMessage.Components;
@@ -299,6 +294,7 @@ namespace ProPayments.Client
                                 await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
                                     .AddEmbed(embed)
                                     .AddComponents(originalComponents));
+                                
                             }
                         }
                     }
@@ -311,33 +307,31 @@ namespace ProPayments.Client
 
                 case "confirm_cart_btn":
                     {
+                        Cart? cart = _cartManager.GetCart(discordMessage.Id);
+                        if(cart == null || !cart.CartItems.Any())
+                        {
+                            await args.Interaction.NotifyWithMessage(MessageHelper.CartIsEmpty, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                            return;
+                        }
                         try
                         {
-                            if(!_cartManager.GetCart(discordMessage.Id)!.CartItems.Any())
-                            {
-                                await args.Interaction.NotifyWithMessage(MessageHelper.CartIsEmpty, deleteMsg: true, after: TimeSpan.FromSeconds(5));
-                                return;
-                            }
                             Console.WriteLine($"Total carts: {_cartManager.ShoppingCarts.Count()}");
-
                             await args.Interaction.DeferAsync(true);
-                            Cart cart = _cartManager.GetCart(discordMessage.Id)!;
+
                             var order = await _orderManager.CreateOrderAsync(discordUser.Id, cart);
                             order.Interaction = new(discordMessage.Id, args.Interaction);
                             _orderManager.AddOrder(order);
-                            await args.Interaction.NotifyUserToSendPayment(order);
-                            _cartManager.RemoveCart(discordMessage.Id);
 
+                            await args.Interaction.NotifyUserToSendPayment(order);
+                        }
+                        catch (Exception)
+                        {
+                            await args.Interaction.NotifyWithServerError(discordMessage.Id);
+                        }
+                        finally
+                        {
+                            _cartManager.RemoveCart(discordMessage.Id);
                             Console.WriteLine($"Total carts: {_cartManager.ShoppingCarts.Count()}");
-                        }
-                        catch (OrderException)
-                        {
-                            await args.Interaction.NotifyWithServerError(discordMessage.Id);
-                        }
-                        catch (Exception ex)
-                        {
-                            await args.Interaction.NotifyWithServerError(discordMessage.Id);
-                            Console.WriteLine(ex.Message);
                         }
                         break;
                     }
@@ -383,29 +377,6 @@ namespace ProPayments.Client
                         }
                         break;
                     }
-
-                    // case "cart_item_removal_submission_modal":
-                    // {
-                    //     Console.WriteLine($"int: {args.Interaction.Id}");
-
-                    //     var inputValue = args.Values.Values.First().Trim();
-                    //     if (int.TryParse(inputValue, out int productId))
-                    //     {
-                    //         var responseMessage = await args.Interaction.GetOriginalResponseAsync();
-                    //         ulong messageId = responseMessage.Id;
-                    //         _cartManager.RemoveItemFromCart(args.Interaction.Id, productId);
-                    //         // if (result)
-                    //         // {
-                    //         //     await args.NotifyWithMessage($"Item {productId} has been removed from your cart.", defer: true);
-                    //         // }
-                    //         // else
-                    //         // {
-                    //         //     await args.NotifyWithMessage($"Failed to remove item {productId} from your cart. Please try again.", defer: true);
-                    //         // }
-                    //     }
-                    //     await args.Interaction.NotifyWithMessage("Just testing", deleteMsg: true, after: TimeSpan.FromSeconds(5));
-                    //     break;
-                    // }
                 }
             }
         }
@@ -422,12 +393,10 @@ namespace ProPayments.Client
             }
         }
 
-        
-
-        public DiscordSelectComponent GetDurationsPricesBasedOnPlanSelected(string selectedPlan)
+        private DiscordSelectComponent GetDurationsPricesBasedOnProductSelected(string selectedProduct)
         {
-            var durationOptions = _planManager
-                        .GetDurationsWithPrices(selectedPlan)!
+            var durationOptions = _productManager
+                        .GetDurationsWithPrices(selectedProduct)!
                         .Select(option => new DiscordSelectComponentOption(option.PeriodDescription, option.Period.ToString()))
                         .AsEnumerable();
             return new DiscordSelectComponent("duration_selection_menu", "Month(s) subscription", durationOptions);
