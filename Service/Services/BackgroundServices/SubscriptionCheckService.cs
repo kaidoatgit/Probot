@@ -51,7 +51,7 @@ namespace ProPayments.Service.Services.BackgroundServices
 
 
                 var subscriptions = await dbContext.Subscriptions
-                    .Include(s => s.Plan)
+                    // .Include(s => s.Product)
                     .Include(s => s.User)
                     .Where(s => s.IsActive)
                     .ToListAsync(stoppingToken);
@@ -59,28 +59,28 @@ namespace ProPayments.Service.Services.BackgroundServices
 
                 foreach (var subscription in subscriptions)
                 {
-                    var timeLeft = subscription.EndDate - now;
-                    var lastNotificationSent = subscription.LastNotificationCheck;
+                    TimeSpan timeLeft = subscription.EndDate - now;
+                    DateTime lastNotificationSent = subscription.LastNotificationCheck ?? DateTime.MinValue;
                     bool isToNotifyUser = true;
 
-                    if (subscription.Plan!.Type == PlanType.Free)
-                    {
-                        if (timeLeft <= TimeSpan.Zero)
-                        {
-                            subscription.IsActive = false;
-                            subscription.LastNotificationCheck = subscription.EndDate;
-                            updatedSubscriptions.Add(subscription);
+                    // if (subscription.Product!.Type == ProductName.Free)
+                    // {
+                    //     if (timeLeft <= TimeSpan.Zero)
+                    //     {
+                    //         subscription.IsActive = false;
+                    //         subscription.LastNotificationCheck = subscription.EndDate;
+                    //         updatedSubscriptions.Add(subscription);
 
-                            isToNotifyUser = false;
-                            var notificationResponse = MapToSubscriptionReminder(subscription, isToNotifyUser);
-                            await _hubContext.Clients.All.ReceiveSubscriptionReminder(notificationResponse);
-                            continue;
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                    }
+                    //         isToNotifyUser = false;
+                    //         var notificationResponse = MapToSubscriptionReminder(subscription, isToNotifyUser);
+                    //         await _hubContext.Clients.All.ReceiveSubscriptionReminder(notificationResponse);
+                    //         continue;
+                    //     }
+                    //     else
+                    //     {
+                    //         continue;
+                    //     }
+                    // }
 
                     foreach (var period in _notificationPeriods)
                     {
@@ -122,7 +122,7 @@ namespace ProPayments.Service.Services.BackgroundServices
             {
                 UserId = subscription.UserId,
                 Username = subscription.Username,
-                PlanRoleId = subscription.Plan!.RoleId!.Value,
+                // ProductRoleId = subscription.Product!.RoleId!.Value,
                 IsToNotifyUser = isToNotifyUser,
                 IsSubscriptionActive = subscription.IsActive,
                 SubscriptionEndDate = subscription.EndDate,

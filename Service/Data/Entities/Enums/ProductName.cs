@@ -1,8 +1,7 @@
 ﻿namespace ProPayments.Service.Data.Entities.Enums
 { 
-    public enum PlanType
+    public enum ProductName
     {
-        Free = 1,
-        Basic = 2
+        ProRaffle = 1
     }
 }

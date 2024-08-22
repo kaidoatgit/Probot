@@ -8,13 +8,13 @@
             context.Database.EnsureCreated();
 
             /***
-             * Example of removing the free plan from the existing options
+             * Example of removing the free product from the existing options
              * I can manipulate data here and the migrations could be responsible only for adding/removing fields
              * 
-             * var freePlan = context.Plans.Where(p => p.PlanName == PlanType.Free).ToList();
-             * if (freePlan.Any())
+             * var freeProduct = context.Products.Where(p => p.ProductName == ProductName.Free).ToList();
+             * if (freeProduct.Any())
              * {
-             *    context.Plans.RemoveRange(freePlan);
+             *    context.Products.RemoveRange(freeProduct);
              * }
              * await context.SaveChangesAsync();
              *  

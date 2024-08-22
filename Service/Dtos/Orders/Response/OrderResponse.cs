@@ -37,10 +37,10 @@ namespace ProPayments.Service.Dtos.Orders.Response
 
     public class InvoiceItemResponse 
     {
-        public PlanType PlanType { get; set; }
-        public ulong PlanRoleId { get; set; }
-        public decimal PlanOptionPrice { get; set; }
-        public int PlanOptionPeriod { get; set; }
+        public ProductName ProductName { get; set; }
+        public ulong ProductRoleId { get; set; }
+        public decimal ProductOptionPrice { get; set; }
+        public int ProductOptionPeriod { get; set; }
         public string PeriodDescription { get; set; }
     }
 }

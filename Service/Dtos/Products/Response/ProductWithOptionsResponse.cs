@@ -1,20 +1,20 @@
 ﻿using ProPayments.Service.Data.Entities.Enums;
 
-namespace ProPayments.Service.Dtos.Plans.Response
+namespace ProPayments.Service.Dtos.Products.Response
 {
-    public class PlanWithOptionsResponse
+    public class ProductWithOptionsResponse
     {
         public int Id { get; set; }
         public ulong? RoleId { get; set; }
-        public PlanType Type { get; set; }
+        public ProductName Name { get; set; }
         public string? Description { get; set; }
-        public List<PlanOptionResponse> PlanOptions { get; set; } = new();
+        public List<ProductOptionResponse> ProductOptions { get; set; } = new();
     }
 
-    public class PlanOptionResponse
+    public class ProductOptionResponse
     {
         public int Id { get; set; }
-        public int PlanId { get; set; }
+        public int ProductId { get; set; }
         public decimal Price { get; set; }
         public int Period { get; set; }
         public string PeriodDescription { get; set; } = string.Empty;

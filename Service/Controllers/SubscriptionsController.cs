@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ProPayments.Service.Dtos.Subscriptions.Request;
+using ProPayments.Service.Data.Entities;
+using ProPayments.Service.Dtos.ProRaffles.Response;
 using ProPayments.Service.Dtos.Subscriptions.Response;
 using ProPayments.Service.Mappers;
 using ProPayments.Service.Services.Services.IServices;
@@ -18,13 +19,36 @@ namespace ProPayments.Service.Controllers
             _subscriptionService = subscriptionService;
             _mapper = mapper;
         }
+        
 
-        [HttpPost("free")]
-        public async Task<IActionResult> CreateSubscriptionAsync([FromBody] SubscriptionRequest request)
+        [HttpGet("{userId}/pro-raffle")]
+        public async Task<IActionResult> GetProRaffleSubscriptionsAsync(ulong userId, [FromQuery] bool isActive)
         {
-            var subscription = await _subscriptionService.CreateFreeSubscriptionAsync(request);
-            SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
-            return Ok(subscriptionResponse);
+            var proRaffleSubscriptions = await _subscriptionService.GetSubscriptionsOfTypeAsync<ProRaffle>(userId, isActive);
+            IEnumerable<ProRaffleSubscriptionResponse> proRaffleSubscriptionsResponse = proRaffleSubscriptions
+                    .Select(prs => _mapper.MapToProRaffleSubscriptionResponse(prs));
+            return Ok(proRaffleSubscriptionsResponse);
         }
+        // [HttpPost]
+        // public async Task<IActionResult> CreateSubscriptionAsync([FromBody] SubscriptionRequest request)
+        // {
+        //     var subscription = await _subscriptionService.CreateSubscriptionAsync(request);
+        //     SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
+        //     return Ok(subscriptionResponse);
+        // }
+
+        // [HttpPost("free")]
+        // public async Task<IActionResult> CreateFreeSubscriptionAsync([FromBody] SubscriptionRequest request)
+        // {
+        //     var subscription = await _subscriptionService.CreateFreeSubscriptionAsync(request);
+        //     SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
+        //     return Ok(subscriptionResponse);
+        // }
+    }
+
+    public class ProRaffleSubscriptionResponse
+    {
+        public SubscriptionResponse Subscription { get; set; }
+        public ProRaffleResponse ProRaffle { get; set; }
     }
 }

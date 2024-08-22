@@ -12,7 +12,8 @@ namespace ProPayments.Service.Data.Entities
         public Order Order { get; set; } = null!; // Navigation purpose
 
         [Column(Order = 2)]
-        public int PlanOptionId { get; set; }
-        public PlanOption PlanOption { get; set; } = null!; // Navigation purpose
+        public int ProductOptionId { get; set; }
+        public ProductOption ProductOption { get; set; } = null!; // Navigation purpose
+        public ProductKey? ProductKey { get; set; } // Navigation purpose
     }
 }

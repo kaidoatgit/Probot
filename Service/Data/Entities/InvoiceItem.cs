@@ -12,29 +12,24 @@ namespace ProPayments.Service.Data.Entities
         public ulong InvoiceId { get; set; }
         public Invoice Invoice { get; set; } = null!; // Navigation purpose
 
-        // plan details
+        // product details
         [Column(Order = 2)]
-        public int PlanId { get; set; }
+        public int ProductId { get; set; }
         [Column(Order = 3)]
-        public PlanType PlanType { get; set; }
+        public ProductName ProductName { get; set; }
         [Column(Order = 4)]
-        public ulong? PlanRoleId { get; set; }
+        public ulong? ProductRoleId { get; set; }
         [Column(Order = 5)]
-        public int PlanOptionId { get; set; }
+        public int ProductOptionId { get; set; }
         [Column(Order = 6)]
-        public decimal PlanOptionPrice { get; set; }
+        public decimal ProductOptionPrice { get; set; }
         [Column(Order = 7)]
-        public int PlanOptionPeriod { get; set; }
+        public int ProductOptionPeriod { get; set; }
         [Column(Order = 8)]
         public string? PeriodDescription { get; set; }
 
-        // subscription details
+        // product key details
         [Column(Order = 9)]
-        public ulong? SubscriptionId { get; set; }
-        [Column(Order = 10)]
-        public DateTime? SubscriptionStartDate { get; set; }
-        [Column(Order = 11)]
-        public DateTime? SubscriptionEndDate { get; set; }
-        public Subscription Subscription { get; set; } = null!; // Navigation purpose
+        public string? ProductKeyCode { get; set; }
     }
 } 

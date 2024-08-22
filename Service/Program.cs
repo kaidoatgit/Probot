@@ -19,7 +19,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-// builder.Logging.ClearProviders();
+builder.Logging.ClearProviders();
 builder.Services.Configure<ServiceConfiguration>(builder.Configuration.GetSection("ServiceConfiguration"));
 builder.Services.AddDbContext<SubscriptionContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("SubscriptionDatabase")));
 builder.Services.AddSignalR().AddJsonProtocol(options =>
@@ -59,9 +59,11 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ISubscriptionService, ProPayments.Service.Services.Services.SubscriptionService>();
-builder.Services.AddScoped<IAccessCodeService, AccessCodeService>();
+builder.Services.AddScoped<IProductKeyService, ProductKeyService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IPlanService, PlanService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProRaffleService, ProRaffleService>();
+builder.Services.AddScoped<IUserSettingService, UserSettingService>();
 #endregion
 
 builder.Services.AddControllers(options =>

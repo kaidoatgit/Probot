@@ -11,12 +11,14 @@ namespace ProPayments.Service.Services.Services
     public class UserService : IUserService
     {
         private readonly SubscriptionContext _context;
+        private readonly IProductKeyService _productKeyService;
         private readonly Mapper _mapper;
 
-        public UserService(SubscriptionContext context, Mapper mapper)
+        public UserService(SubscriptionContext context, Mapper mapper, IProductKeyService productKeyService)
         {
             _context = context;
             _mapper = mapper;
+            _productKeyService = productKeyService;
         }
 
         public async Task<User> CreateUserAsync(UserRequest request)
@@ -36,9 +38,8 @@ namespace ProPayments.Service.Services.Services
 
         public async Task UpdateWalletAddressAsync(ulong userId, string walletAddress)
         {
-            User? userToUpdate = await _context.Users.FindAsync(userId);
-            if (userToUpdate == null)
-                throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
+            User? userToUpdate = await _context.Users.FindAsync(userId)
+                ?? throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
 
             bool walletExists = await _context.Users
                 .AsNoTracking()
@@ -54,7 +55,7 @@ namespace ProPayments.Service.Services.Services
         {
             var users = await _context.Users
                 .Include(u => u.Subscriptions!.Where(s => s.IsActive))
-                    .ThenInclude(s => s.Plan)
+                    // .ThenInclude(s => s.Product)
                 .ToListAsync();
 
             return users;
@@ -62,9 +63,18 @@ namespace ProPayments.Service.Services.Services
 
         public async Task<User> GetUserByIdAsync(ulong userId)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null) throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
-            return user;
+            User? user = await _context.Users.FindAsync(userId);
+            return user ?? throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
+        }
+
+        public async Task<IEnumerable<ProductKey>> GetProductKeysAsync(ulong userId, bool isActivated)
+        {
+            return await _productKeyService.GetProductKeysAsync(userId, isActivated);
+        }
+
+        public async Task<ProductKey> GetProductKeyAsync(ulong userId, string code, bool isActivated)
+        {
+            return await _productKeyService.GetProductKeyAsync(code, userId, isActivated);
         }
     }
 }

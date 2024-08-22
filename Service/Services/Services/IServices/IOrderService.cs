@@ -7,6 +7,6 @@ namespace ProPayments.Service.Services.Services.IServices
     {
         Task<Order> CreateOrderAsync(OrderRequest createOrderRequest);
         Task<Order> GetOrderByIdAsync(ulong orderId);
-        Task<List<AccessCode>> CompleteOrderAsync(CompleteOrderRequest completeOrderRequest);
+        Task<IEnumerable<ProductKey>> CompleteOrderAsync(CompleteOrderRequest completeOrderRequest);
     }
 }

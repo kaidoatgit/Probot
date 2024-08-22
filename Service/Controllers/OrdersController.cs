@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ProPayments.Service.Dtos.Orders.Request;
 using ProPayments.Service.Dtos.Orders.Response;
-using ProPayments.Service.Dtos.Subscriptions.Response;
+using ProPayments.Service.Dtos.ProductKeys.Response;
 using ProPayments.Service.Mappers;
 using ProPayments.Service.Services.Services.IServices;
 
@@ -47,9 +47,10 @@ namespace ProPayments.Service.Controllers
         [HttpPost("complete")]
         public async Task<IActionResult> CompleteOrderAsync([FromBody] CompleteOrderRequest request)
         {
-            // var subscription = await _orderService.CompleteOrderAsync(request);
-            // SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
-            return Ok(await _orderService.CompleteOrderAsync(request));
+            var productKeys = await _orderService.CompleteOrderAsync(request);
+            IEnumerable<ProductKeyResponse> productKeyResponses = productKeys
+                .Select(pk => _mapper.MapToProductKeyResponse(pk));
+            return Ok(productKeyResponses);
         }
     }
 }

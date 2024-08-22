@@ -2,7 +2,7 @@
 
 namespace ProPayments.Service.Data.Entities
 {
-    public class PlanOption
+    public class ProductOption
     {
         [Column(Order = 0)]
         public int Id { get; set; }
@@ -16,11 +16,12 @@ namespace ProPayments.Service.Data.Entities
         public string PeriodDescription { get; set; } = string.Empty;
 
         [Column(Order = 5)]
-        public int PlanId { get; set; }
-        public Plan Plan { get; set; } = null!; //Navigation purpose
+        public int ProductId { get; set; }
+        public Product Product { get; set; } = null!; //Navigation purpose
 
-        public ICollection<OrderItem>? OrderItems { get; set; }  //Navigation purpose
-        public ICollection<Subscription>? Subscriptions { get; set; }  //Navigation purpose
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>(); //Navigation purpose
+        public ICollection<ProductKey> ProductKeys { get; set; } = new List<ProductKey>(); //Navigation purpose
+        public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();  //Navigation purpose
 
     }
 }

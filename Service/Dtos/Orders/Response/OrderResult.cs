@@ -1,5 +1,4 @@
 ﻿using ProPayments.Service.Data.Entities.Enums;
-using ProPayments.Service.Dtos.Subscriptions.Response;
 
 namespace ProPayments.Service.Dtos.Orders.Response
 {
@@ -7,6 +6,8 @@ namespace ProPayments.Service.Dtos.Orders.Response
     {
         public ulong OrderId { get; set; }
         public OrderStatus OrderStatus { get; set; }
-        public SubscriptionResponse? Subscription { get; set; }
+        public ulong UserId { get; set; }
+        public int TotalProductKeys { get; set; }
+        public List<ulong> ProductRoleIds { get; set; } = new();
     }
 }

@@ -10,7 +10,6 @@ namespace ProPayments.Service.Dtos.Orders.Response
         public OrderStatus Status { get; set; }
 
         public ulong UserId { get; set; }
-        //public int PlanOptionId { get; set; }
         public ulong TransactionId { get; set; }
         public ulong InvoiceId { get; set; }
         public ulong? SubscriptionId { get; set; }

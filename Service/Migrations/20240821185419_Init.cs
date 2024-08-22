@@ -10,20 +10,6 @@ namespace ProPayments.Service.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AccessCodes",
-                columns: table => new
-                {
-                    Code = table.Column<string>(type: "TEXT", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsRedeemed = table.Column<bool>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AccessCodes", x => x.Code);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "LogEntries",
                 columns: table => new
                 {
@@ -40,18 +26,18 @@ namespace ProPayments.Service.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Plans",
+                name: "Products",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     RoleId = table.Column<ulong>(type: "INTEGER", nullable: true),
-                    Type = table.Column<string>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Plans", x => x.Id);
+                    table.PrimaryKey("PK_Products", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -71,7 +57,7 @@ namespace ProPayments.Service.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PlanOptions",
+                name: "ProductOptions",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
@@ -80,15 +66,15 @@ namespace ProPayments.Service.Migrations
                     Price = table.Column<decimal>(type: "TEXT", nullable: false),
                     Period = table.Column<int>(type: "INTEGER", nullable: false),
                     PeriodDescription = table.Column<string>(type: "TEXT", nullable: false),
-                    PlanId = table.Column<int>(type: "INTEGER", nullable: false)
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PlanOptions", x => x.Id);
+                    table.PrimaryKey("PK_ProductOptions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PlanOptions_Plans_PlanId",
-                        column: x => x.PlanId,
-                        principalTable: "Plans",
+                        name: "FK_ProductOptions_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -102,9 +88,7 @@ namespace ProPayments.Service.Migrations
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     ExpiryTime = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     Status = table.Column<string>(type: "TEXT", nullable: false),
-                    UserId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    TransactionId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    InvoiceId = table.Column<ulong>(type: "INTEGER", nullable: false)
+                    UserId = table.Column<ulong>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -118,43 +102,21 @@ namespace ProPayments.Service.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Subscriptions",
+                name: "UserSettings",
                 columns: table => new
                 {
-                    SubscriptionId = table.Column<ulong>(type: "INTEGER", nullable: false)
+                    Id = table.Column<ulong>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    LastNotificationCheck = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UserId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    Username = table.Column<string>(type: "TEXT", nullable: true),
-                    PlanId = table.Column<int>(type: "INTEGER", nullable: false),
-                    PlanOptionId = table.Column<int>(type: "INTEGER", nullable: false)
+                    UserId = table.Column<ulong>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Subscriptions", x => x.SubscriptionId);
+                    table.PrimaryKey("PK_UserSettings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Subscriptions_PlanOptions_PlanOptionId",
-                        column: x => x.PlanOptionId,
-                        principalTable: "PlanOptions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Subscriptions_Plans_PlanId",
-                        column: x => x.PlanId,
-                        principalTable: "Plans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Subscriptions_Users_UserId",
+                        name: "FK_UserSettings_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -184,8 +146,7 @@ namespace ProPayments.Service.Migrations
                         name: "FK_Invoices_Orders_OrderId",
                         column: x => x.OrderId,
                         principalTable: "Orders",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -195,7 +156,7 @@ namespace ProPayments.Service.Migrations
                     Id = table.Column<ulong>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     OrderId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    PlanOptionId = table.Column<int>(type: "INTEGER", nullable: false)
+                    ProductOptionId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -207,9 +168,9 @@ namespace ProPayments.Service.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_OrderItems_PlanOptions_PlanOptionId",
-                        column: x => x.PlanOptionId,
-                        principalTable: "PlanOptions",
+                        name: "FK_OrderItems_ProductOptions_ProductOptionId",
+                        column: x => x.ProductOptionId,
+                        principalTable: "ProductOptions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -241,22 +202,40 @@ namespace ProPayments.Service.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProRaffles",
+                columns: table => new
+                {
+                    Id = table.Column<ulong>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Key = table.Column<string>(type: "TEXT", nullable: false),
+                    IsPaused = table.Column<bool>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProRaffles", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProRaffles_UserSettings_Id",
+                        column: x => x.Id,
+                        principalTable: "UserSettings",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "InvoiceItems",
                 columns: table => new
                 {
                     Id = table.Column<ulong>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     InvoiceId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    PlanId = table.Column<int>(type: "INTEGER", nullable: false),
-                    PlanType = table.Column<string>(type: "TEXT", nullable: false),
-                    PlanRoleId = table.Column<ulong>(type: "INTEGER", nullable: true),
-                    PlanOptionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    PlanOptionPrice = table.Column<decimal>(type: "TEXT", nullable: false),
-                    PlanOptionPeriod = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProductName = table.Column<string>(type: "TEXT", nullable: false),
+                    ProductRoleId = table.Column<ulong>(type: "INTEGER", nullable: true),
+                    ProductOptionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProductOptionPrice = table.Column<decimal>(type: "TEXT", nullable: false),
+                    ProductOptionPeriod = table.Column<int>(type: "INTEGER", nullable: false),
                     PeriodDescription = table.Column<string>(type: "TEXT", nullable: true),
-                    SubscriptionId = table.Column<ulong>(type: "INTEGER", nullable: true),
-                    SubscriptionStartDate = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    SubscriptionEndDate = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    ProductKeyCode = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -267,52 +246,112 @@ namespace ProPayments.Service.Migrations
                         principalTable: "Invoices",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductKeys",
+                columns: table => new
+                {
+                    Code = table.Column<string>(type: "TEXT", nullable: false),
+                    Period = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsActivated = table.Column<bool>(type: "INTEGER", nullable: false),
+                    ProductOptionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    UserId = table.Column<ulong>(type: "INTEGER", nullable: false),
+                    OrderItemId = table.Column<ulong>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductKeys", x => x.Code);
                     table.ForeignKey(
-                        name: "FK_InvoiceItems_Subscriptions_SubscriptionId",
-                        column: x => x.SubscriptionId,
-                        principalTable: "Subscriptions",
-                        principalColumn: "SubscriptionId");
+                        name: "FK_ProductKeys_OrderItems_OrderItemId",
+                        column: x => x.OrderItemId,
+                        principalTable: "OrderItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductKeys_ProductOptions_ProductOptionId",
+                        column: x => x.ProductOptionId,
+                        principalTable: "ProductOptions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductKeys_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Subscriptions",
+                columns: table => new
+                {
+                    Id = table.Column<ulong>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    StartDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                    LastNotificationCheck = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    UserId = table.Column<ulong>(type: "INTEGER", nullable: false),
+                    Username = table.Column<string>(type: "TEXT", nullable: true),
+                    ProductOptionId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Code = table.Column<string>(type: "TEXT", nullable: false),
+                    UserSettingId = table.Column<ulong>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Subscriptions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Subscriptions_ProductKeys_Code",
+                        column: x => x.Code,
+                        principalTable: "ProductKeys",
+                        principalColumn: "Code",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Subscriptions_ProductOptions_ProductOptionId",
+                        column: x => x.ProductOptionId,
+                        principalTable: "ProductOptions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Subscriptions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Subscriptions_UserSettings_UserSettingId",
+                        column: x => x.UserSettingId,
+                        principalTable: "UserSettings",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.InsertData(
-                table: "Plans",
-                columns: new[] { "Id", "Description", "RoleId", "Type" },
-                values: new object[] { 1, "Experience the essential features of our service with our Free Plan. Ideal for users who want to explore the basic functionalities at no cost. Enjoy a limited duration access and get a glimpse of the premium benefits without any commitment.", null, "Free" });
+                table: "Products",
+                columns: new[] { "Id", "Description", "Name", "RoleId" },
+                values: new object[] { 1, "A tool which automates the process of registring in alphabot raffles", "ProRaffle", null });
 
             migrationBuilder.InsertData(
-                table: "Plans",
-                columns: new[] { "Id", "Description", "RoleId", "Type" },
-                values: new object[] { 2, "Discover the perfect balance with our Basic Plan. Tailored for users who need more than the essentials but aren’t ready for all the premium extras. Enjoy extended access to a range of key features, enhanced support, and additional resources. Ideal for those seeking reliable performance and value.", null, "Basic" });
+                table: "ProductOptions",
+                columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "Price", "ProductId" },
+                values: new object[] { 1, new DateTime(2024, 8, 21, 18, 54, 19, 296, DateTimeKind.Utc).AddTicks(1286), 1, "1 Month", 12m, 1 });
 
             migrationBuilder.InsertData(
-                table: "PlanOptions",
-                columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "PlanId", "Price" },
-                values: new object[] { 1, new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8287), 3, "3 Days", 1, 0m });
+                table: "ProductOptions",
+                columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "Price", "ProductId" },
+                values: new object[] { 2, new DateTime(2024, 8, 21, 18, 54, 19, 296, DateTimeKind.Utc).AddTicks(1309), 2, "2 Months", 20m, 1 });
 
             migrationBuilder.InsertData(
-                table: "PlanOptions",
-                columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "PlanId", "Price" },
-                values: new object[] { 2, new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8292), 1, "1 Month", 2, 12m });
-
-            migrationBuilder.InsertData(
-                table: "PlanOptions",
-                columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "PlanId", "Price" },
-                values: new object[] { 3, new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8295), 2, "2 Months", 2, 20m });
-
-            migrationBuilder.InsertData(
-                table: "PlanOptions",
-                columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "PlanId", "Price" },
-                values: new object[] { 4, new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8296), 3, "3 Months", 2, 30m });
+                table: "ProductOptions",
+                columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "Price", "ProductId" },
+                values: new object[] { 3, new DateTime(2024, 8, 21, 18, 54, 19, 296, DateTimeKind.Utc).AddTicks(1311), 3, "3 Months", 30m, 1 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_InvoiceItems_InvoiceId",
                 table: "InvoiceItems",
                 column: "InvoiceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InvoiceItems_SubscriptionId",
-                table: "InvoiceItems",
-                column: "SubscriptionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Invoices_OrderId",
@@ -326,9 +365,9 @@ namespace ProPayments.Service.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrderItems_PlanOptionId",
+                name: "IX_OrderItems_ProductOptionId",
                 table: "OrderItems",
-                column: "PlanOptionId");
+                column: "ProductOptionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_UserId",
@@ -336,19 +375,42 @@ namespace ProPayments.Service.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PlanOptions_PlanId",
-                table: "PlanOptions",
-                column: "PlanId");
+                name: "IX_ProductKeys_OrderItemId",
+                table: "ProductKeys",
+                column: "OrderItemId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Subscriptions_PlanId",
-                table: "Subscriptions",
-                column: "PlanId");
+                name: "IX_ProductKeys_ProductOptionId",
+                table: "ProductKeys",
+                column: "ProductOptionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Subscriptions_PlanOptionId",
+                name: "IX_ProductKeys_UserId",
+                table: "ProductKeys",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductOptions_ProductId",
+                table: "ProductOptions",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProRaffles_Key",
+                table: "ProRaffles",
+                column: "Key",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subscriptions_Code",
                 table: "Subscriptions",
-                column: "PlanOptionId");
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subscriptions_ProductOptionId",
+                table: "Subscriptions",
+                column: "ProductOptionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Subscriptions_UserId",
@@ -356,17 +418,25 @@ namespace ProPayments.Service.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Subscriptions_UserSettingId",
+                table: "Subscriptions",
+                column: "UserSettingId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_OrderId",
                 table: "Transactions",
                 column: "OrderId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserSettings_UserId",
+                table: "UserSettings",
+                column: "UserId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "AccessCodes");
-
             migrationBuilder.DropTable(
                 name: "InvoiceItems");
 
@@ -374,7 +444,10 @@ namespace ProPayments.Service.Migrations
                 name: "LogEntries");
 
             migrationBuilder.DropTable(
-                name: "OrderItems");
+                name: "ProRaffles");
+
+            migrationBuilder.DropTable(
+                name: "Subscriptions");
 
             migrationBuilder.DropTable(
                 name: "Transactions");
@@ -383,19 +456,25 @@ namespace ProPayments.Service.Migrations
                 name: "Invoices");
 
             migrationBuilder.DropTable(
-                name: "Subscriptions");
+                name: "ProductKeys");
+
+            migrationBuilder.DropTable(
+                name: "UserSettings");
+
+            migrationBuilder.DropTable(
+                name: "OrderItems");
 
             migrationBuilder.DropTable(
                 name: "Orders");
 
             migrationBuilder.DropTable(
-                name: "PlanOptions");
+                name: "ProductOptions");
 
             migrationBuilder.DropTable(
                 name: "Users");
 
             migrationBuilder.DropTable(
-                name: "Plans");
+                name: "Products");
         }
     }
 }

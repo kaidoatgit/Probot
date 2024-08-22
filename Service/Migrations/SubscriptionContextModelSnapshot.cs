@@ -17,29 +17,6 @@ namespace ProPayments.Service.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.32");
 
-            modelBuilder.Entity("ProPayments.Service.Data.Entities.AccessCode", b =>
-                {
-                    b.Property<string>("Code")
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(0);
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(2);
-
-                    b.Property<bool>("IsRedeemed")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(3);
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(1);
-
-                    b.HasKey("Code");
-
-                    b.ToTable("AccessCodes");
-                });
-
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Invoice", b =>
                 {
                     b.Property<ulong>("Id")
@@ -124,48 +101,38 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnOrder(8);
 
-                    b.Property<int>("PlanId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(2);
 
-                    b.Property<int>("PlanOptionId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(5);
-
-                    b.Property<int>("PlanOptionPeriod")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(7);
-
-                    b.Property<decimal>("PlanOptionPrice")
+                    b.Property<string>("ProductKeyCode")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(6);
+                        .HasColumnOrder(9);
 
-                    b.Property<ulong?>("PlanRoleId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(4);
-
-                    b.Property<string>("PlanType")
+                    b.Property<string>("ProductName")
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnOrder(3);
 
-                    b.Property<DateTime?>("SubscriptionEndDate")
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(11);
-
-                    b.Property<ulong?>("SubscriptionId")
+                    b.Property<int>("ProductOptionId")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(9);
+                        .HasColumnOrder(5);
 
-                    b.Property<DateTime?>("SubscriptionStartDate")
+                    b.Property<int>("ProductOptionPeriod")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(7);
+
+                    b.Property<decimal>("ProductOptionPrice")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(10);
+                        .HasColumnOrder(6);
+
+                    b.Property<ulong?>("ProductRoleId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(4);
 
                     b.HasKey("Id");
 
                     b.HasIndex("InvoiceId");
-
-                    b.HasIndex("SubscriptionId");
 
                     b.ToTable("InvoiceItems");
                 });
@@ -216,18 +183,10 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnOrder(2);
 
-                    b.Property<ulong>("InvoiceId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(6);
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnOrder(3);
-
-                    b.Property<ulong>("TransactionId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(5);
 
                     b.Property<ulong>("UserId")
                         .HasColumnType("INTEGER")
@@ -251,7 +210,7 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(1);
 
-                    b.Property<int>("PlanOptionId")
+                    b.Property<int>("ProductOptionId")
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(2);
 
@@ -259,12 +218,12 @@ namespace ProPayments.Service.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("PlanOptionId");
+                    b.HasIndex("ProductOptionId");
 
                     b.ToTable("OrderItems");
                 });
 
-            modelBuilder.Entity("ProPayments.Service.Data.Entities.Plan", b =>
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -275,35 +234,72 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnOrder(3);
 
-                    b.Property<ulong?>("RoleId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(1);
-
-                    b.Property<string>("Type")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnOrder(2);
 
+                    b.Property<ulong?>("RoleId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(1);
+
                     b.HasKey("Id");
 
-                    b.ToTable("Plans");
+                    b.ToTable("Products");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            Description = "Experience the essential features of our service with our Free Plan. Ideal for users who want to explore the basic functionalities at no cost. Enjoy a limited duration access and get a glimpse of the premium benefits without any commitment.",
-                            Type = "Free"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Discover the perfect balance with our Basic Plan. Tailored for users who need more than the essentials but aren’t ready for all the premium extras. Enjoy extended access to a range of key features, enhanced support, and additional resources. Ideal for those seeking reliable performance and value.",
-                            Type = "Basic"
+                            Description = "A tool which automates the process of registring in alphabot raffles",
+                            Name = "ProRaffle"
                         });
                 });
 
-            modelBuilder.Entity("ProPayments.Service.Data.Entities.PlanOption", b =>
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProductKey", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(0);
+
+                    b.Property<bool>("IsActivated")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(3);
+
+                    b.Property<ulong>("OrderItemId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(6);
+
+                    b.Property<int>("Period")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("ProductOptionId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(4);
+
+                    b.Property<ulong>("UserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(5);
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(7);
+
+                    b.HasKey("Code");
+
+                    b.HasIndex("OrderItemId")
+                        .IsUnique();
+
+                    b.HasIndex("ProductOptionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProductKeys");
+                });
+
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProductOption", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -323,65 +319,61 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnOrder(4);
 
-                    b.Property<int>("PlanId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(5);
-
                     b.Property<decimal>("Price")
                         .HasColumnType("TEXT")
                         .HasColumnOrder(2);
 
+                    b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(5);
+
                     b.HasKey("Id");
 
-                    b.HasIndex("PlanId");
+                    b.HasIndex("ProductId");
 
-                    b.ToTable("PlanOptions");
+                    b.ToTable("ProductOptions");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8287),
-                            Period = 3,
-                            PeriodDescription = "3 Days",
-                            PlanId = 1,
-                            Price = 0m
+                            CreatedAt = new DateTime(2024, 8, 22, 5, 36, 33, 307, DateTimeKind.Utc).AddTicks(3827),
+                            Period = 1,
+                            PeriodDescription = "1 Month",
+                            Price = 12m,
+                            ProductId = 1
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8292),
-                            Period = 1,
-                            PeriodDescription = "1 Month",
-                            PlanId = 2,
-                            Price = 12m
+                            CreatedAt = new DateTime(2024, 8, 22, 5, 36, 33, 307, DateTimeKind.Utc).AddTicks(3847),
+                            Period = 2,
+                            PeriodDescription = "2 Months",
+                            Price = 20m,
+                            ProductId = 1
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8295),
-                            Period = 2,
-                            PeriodDescription = "2 Months",
-                            PlanId = 2,
-                            Price = 20m
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CreatedAt = new DateTime(2024, 8, 10, 21, 49, 48, 346, DateTimeKind.Utc).AddTicks(8296),
+                            CreatedAt = new DateTime(2024, 8, 22, 5, 36, 33, 307, DateTimeKind.Utc).AddTicks(3849),
                             Period = 3,
                             PeriodDescription = "3 Months",
-                            PlanId = 2,
-                            Price = 30m
+                            Price = 30m,
+                            ProductId = 1
                         });
                 });
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Subscription", b =>
                 {
-                    b.Property<ulong>("SubscriptionId")
+                    b.Property<ulong>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(0);
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(10);
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT")
@@ -395,23 +387,19 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(5);
 
-                    b.Property<DateTime>("LastNotificationCheck")
+                    b.Property<DateTime?>("LastNotificationCheck")
                         .HasColumnType("TEXT")
                         .HasColumnOrder(6);
 
-                    b.Property<int>("PlanId")
+                    b.Property<int>("ProductOptionId")
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(9);
-
-                    b.Property<int>("PlanOptionId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(10);
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT")
                         .HasColumnOrder(3);
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT")
                         .HasColumnOrder(2);
 
@@ -419,17 +407,25 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(7);
 
+                    b.Property<ulong>("UserSettingId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(11);
+
                     b.Property<string>("Username")
                         .HasColumnType("TEXT")
                         .HasColumnOrder(8);
 
-                    b.HasKey("SubscriptionId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("PlanId");
+                    b.HasIndex("Code")
+                        .IsUnique();
 
-                    b.HasIndex("PlanOptionId");
+                    b.HasIndex("ProductOptionId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserSettingId")
+                        .IsUnique();
 
                     b.ToTable("Subscriptions");
                 });
@@ -514,12 +510,47 @@ namespace ProPayments.Service.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.UserSetting", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(0);
+
+                    b.Property<ulong>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSettings", (string)null);
+                });
+
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProRaffle", b =>
+                {
+                    b.HasBaseType("ProPayments.Service.Data.Entities.UserSetting");
+
+                    b.Property<bool>("IsPaused")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(2);
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(1);
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("ProRaffles", (string)null);
+                });
+
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Invoice", b =>
                 {
                     b.HasOne("ProPayments.Service.Data.Entities.Order", "Order")
                         .WithOne("Invoice")
-                        .HasForeignKey("ProPayments.Service.Data.Entities.Invoice", "OrderId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("ProPayments.Service.Data.Entities.Invoice", "OrderId");
 
                     b.Navigation("Order");
                 });
@@ -532,13 +563,7 @@ namespace ProPayments.Service.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ProPayments.Service.Data.Entities.Subscription", "Subscription")
-                        .WithMany()
-                        .HasForeignKey("SubscriptionId");
-
                     b.Navigation("Invoice");
-
-                    b.Navigation("Subscription");
                 });
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Order", b =>
@@ -560,39 +585,66 @@ namespace ProPayments.Service.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ProPayments.Service.Data.Entities.PlanOption", "PlanOption")
+                    b.HasOne("ProPayments.Service.Data.Entities.ProductOption", "ProductOption")
                         .WithMany("OrderItems")
-                        .HasForeignKey("PlanOptionId")
+                        .HasForeignKey("ProductOptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Order");
 
-                    b.Navigation("PlanOption");
+                    b.Navigation("ProductOption");
                 });
 
-            modelBuilder.Entity("ProPayments.Service.Data.Entities.PlanOption", b =>
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProductKey", b =>
                 {
-                    b.HasOne("ProPayments.Service.Data.Entities.Plan", "Plan")
-                        .WithMany("PlanOptions")
-                        .HasForeignKey("PlanId")
+                    b.HasOne("ProPayments.Service.Data.Entities.OrderItem", "OrderItem")
+                        .WithOne("ProductKey")
+                        .HasForeignKey("ProPayments.Service.Data.Entities.ProductKey", "OrderItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Plan");
+                    b.HasOne("ProPayments.Service.Data.Entities.ProductOption", "ProductOption")
+                        .WithMany("ProductKeys")
+                        .HasForeignKey("ProductOptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ProPayments.Service.Data.Entities.User", "User")
+                        .WithMany("ProductKeys")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("ProductOption");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProductOption", b =>
+                {
+                    b.HasOne("ProPayments.Service.Data.Entities.Product", "Product")
+                        .WithMany("ProductOptions")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Subscription", b =>
                 {
-                    b.HasOne("ProPayments.Service.Data.Entities.Plan", "Plan")
-                        .WithMany("Subscriptions")
-                        .HasForeignKey("PlanId")
+                    b.HasOne("ProPayments.Service.Data.Entities.ProductKey", "ProductKey")
+                        .WithOne("Subscription")
+                        .HasForeignKey("ProPayments.Service.Data.Entities.Subscription", "Code")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ProPayments.Service.Data.Entities.PlanOption", "PlanOption")
+                    b.HasOne("ProPayments.Service.Data.Entities.ProductOption", "ProductOption")
                         .WithMany("Subscriptions")
-                        .HasForeignKey("PlanOptionId")
+                        .HasForeignKey("ProductOptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -602,11 +654,19 @@ namespace ProPayments.Service.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Plan");
+                    b.HasOne("ProPayments.Service.Data.Entities.UserSetting", "UserSetting")
+                        .WithOne("Subscription")
+                        .HasForeignKey("ProPayments.Service.Data.Entities.Subscription", "UserSettingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("PlanOption");
+                    b.Navigation("ProductKey");
+
+                    b.Navigation("ProductOption");
 
                     b.Navigation("User");
+
+                    b.Navigation("UserSetting");
                 });
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Transaction", b =>
@@ -620,6 +680,26 @@ namespace ProPayments.Service.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.UserSetting", b =>
+                {
+                    b.HasOne("ProPayments.Service.Data.Entities.User", "User")
+                        .WithMany("UserSettings")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProRaffle", b =>
+                {
+                    b.HasOne("ProPayments.Service.Data.Entities.UserSetting", null)
+                        .WithOne()
+                        .HasForeignKey("ProPayments.Service.Data.Entities.ProRaffle", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Invoice", b =>
                 {
                     b.Navigation("InvoiceItems");
@@ -627,23 +707,35 @@ namespace ProPayments.Service.Migrations
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Order", b =>
                 {
-                    b.Navigation("Invoice");
+                    b.Navigation("Invoice")
+                        .IsRequired();
 
                     b.Navigation("OrderItems");
 
-                    b.Navigation("Transaction");
+                    b.Navigation("Transaction")
+                        .IsRequired();
                 });
 
-            modelBuilder.Entity("ProPayments.Service.Data.Entities.Plan", b =>
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.OrderItem", b =>
                 {
-                    b.Navigation("PlanOptions");
-
-                    b.Navigation("Subscriptions");
+                    b.Navigation("ProductKey");
                 });
 
-            modelBuilder.Entity("ProPayments.Service.Data.Entities.PlanOption", b =>
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.Product", b =>
+                {
+                    b.Navigation("ProductOptions");
+                });
+
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProductKey", b =>
+                {
+                    b.Navigation("Subscription");
+                });
+
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.ProductOption", b =>
                 {
                     b.Navigation("OrderItems");
+
+                    b.Navigation("ProductKeys");
 
                     b.Navigation("Subscriptions");
                 });
@@ -652,7 +744,17 @@ namespace ProPayments.Service.Migrations
                 {
                     b.Navigation("Orders");
 
+                    b.Navigation("ProductKeys");
+
                     b.Navigation("Subscriptions");
+
+                    b.Navigation("UserSettings");
+                });
+
+            modelBuilder.Entity("ProPayments.Service.Data.Entities.UserSetting", b =>
+                {
+                    b.Navigation("Subscription")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

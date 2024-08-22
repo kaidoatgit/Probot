@@ -17,7 +17,9 @@ namespace ProPayments.Service.Data.Entities
         [Column(Order = 4)]
         public string? Email { get; set; }
 
-        public ICollection<Subscription>? Subscriptions { get; set; }  //Navigation purpose
-        public ICollection<Order>? Orders { get; set; } //Navigation purpose
+        public ICollection<Order> Orders { get; set; } = new List<Order>(); //Navigation purpose
+        public ICollection<ProductKey> ProductKeys { get; set; } = new List<ProductKey>(); //Navigation purpose
+        public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>(); //Navigation purpose
+        public ICollection<UserSetting> UserSettings { get; set; } = null!;//Navigation purpose
     }
 }

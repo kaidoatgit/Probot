@@ -87,6 +87,7 @@ namespace ProPayments.Service.Services.BackgroundServices
 
                         if (order.Status == OrderStatus.Pending && DateTime.UtcNow > order.ExpiryTime)
                         {
+                            order.Status = OrderStatus.Expired;
                             using var scope = _serviceProvider.CreateScope();
                             var orderMonitorService = scope.ServiceProvider.GetRequiredService<IOrderMonitorService>();
                             await orderMonitorService.DeleteOrderAsync(order);
@@ -119,7 +120,7 @@ namespace ProPayments.Service.Services.BackgroundServices
                     {
                         if (string.Equals(tx.Address, order.Transaction?.PaymentAddress, StringComparison.InvariantCultureIgnoreCase)
                             && order.Transaction?.TotalAmount == tx.Amount
-                            && order.Status != OrderStatus.Matched)
+                            && order.Status == OrderStatus.Pending)
                         {
                             Console.WriteLine($"Orders matched for transaction: {tx.Hash}");
                             order.Transaction.Hash = tx.Hash;

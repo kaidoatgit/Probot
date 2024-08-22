@@ -18,8 +18,9 @@ namespace ProPayments.Service.Services.Services
             return await _context.Invoices.FindAsync(invoiceId);
         }
 
-        public async Task<Invoice> CreateInvoiceAsync(User user, Order order, List<PlanOption> planOptions)
+        public async Task<Invoice> CreateInvoiceAsync(Order order, List<ProductOption> productOptions)
         {
+            var user = order.User;
             Invoice invoice = new()
             {
                 UserId = user.Id,
@@ -27,20 +28,20 @@ namespace ProPayments.Service.Services.Services
                 OrderId = order.Id,
                 OrderStatus = order.Status,
                 OrderExpiryTime = order.ExpiryTime,
-                TransactionId = order.TransactionId,
-                TotalAmount = order.Transaction!.TotalAmount,
+                TransactionId = order.Transaction.Id,
+                TotalAmount = order.Transaction.TotalAmount,
                 Token = order.Transaction.Token,
                 PaymentAddress = user.WalletAddress,
                 RecipientAddress = order.Transaction.RecipientAddress,
-                InvoiceItems = planOptions
+                InvoiceItems = productOptions
                     .Select(po => new InvoiceItem
                     {
-                        PlanId = po.PlanId,
-                        PlanType = po.Plan.Type,
-                        PlanRoleId = po.Plan.RoleId,
-                        PlanOptionId = po.Id,
-                        PlanOptionPrice = po.Price,
-                        PlanOptionPeriod = po.Period,
+                        ProductId = po.ProductId,
+                        ProductName = po.Product.Name,
+                        ProductRoleId = po.Product.RoleId,
+                        ProductOptionId = po.Id,
+                        ProductOptionPrice = po.Price,
+                        ProductOptionPeriod = po.Period,
                         PeriodDescription = po.PeriodDescription
                     }).ToList()
             };

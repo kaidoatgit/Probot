@@ -24,7 +24,7 @@ namespace ProPayments.Service.Data.Entities
 
         [Column(Order = 8)]
         public ulong OrderId { get; set; }
-        public Order? Order { get; set; } //Navigation purpose
+        public Order Order { get; set; } = null!; //Navigation purpose
 
         internal void Close(string hash)
         {

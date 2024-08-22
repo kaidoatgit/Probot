@@ -29,23 +29,24 @@ namespace ProPayments.Service.Services.Services
 
         public async Task<Transaction> CreateTransaction(Order order, decimal totalPrice)
         {
-            if (!_memoryCache.TryGetValue(_cacheKey, out decimal currentSolanaUsdPrice))
-            {
-                // Cache is empty or expired, fetch the price
-                Solana? solanaPrice = (await _coingeckoClient.GetPriceTokenById("solana"))?.Solana;
-                if (solanaPrice == null || solanaPrice.Usd <= 0)
-                {
-                    throw new ServiceException(StatusCodes.Status500InternalServerError, "It was not possible to calculate the cryptocurrency price at this time.");
-                }
+            // if (!_memoryCache.TryGetValue(_cacheKey, out decimal currentSolanaUsdPrice))
+            // {
+            //     // Cache is empty or expired, fetch the price
+            //     Solana? solanaPrice = (await _coingeckoClient.GetPriceTokenById("solana"))?.Solana;
+            //     if (solanaPrice == null || solanaPrice.Usd <= 0)
+            //     {
+            //         throw new ServiceException(StatusCodes.Status500InternalServerError, "It was not possible to calculate the cryptocurrency price at this time.");
+            //     }
 
-                currentSolanaUsdPrice = solanaPrice.Usd;
-                var cacheEntryOptions = new MemoryCacheEntryOptions()
-                    .SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
+            //     currentSolanaUsdPrice = solanaPrice.Usd;
+            //     var cacheEntryOptions = new MemoryCacheEntryOptions()
+            //         .SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
 
-                _memoryCache.Set(_cacheKey, currentSolanaUsdPrice, cacheEntryOptions);
-            }
+            //     _memoryCache.Set(_cacheKey, currentSolanaUsdPrice, cacheEntryOptions);
+            // }
 
-            decimal amountToPay = Math.Round(totalPrice / currentSolanaUsdPrice, 4, MidpointRounding.AwayFromZero);
+            // decimal amountToPay = Math.Round(totalPrice / currentSolanaUsdPrice, 4, MidpointRounding.AwayFromZero);
+            decimal amountToPay = 0.01m;
             Transaction transaction = new()
             {
                 TotalAmount = amountToPay,
