@@ -14,15 +14,15 @@ namespace ProPayments.Client.Clients.ProPayments
             _httpClient = client;
         }
 
-        public async Task<ApiResponse<IEnumerable<ProductWithOptionsResponse>>> GetProductsWithOptionsAsync()
+        public async Task<ApiResponse<IEnumerable<ProductResponse>>> GetProductsWithOptionsAsync()
         {
-            ApiResponse<IEnumerable<ProductWithOptionsResponse>> apiResponse = new();
+            ApiResponse<IEnumerable<ProductResponse>> apiResponse = new();
             try
             {
                 var response = await _httpClient.GetAsync("with_options");
                 if (response.IsSuccessStatusCode)
                 {
-                    apiResponse.Data = await response.Content.ReadFromJsonAsync<IEnumerable<ProductWithOptionsResponse>>();
+                    apiResponse.Data = await response.Content.ReadFromJsonAsync<IEnumerable<ProductResponse>>();
                 }
                 else
                 {

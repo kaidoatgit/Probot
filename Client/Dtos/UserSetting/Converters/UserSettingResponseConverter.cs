@@ -1,10 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ProPayments.Client.Dtos.ProRaffle.Response;
+using ProPayments.Client.Dtos.UserSetting.Response;
 
-public class ProRaffleResponseConverter : JsonConverter<ProRaffleResponse>
+namespace ProPayments.Client.Dtos.UserSetting.Converters;
+
+public class UserSettingResponseConverter : JsonConverter<UserSettingResponse>
 {
-    public override ProRaffleResponse? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override UserSettingResponse? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using JsonDocument doc = JsonDocument.ParseValue(ref reader);
         var root = doc.RootElement;
@@ -21,13 +24,13 @@ public class ProRaffleResponseConverter : JsonConverter<ProRaffleResponse>
         // Deserialize based on the type
         var proRaffleResponse = type switch
         {
-            nameof(ProRaffleResponse) => JsonSerializer.Deserialize<ProRaffleResponse>(root.GetRawText(), options),
+            "ProRaffle" => JsonSerializer.Deserialize<ProRaffleResponse>(root.GetRawText(), options),
             _ => throw new JsonException($"Unknown type: {type}")
         };
         return proRaffleResponse;
     }
 
-    public override void Write(Utf8JsonWriter writer, ProRaffleResponse value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, UserSettingResponse value, JsonSerializerOptions options)
     {
         // Serialize the object based on its runtime type
         JsonSerializer.Serialize(writer, value, value.GetType(), options);

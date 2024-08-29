@@ -192,7 +192,7 @@ namespace ProPayments.Client.Helpers
 
             return embed.Build();
         }
-        
+
         public static DiscordEmbed CreateSubscriptionEndingSoonEmbed(DateTimeOffset subscriptionEndDate, int daysLeft)
         {
             StringBuilder description = new();
@@ -322,13 +322,14 @@ namespace ProPayments.Client.Helpers
             return embed.Build();
         }
 
-        public static DiscordEmbed CreateActivationCodeResultEmbed(ProductKey productKey, Subscription subscription, string alphabotKey)
+        public static DiscordEmbed CreateActivationCodeResultEmbed(Subscription subscription)
         {
+            var proRaffle = (ProRaffle) subscription.UserSetting!;
             var description = new StringBuilder();
-            description.Append($"🎟️ Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
+            description.Append($"🎟️ Code | Duration: {subscription.PeriodDescription}");
             description.AppendLine($"```{subscription.Code}```");
             description.Append($"{EmojisHelper.Key} Key");
-            description.AppendLine($"```{alphabotKey}```\u200B");
+            description.AppendLine($"```{proRaffle.Key}```\u200B");
 
             var embed = new DiscordEmbedBuilder
             {

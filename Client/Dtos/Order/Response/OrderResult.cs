@@ -7,8 +7,8 @@ namespace ProPayments.Client.Dtos.Order.Response
         public ulong OrderId { get; set; }
         public OrderStatus OrderStatus { get; set; }
         public ulong UserId { get; set; }
-        public int TotalProductKeys { get; set; }
-        public List<ulong> ProductRoleIds { get; set; } = new();
-        // public SubscriptionResponse? Subscription { get; set; }
+        public Dictionary<ulong, int> TotalKeysByProduct { get; set; } = new();
+        // public int TotalProductKeys { get; set; }
+        // public List<ulong> ProductRoleIds { get; set; } = new();
     }
 }

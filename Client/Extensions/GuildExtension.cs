@@ -1,12 +1,33 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using ProPayments.Client.Helpers;
-using ProPayments.Client.Models;
 
 namespace ProPayments.Client.Extensions
 {
     public static class GuildExtension
     {
+
+        public static async Task TryAddRoleAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles,  ulong productRoleId)
+        {
+            if (guildRoles.TryGetValue(productRoleId, out var role))
+            {
+                if (!member.Roles.Contains(role))
+                {
+                    await member.GrantRoleAsync(role);
+                }
+            }
+        }
+
+        public static async Task TryRevokeRoleAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles,  ulong productRoleId)
+        {
+            if (guildRoles.TryGetValue(productRoleId, out var role))
+            {
+                if (!member.Roles.Contains(role))
+                {
+                    await member.RevokeRoleAsync(role);
+                }
+            }
+        }
 
         public static async Task AddRolesAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles,  List<ulong> productRolesIds)
         {
@@ -26,7 +47,33 @@ namespace ProPayments.Client.Extensions
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Error][GrantRoleAsync] {ex.Message}");
+                Console.WriteLine($"[Error][AddRolesAsync] {ex.Message}");
+            }
+        }
+
+        public static async Task RevokeRolesAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles, List<ulong?> productRolesIds)
+        {
+            try
+            {
+                foreach (var id in productRolesIds)
+                {
+                    if(!id.HasValue)
+                    {
+                        continue;
+                    }
+                    if (guildRoles.TryGetValue(id.Value, out var role))
+                    {
+                        if (!member.Roles.Contains(role))
+                        {
+                            await member.RevokeRoleAsync(role);
+                        }
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error][RevokeRolesAsync] {ex.Message}");
             }
         }
 

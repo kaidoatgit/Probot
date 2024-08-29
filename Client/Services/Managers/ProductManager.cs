@@ -7,7 +7,7 @@ namespace ProPayments.Client.Services.Managers
 {
     public class ProductManager
     {
-        public List<Product> _products = new();
+        private readonly List<Product> _products = new();
         private readonly ProductClient _productClient;
         private readonly Mapper _mapper;
 
@@ -70,13 +70,13 @@ namespace ProPayments.Client.Services.Managers
 
         public Product? GetProductByRoleId(string roleId)
         {
-            Product? product = Products.FirstOrDefault(p => p.RoleId.ToString()!.Equals(roleId));
+            Product? product = _products.FirstOrDefault(p => p.RoleId.ToString()!.Equals(roleId));
             return product;
         }
 
         public List<ProductOption>? GetDurationsWithPrices(string roleId)
         {
-            Product? product = Products.FirstOrDefault(p => p.RoleId.ToString()!.Equals(roleId));
+            Product? product = _products.FirstOrDefault(p => p.RoleId.ToString()!.Equals(roleId));
             return product?.ProductOptions;
         }
 

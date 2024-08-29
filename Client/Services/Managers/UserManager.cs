@@ -25,16 +25,16 @@ namespace ProPayments.Client.Services.Managers
         public async Task<bool> LoadUsersToMemoryAsync()
         {
             _users.Clear();
-            var apiResponse = await _userClient.GetUsersWithSubscriptionsAsync();
+            var apiResponse = await _userClient.GetUsersWithSummaryAsync();
             if (apiResponse.Data == null)
             {
                 return false;
             }
 
             var usersWithsubscriptions = apiResponse.Data;
-            foreach (var userWithSubscriptions in usersWithsubscriptions)
+            foreach (var userWithSummary in usersWithsubscriptions)
             {
-                var user = _mapper.MapToUser(userWithSubscriptions);
+                var user = _mapper.MapToUser(userWithSummary);
                 Console.WriteLine(user.ToString());
                 _users[user.Id] = user;
             }
@@ -137,20 +137,26 @@ namespace ProPayments.Client.Services.Managers
             return user;
         }
 
-        public void RemoveSubscriptionForUser(ulong userId, ulong subscriptionProductRoleId)
-        {
-            var user = GetUserFromMemory(userId);
-            Console.WriteLine("Before Removing:\n" + user?.ToString());
-            user?.RemoveSubscription(subscriptionProductRoleId);
-            Console.WriteLine("After Removing\n" + user?.ToString());
-        }
+        // public void RemoveSubscriptionForUser(ulong userId, ulong subscriptionProductRoleId)
+        // {
+        //     var user = GetUserFromMemory(userId);
+        //     Console.WriteLine("Before Removing:\n" + user?.ToString());
+        //     user?.RemoveSubscription(subscriptionProductRoleId);
+        //     Console.WriteLine("After Removing\n" + user?.ToString());
+        // }
 
-        public void AddOrUpdateSubscriptionForUser(ulong userId, Subscription subscription)
+        // public void AddOrUpdateSubscriptionForUser(ulong userId, Subscription subscription)
+        // {
+        //     var user = GetUserFromMemory(userId);
+        //     Console.WriteLine("Before Add/Update:\n" + user?.ToString());
+        //     user?.AddOrUpdateSubscription(subscription);
+        //     Console.WriteLine("After Add/Update:\n" + user?.ToString());
+        // }
+
+        public void AddInactivatedKeysPerProduct(ulong userId, Dictionary<ulong, int> totalKeysByProduct)
         {
             var user = GetUserFromMemory(userId);
-            Console.WriteLine("Before Add/Update:\n" + user?.ToString());
-            user?.AddOrUpdateSubscription(subscription);
-            Console.WriteLine("After Add/Update:\n" + user?.ToString());
+            user?.AddInactivatedKeysPerProduct(totalKeysByProduct);
         }
 
         public ConcurrentDictionary<ulong, User> Users => _users;

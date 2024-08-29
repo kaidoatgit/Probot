@@ -2,14 +2,21 @@
 
 namespace ProPayments.Client.Dtos.Subscription.Response
 {
+    // public class UserSubscriptions
+    // {
+    //     public ulong UserId { get; set; }
+    //     public Dictionary<ulong, int> TotalActiveSubsByProduct { get; set; } = new();
+    //     public List<SubscriptionReminder> SubsReminders { get; set; } = new();
+    // }
+    
     public class SubscriptionReminder
     {
         public ulong UserId { get; set; }
+        public string AlphabotKey { get; set; }
         public string? Username { get; set; }
         public ulong ProductRoleId { get; set; }
-        public bool IsToNotifyUser { get; set; }
-        public bool IsSubscriptionActive { get; set; }
-        public DateTimeOffset SubscriptionEndDate { get; set; }
+        public bool IsActive { get; set; }
+        public DateTimeOffset EndDate { get; set; }
         public int DaysLeft { get; set; }
 
         public override string ToString()

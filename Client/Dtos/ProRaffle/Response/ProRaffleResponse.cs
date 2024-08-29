@@ -1,10 +1,9 @@
-using ProPayments.Client.Dtos.Subscription.Response;
+using ProPayments.Client.Dtos.UserSetting.Response;
 
 namespace ProPayments.Client.Dtos.ProRaffle.Response;
 
-public class ProRaffleResponse
+public class ProRaffleResponse : UserSettingResponse
 {
     public string Key { get; set; }
     public bool IsPaused { get; set; }
-    public SubscriptionResponse Subscription { get; set; }
 }

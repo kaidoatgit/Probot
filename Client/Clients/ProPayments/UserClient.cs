@@ -16,15 +16,15 @@ namespace ProPayments.Client.Clients.ProPayments
             _httpClient = client;
         }
 
-        public async Task<ApiResponse<IEnumerable<UserWithSubscriptions>>> GetUsersWithSubscriptionsAsync()
+        public async Task<ApiResponse<IEnumerable<UserSummaryResponse>>> GetUsersWithSummaryAsync()
         {
-            ApiResponse<IEnumerable<UserWithSubscriptions>> apiResponse = new();
+            ApiResponse<IEnumerable<UserSummaryResponse>> apiResponse = new();
             try
             {
-                var response = await _httpClient.GetAsync("with-subscriptions");
+                var response = await _httpClient.GetAsync("with-summary");
                 if (response.IsSuccessStatusCode)
                 {
-                    apiResponse.Data = await response.Content.ReadFromJsonAsync<IEnumerable<UserWithSubscriptions>>();
+                    apiResponse.Data = await response.Content.ReadFromJsonAsync<IEnumerable<UserSummaryResponse>>();
                 }
                 else
                 {
@@ -39,17 +39,18 @@ namespace ProPayments.Client.Clients.ProPayments
                         apiResponse.StatusCode = (int)response.StatusCode;
                         apiResponse.ErrorMessage = response.ReasonPhrase;
                     }
-                    Console.WriteLine($"[GetUsersWithSubscriptionsAsync] {apiResponse.ErrorMessage}");
+                    Console.WriteLine($"[GetUsersWithSummaryAsync] {apiResponse.ErrorMessage}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetUsersWithSubscriptionsAsync] {ex.Message}");
+                Console.WriteLine($"[GetUsersWithSummaryAsync] {ex.Message}");
                 apiResponse.ErrorMessage = ex.Message;
                 apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
             }
             return apiResponse;
         }
+        
         public async Task<ApiResponse<UserResponse>> RegisterUserAsync(UserRequest request)
         {
             ApiResponse<UserResponse> apiResponse = new();

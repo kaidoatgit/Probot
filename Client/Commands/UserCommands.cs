@@ -20,11 +20,13 @@ namespace ProPayments.Client.Commands
         private readonly Mapper _mapper;
         private readonly UserClient _userClient;
         private readonly ProRaffleClient _proRaffleClient;
-        public UserCommands(Mapper mapper, ProRaffleClient proRaffleClient, UserClient userClient)
+        private readonly SubscriptionClient _subscriptionClient;
+        public UserCommands(Mapper mapper, ProRaffleClient proRaffleClient, UserClient userClient, SubscriptionClient subscriptionClient)
         {
             _mapper = mapper;
             _proRaffleClient = proRaffleClient;
             _userClient = userClient;
+            _subscriptionClient = subscriptionClient;
         }
 
         [SlashCommand("product-keys", "List all product keys and respective details.")]
@@ -129,13 +131,13 @@ namespace ProPayments.Client.Commands
                         Code = productKey.Code,
                         AlphabotKey = key
                     };
-                    var proRaffleResponse = await _proRaffleClient.CreateProRaffleAsync(proRaffleRequest);
-                    if (proRaffleResponse.Data == null)
+                    var subscriptionResponse = await _subscriptionClient.CreateProRaffleSubscriptionAsync(proRaffleRequest);
+                    if (subscriptionResponse.Data == null)
                     {
 
-                        if(proRaffleResponse.StatusCode == StatusCodes.Status400BadRequest || proRaffleResponse.StatusCode == StatusCodes.Status409Conflict)
+                        if(subscriptionResponse.StatusCode == StatusCodes.Status400BadRequest || subscriptionResponse.StatusCode == StatusCodes.Status409Conflict)
                         {
-                            description = $"{EmojisHelper.X} {proRaffleResponse.ErrorMessage}";
+                            description = $"{EmojisHelper.X} {subscriptionResponse.ErrorMessage}";
                         }
                         else
                         {
@@ -152,13 +154,11 @@ namespace ProPayments.Client.Commands
                     }
                     else
                     {
-                        var proRaffle = _mapper.MapToProRaffle(proRaffleResponse.Data);
-                        Subscription subscription = proRaffle.Subscription;
-                        embed = EmbedHelper.CreateActivationCodeResultEmbed(productKey, subscription, key);
+                        Subscription subscription = _mapper.MapToSubscription(subscriptionResponse.Data);
+                        embed = EmbedHelper.CreateActivationCodeResultEmbed(subscription);
                         message = new DiscordMessageBuilder().WithEmbed(embed);
                         await ctx.EditResponseAsync(new DiscordWebhookBuilder(message).WithContent($"Activation Success {EmojisHelper.Tada}"));
                     }
-
                 }
                 else if (answer.Result.Id == "activatekey_no_btn")
                 {
@@ -170,6 +170,7 @@ namespace ProPayments.Client.Commands
                 Console.WriteLine($"[ActivateProductKeysCommand] {ex.Message}");
             }
         }
+
 
         [SlashCommand("update-alphabot-key", "Replace the current alphabot key with a new one")]
         public async Task UpdateAlphabotKeyCommand(InteractionContext ctx,
@@ -233,24 +234,24 @@ namespace ProPayments.Client.Commands
             };
             try
             {
-                var proRaffleSubscriptionResponse = await _proRaffleClient.GetProRaffleSubscriptionsAsync(ctx.User.Id, isActive: true);
-                if (proRaffleSubscriptionResponse.Data == null)
+                var subscriptionResponse = await _subscriptionClient.GetProRaffleSubscriptionsAsync(ctx.User.Id);
+                if (subscriptionResponse.Data == null)
                 {
                     embed.Description = MessageHelper.GenericErrorMessage();
                     embed.Color = DiscordColor.Red;
                 }
-                else if(proRaffleSubscriptionResponse.Data.Any())
+                else if(subscriptionResponse.Data.Any())
                 {
-                    var proRaffles = proRaffleSubscriptionResponse.Data.Select(psr => _mapper.MapToProRaffle(psr)).ToList();
+                    var subscriptions = subscriptionResponse.Data.Select(s => _mapper.MapToSubscription(s)).ToList();
                     var description = new StringBuilder();
-                    foreach (var proRaffle in proRaffles)
+                    foreach (var subscription in subscriptions)
                     {
-                        Subscription subscription = proRaffle.Subscription;
+                        var proRaffle = (ProRaffle) subscription.UserSetting!;
                         description.AppendLine();
                         description.Append($"{EmojisHelper.Key} | Alphabot Key```{proRaffle.Key}```");
                         description.AppendLine($"{EmojisHelper.Calendar_Spiral} Start Date: <t:{((DateTimeOffset)subscription.StartDate).ToUnixTimeSeconds()}:D>");
                         description.AppendLine($"{EmojisHelper.Calendar_Spiral} End Date: <t:{((DateTimeOffset)subscription.EndDate).ToUnixTimeSeconds()}:D>");
-                        description.AppendLine($"{EmojisHelper.Robot} Status: {(proRaffle.IsPaused ? "Paused" : "Running")}");
+                        description.AppendLine($"{EmojisHelper.Robot} Status: **{(proRaffle.IsPaused ? "Paused" : "Running")}**");
                         description.AppendLine();
                     }
                     embed.Description = description.ToString();

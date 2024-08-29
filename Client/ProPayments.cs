@@ -38,7 +38,7 @@ namespace ProPayments.Client
                 TokenType = TokenType.Bot,
                 Intents = DiscordIntents.All,
                 MinimumLogLevel = LogLevel.Error,
-                AutoReconnect = false
+                AutoReconnect = true
             });
 
             _productManager = productManager;
@@ -97,10 +97,10 @@ namespace ProPayments.Client
             }
         }
 
-        private Task OnClientReady(DiscordClient sender, ReadyEventArgs args)
+        private async Task OnClientReady(DiscordClient sender, ReadyEventArgs args)
         {
             Console.WriteLine("[Event] client ready fired [Event]");
-            return Task.CompletedTask;
+            await _discordClient.UpdateStatusAsync(new DiscordActivity("Handling commands", ActivityType.Watching));
         }
 
         private async Task OnGuildAvailable(DiscordClient sender, GuildCreateEventArgs args)

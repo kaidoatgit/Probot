@@ -9,6 +9,9 @@ namespace ProPayments.Client.Models
         public string Username { get; private set; }
         public string WalletAddress { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+
+        public Dictionary<ulong, int> InactiveKeysPerProduct { get; set; } = new();
+        public Dictionary<ulong, int> ActiveSubsPerProduct { get; set; } = new();
         public List<Subscription> Subscriptions { get; set; } = new();
 
         public User(ulong id, string username, string walletAddress)
@@ -60,6 +63,21 @@ namespace ProPayments.Client.Models
             else
             {
                 Subscriptions?.Add(subscription);
+            }
+        }
+
+        public void AddInactivatedKeysPerProduct(Dictionary<ulong, int> totalKeysByProduct)
+        {
+            foreach (var kvp in totalKeysByProduct)
+            {
+                if (InactiveKeysPerProduct.TryGetValue(kvp.Key, out int currentValue))
+                {
+                    InactiveKeysPerProduct[kvp.Key] = currentValue + kvp.Value;
+                }
+                else
+                {
+                    InactiveKeysPerProduct[kvp.Key] = kvp.Value;
+                }
             }
         }
     }

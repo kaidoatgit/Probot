@@ -46,6 +46,7 @@ namespace ProPayments.Client
             services.AddHttpClient<ProductClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/products/"); });
             services.AddHttpClient<OrderClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/orders/"); });
             services.AddHttpClient<ProRaffleClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/pro_raffles/"); });
+            services.AddHttpClient<SubscriptionClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/subscriptions/"); });
             services.AddSingleton<CancelationTokenManager>();
             services.AddSingleton<DiscordManager>();
             services.AddSingleton<OrderManager>();
