@@ -27,6 +27,14 @@ namespace ProPayments.Service.Controllers
             UserResponse userResponse = _mapper.MapToUserResponse(user);
             return CreatedAtAction(nameof(GetUserAsync), new { id = userResponse.Id }, userResponse);
         }
+        
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUserAsync(ulong id)
+        {
+            var user = await _userService.GetUserByIdAsync(id);
+            UserResponse userResponse = _mapper.MapToUserResponse(user);
+            return Ok(userResponse);
+        }   
 
         [HttpPut("{id}/wallet")]
         public async Task<IActionResult> UpdateWalletAddressAsync(ulong id, [FromBody] UpdateWalletRequest request)
@@ -35,22 +43,14 @@ namespace ProPayments.Service.Controllers
             return NoContent();
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserAsync(ulong id)
-        {
-            var user = await _userService.GetUserByIdAsync(id);
-            UserResponse userResponse = _mapper.MapToUserResponse(user);
-            return Ok(userResponse);
-        }        
-
-        [HttpGet("with-subscriptions")]
-        public async Task<IActionResult> GetUsersWithSubscriptionsAsync()
-        {
-            var users = await _userService.GetUsersWithSubscriptionsAsync();
-            IEnumerable<UserWithSubscriptionsResponse> usersWithSubscriptionsResponse = users
-                .Select(u => _mapper.MapToUserWithSubscriptionsResponse(u));
-            return Ok(usersWithSubscriptionsResponse);
-        }
+        // [HttpGet("with-subscriptions")]
+        // public async Task<IActionResult> GetUsersWithSubscriptionsAsync()
+        // {
+        //     var users = await _userService.GetUsersWithSubscriptionsAsync();
+        //     IEnumerable<UserWithSubscriptionsResponse> usersWithSubscriptionsResponse = users
+        //         .Select(u => _mapper.MapToUserWithSubscriptionsResponse(u));
+        //     return Ok(usersWithSubscriptionsResponse);
+        // }
 
         [HttpGet("{userId}/product-keys/{code}")]
         public async Task<IActionResult> GetProductKeyAsync(ulong userId, string code, [FromQuery] bool isActivated)
@@ -65,9 +65,16 @@ namespace ProPayments.Service.Controllers
         public async Task<IActionResult> GetProductKeysAsync(ulong userId, [FromQuery] bool isActivated)
         {
             var productKeys = await _userService.GetProductKeysAsync(userId, isActivated);
-            IEnumerable<ProductKeyResponse> productKeyResponses = productKeys
-                    .Select(pk => _mapper.MapToProductKeyResponse(pk));
+            IEnumerable<ProductKeyResponse> productKeyResponses = productKeys.Select(pk => _mapper.MapToProductKeyResponse(pk));
             return Ok(productKeyResponses);
+        }
+
+        [HttpGet("with-summary")]
+        public async Task<IActionResult> GetUsersAsync()
+        {
+            var users = await _userService.GetUsersAsync(CancellationToken.None);
+            IEnumerable<UserSummaryResponse> usersSummaryResponse = users.Select(u => _mapper.MapToUserSummaryResponse(u));
+            return Ok(usersSummaryResponse);
         }
     }
 }

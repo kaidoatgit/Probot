@@ -26,10 +26,21 @@ namespace ProPayments.Service.Data.Entities
         public ulong OrderId { get; set; }
         public Order Order { get; set; } = null!; //Navigation purpose
 
-        internal void Close(string hash)
+        internal void Close(SubscriptionContext context, string hash)
         {
             Hash = hash;
             PaymentDate = DateTime.UtcNow;
+            context.Entry(this).Property(t => t.Hash).IsModified = true;
+            context.Entry(this).Property(t => t.PaymentDate).IsModified = true;
         }
+
+        //internal async Task Close(SubscriptionContext context, string hash, CancellationToken stoppingToken)
+        // {
+        //     await context.Transactions
+        //         .Where(t => t.Id == Id)
+        //         .ExecuteUpdateAsync(u => u
+        //             .SetProperty(t => t.Hash, hash)
+        //         stoppingToken);
+        // }
     }
 }

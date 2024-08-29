@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using ProPayments.Service.Data;
 using ProPayments.Service.Data.Entities;
 using ProPayments.Service.Dtos.ProRaffles.Request;
-using ProPayments.Service.Dtos.UserSettings.Request;
 using ProPayments.Service.Exceptions;
 using ProPayments.Service.Services.Services.IServices;
 
@@ -11,41 +10,54 @@ namespace ProPayments.Service.Services.Services;
 public class ProRaffleService : IProRaffleService
 {    
     private readonly SubscriptionContext _context;
-    private readonly IUserSettingService _userSettingService;
-    public ProRaffleService(SubscriptionContext context, IUserSettingService userSettingService)
+    public ProRaffleService(SubscriptionContext context)
     {
         _context = context;
-        _userSettingService = userSettingService;
-    }
-
-    public async Task<UserSetting> CreateProRaffleAsync(UserSettingRequest request)
-    {
-        return await _userSettingService.CreateUserSettingAsync(request);
     }
 
     public async Task<bool> UpdateProRaffleKeyAsync(ulong userId, UpdateProRaffleKeyRequest request)
     {
-        var proRaffle = await _context.ProRaffles
-            .FirstOrDefaultAsync(prs => prs.UserId == userId && prs.Key == request.CurrentKey);
-        if(proRaffle == null) return false;
-
-        bool keyExists = await _context.ProRaffles
+        bool isKeyInUse = await _context.ProRaffles
             .AsNoTracking()
-            .AnyAsync(ps => ps.Key == request.NewKey);
-        if (keyExists) throw new ServiceException(StatusCodes.Status409Conflict, $"Key:{request.NewKey} already in use.");
+            .AnyAsync(pr => pr.Key == request.NewKey);
+        if (isKeyInUse) throw new ServiceException(StatusCodes.Status409Conflict, $"Key:{request.NewKey} already in use.");
+
+        var proRaffle = await _context.ProRaffles
+            .SingleOrDefaultAsync(pr => pr.UserId == userId && pr.Key == request.CurrentKey);
+        if(proRaffle == null) return false;
 
         proRaffle.Key = request.NewKey;
         await _context.SaveChangesAsync();
         return true;
     }
 
-    public async Task<IEnumerable<ProRaffle>> GetProRaffleSubscriptionsAsync(ulong userId, bool isActive)
+    public async Task<(bool IsNewSetting, ProRaffle ProRaffle)> CreateSettingsAsync(ProRaffleRequest request)
     {
-        var proRaffles = await _context.ProRaffles
-            .Include(s => s.Subscription)
-            .Where(s => s.UserId == userId && s.Subscription.IsActive == isActive)
-            .ToListAsync();
-        return proRaffles;
-    }
+        bool isNewSetting = false;
+        var proRaffle = await _context.ProRaffles
+            .Include(pr => pr.Subscriptions)
+            .SingleOrDefaultAsync(prs => prs.Key == request.AlphabotKey);
 
+        if(proRaffle != null && proRaffle.UserId != request.UserId)
+        {
+            throw new ServiceException(StatusCodes.Status409Conflict, $"Activation failed for Alphabot Key: `{request.AlphabotKey}`");
+        }
+        if(proRaffle == null)
+        {
+            isNewSetting = true;
+            proRaffle = new ProRaffle
+            {
+                Key = request.AlphabotKey,
+                UserId = request.UserId
+            };
+            _context.ProRaffles.Add(proRaffle);
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            proRaffle.IsPaused = false;
+            proRaffle.Version = Guid.NewGuid();
+        }
+        return (isNewSetting, proRaffle);
+    }
 }

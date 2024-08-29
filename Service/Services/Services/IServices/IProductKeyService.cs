@@ -4,7 +4,8 @@ namespace ProPayments.Service.Services.Services.IServices;
 
 public interface IProductKeyService
 {
-    Task<IEnumerable<ProductKey>> GenerateProductKeys(Order order);
-    Task<ProductKey> GetProductKeyAsync(string code, ulong userId, bool isActivated, bool includeReferences = false);
-    Task<IEnumerable<ProductKey>> GetProductKeysAsync(ulong userId, bool isActivated);
+    Task<IEnumerable<ProductKey>> GenerateProductKeys(Order order, CancellationToken cancellationToken);
+    Task<ProductKey> GetProductKeyByCodeAsync(string code, bool? isActivated=null, bool includeReferences = false);
+    Task<IEnumerable<ProductKey>> GetProductKeysForUserAsync(ulong userId, bool isActivated);
+    Task<Dictionary<ulong, int>> GetNonActivatedProductKeysPerUserAsync(CancellationToken cancellationToken);
 }

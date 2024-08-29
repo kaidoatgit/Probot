@@ -11,5 +11,6 @@ namespace ProPayments.Service.Services.Services.IServices
         Task<IEnumerable<User>> GetUsersWithSubscriptionsAsync();
         Task<IEnumerable<ProductKey>> GetProductKeysAsync(ulong userId, bool isActivated);
         Task<ProductKey> GetProductKeyAsync(ulong userId, string code, bool isActivated);
+        Task<HashSet<User>> GetUsersAsync(CancellationToken cancellationToken);
     }
 }

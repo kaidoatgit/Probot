@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using ProPayments.Service.Dtos.ProRaffles.Request;
-using ProPayments.Service.Dtos.ProRaffles.Response;
-using ProPayments.Service.Dtos.UserSettings.Response;
 using ProPayments.Service.Mappers;
 using ProPayments.Service.Services.Services.IServices;
 
@@ -18,14 +16,6 @@ public class ProRafflesController : ControllerBase
     {
         _proRaffleService = proRaffleService;
         _mapper = mapper;
-    }
-    
-    [HttpPost]
-    public async Task<IActionResult> CreateProRaffleAsync([FromBody] ProRaffleRequest request)
-    {
-        var userSetting = await _proRaffleService.CreateProRaffleAsync(request);
-        UserSettingResponse userSettingResponse = _mapper.MapToUserSettingResponse(userSetting);
-        return Ok(userSettingResponse);
     }
 
     [HttpPatch("{userId}/key")]

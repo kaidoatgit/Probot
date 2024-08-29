@@ -15,7 +15,7 @@ namespace ProPayments.Service.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.32");
+            modelBuilder.HasAnnotation("ProductVersion", "7.0.2");
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.Invoice", b =>
                 {
@@ -262,6 +262,10 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnOrder(0);
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(1);
+
                     b.Property<bool>("IsActivated")
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(3);
@@ -272,7 +276,7 @@ namespace ProPayments.Service.Migrations
 
                     b.Property<int>("Period")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(1);
+                        .HasColumnOrder(2);
 
                     b.Property<int>("ProductOptionId")
                         .HasColumnType("INTEGER")
@@ -337,7 +341,7 @@ namespace ProPayments.Service.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 8, 22, 5, 36, 33, 307, DateTimeKind.Utc).AddTicks(3827),
+                            CreatedAt = new DateTime(2024, 8, 26, 12, 53, 19, 997, DateTimeKind.Utc).AddTicks(3645),
                             Period = 1,
                             PeriodDescription = "1 Month",
                             Price = 12m,
@@ -346,7 +350,7 @@ namespace ProPayments.Service.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 8, 22, 5, 36, 33, 307, DateTimeKind.Utc).AddTicks(3847),
+                            CreatedAt = new DateTime(2024, 8, 26, 12, 53, 19, 997, DateTimeKind.Utc).AddTicks(3657),
                             Period = 2,
                             PeriodDescription = "2 Months",
                             Price = 20m,
@@ -355,7 +359,7 @@ namespace ProPayments.Service.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2024, 8, 22, 5, 36, 33, 307, DateTimeKind.Utc).AddTicks(3849),
+                            CreatedAt = new DateTime(2024, 8, 26, 12, 53, 19, 997, DateTimeKind.Utc).AddTicks(3669),
                             Period = 3,
                             PeriodDescription = "3 Months",
                             Price = 30m,
@@ -373,7 +377,7 @@ namespace ProPayments.Service.Migrations
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(10);
+                        .HasColumnOrder(11);
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT")
@@ -381,39 +385,39 @@ namespace ProPayments.Service.Migrations
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(4);
+                        .HasColumnOrder(7);
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(5);
+                        .HasColumnOrder(8);
 
                     b.Property<DateTime?>("LastNotificationCheck")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(6);
+                        .HasColumnOrder(9);
 
                     b.Property<int>("ProductOptionId")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(9);
+                        .HasColumnOrder(10);
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(3);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(2);
+                        .HasColumnOrder(6);
 
                     b.Property<ulong>("UserId")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(7);
+                        .HasColumnOrder(2);
 
                     b.Property<ulong>("UserSettingId")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(11);
+                        .HasColumnOrder(4);
 
                     b.Property<string>("Username")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(8);
+                        .HasColumnOrder(3);
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(5);
 
                     b.HasKey("Id");
 
@@ -424,8 +428,7 @@ namespace ProPayments.Service.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("UserSettingId")
-                        .IsUnique();
+                    b.HasIndex("UserSettingId");
 
                     b.ToTable("Subscriptions");
                 });
@@ -517,14 +520,26 @@ namespace ProPayments.Service.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(0);
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(1);
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(3);
+
                     b.Property<ulong>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(2);
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("UserSettings", (string)null);
+
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.ProRaffle", b =>
@@ -539,6 +554,11 @@ namespace ProPayments.Service.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnOrder(1);
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(3);
 
                     b.HasIndex("Key")
                         .IsUnique();
@@ -655,8 +675,8 @@ namespace ProPayments.Service.Migrations
                         .IsRequired();
 
                     b.HasOne("ProPayments.Service.Data.Entities.UserSetting", "UserSetting")
-                        .WithOne("Subscription")
-                        .HasForeignKey("ProPayments.Service.Data.Entities.Subscription", "UserSettingId")
+                        .WithMany("Subscriptions")
+                        .HasForeignKey("UserSettingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -753,8 +773,7 @@ namespace ProPayments.Service.Migrations
 
             modelBuilder.Entity("ProPayments.Service.Data.Entities.UserSetting", b =>
                 {
-                    b.Navigation("Subscription")
-                        .IsRequired();
+                    b.Navigation("Subscriptions");
                 });
 #pragma warning restore 612, 618
         }

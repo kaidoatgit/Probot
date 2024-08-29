@@ -8,6 +8,8 @@ public class ProductKey
     [Column(Order = 0)]
     public string Code { get; set; } = Guid.NewGuid().ToString();
     [Column(Order = 1)]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Column(Order = 2)]
     public int Period { get; set; }
     [Column(Order = 3)]
     public bool IsActivated { get; set; } = false;

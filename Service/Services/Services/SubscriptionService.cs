@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ProPayments.Service.Data;
 using ProPayments.Service.Data.Entities;
-using ProPayments.Service.Mappers;
+using ProPayments.Service.Dtos.UserSettings.Request;
+using ProPayments.Service.Exceptions;
 using ProPayments.Service.Services.Services.IServices;
 
 namespace ProPayments.Service.Services.Services
@@ -9,291 +10,161 @@ namespace ProPayments.Service.Services.Services
     public class SubscriptionService : ISubscriptionService
     {
         private readonly SubscriptionContext _context;
-        private readonly Mapper _mapper;
-        private readonly IUserService _userService;
+        private readonly IUserSettingService _userSettingService;
         private readonly IProductKeyService _productKeyService;
 
-        public SubscriptionService(SubscriptionContext context, Mapper mapper, IUserService userService, IProductKeyService productKeyService)
+        public SubscriptionService(SubscriptionContext context, IUserSettingService userSettingService, IProductKeyService productKeyService)
         {
             _context = context;
-            _mapper = mapper;
-            _userService = userService;
+            _userSettingService = userSettingService;
             _productKeyService = productKeyService;
         }
 
-        public async Task CreateSubscriptionAsync(ProductKey productKey, ulong userSettingId)
+        public async Task<Subscription> CreateSubscriptionOfTypeAsync<TUserSetting>(UserSettingRequest request) where TUserSetting : UserSetting
         {
-            DateTime currentDate = DateTime.UtcNow;
-            User user = productKey.User;
-            Subscription subscription = new()
+            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, isActivated: false, includeReferences: true);
+            if(productKey.UserId != request.UserId)
             {
-                StartDate = currentDate,
-                EndDate = currentDate.AddMonths(productKey.Period),
-                UserId = user.Id,
-                Username = user.Username,
-                ProductOptionId = productKey.ProductOptionId,
-                Code = productKey.Code,
-                UserSettingId = userSettingId
-            };
-            _context.Subscriptions.Add(subscription);
-            await _context.SaveChangesAsync();
+                throw new ServiceException(StatusCodes.Status400BadRequest, "Product Key not found or already activated.");
+            }
+
+            using var dbTransaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                productKey.IsActivated = true;
+                (bool isNewSetting, TUserSetting userSetting) = await _userSettingService.CreateUserSettingAsync<TUserSetting>(request);
+                Subscription subscription = CreateOrExtendSubscriptionAsync(productKey, isNewSetting, userSetting);
+                productKey.Version = Guid.NewGuid();
+
+                await _context.SaveChangesAsync();
+                await dbTransaction.CommitAsync();
+                return subscription;
+            }
+            catch (Exception)
+            {
+                await dbTransaction.RollbackAsync();
+                throw;
+            }
         }
 
-        public async Task ExtendSubscriptionAsync(Subscription subscription, ProductKey productKey)
+        // public async Task<Subscription> CreateSubscriptionOfTypeAsync<TUserSetting>(UserSettingRequest request) where TUserSetting : UserSetting
+        // {
+        //     ProductKey productKey = await _productKeyService.GetProductKeyAsync(request.Code, request.UserId, isActivated: false, includeReferences: true);
+        //     using var dbTransaction = await _context.Database.BeginTransactionAsync();
+        //     try
+        //     {
+        //         productKey.IsActivated = true;
+        //         (bool isNewSetting, UserSetting userSetting) = await _userSettingService.CreateUserSettingAsync(productKey.ProductOption.Product.Name, request);
+        //         Subscription subscription = CreateOrExtendSubscriptionAsync(productKey, isNewSetting, userSetting);
+        //         productKey.Version = Guid.NewGuid();
+
+        //         await _context.SaveChangesAsync();
+        //         await dbTransaction.CommitAsync();
+        //         return subscription;
+        //     }
+        //     catch (Exception)
+        //     {
+        //         await dbTransaction.RollbackAsync();
+        //         throw;
+        //     }
+        // }
+
+        public async Task<IEnumerable<Subscription>> GetSubscriptionsOfTypeAsync<TUserSetting>(ulong userId) where TUserSetting : UserSetting
         {
+            var subscriptions = await _context.Subscriptions
+                .AsNoTracking()
+                .Where(s => s.UserId == userId && s.UserSetting is TUserSetting)
+                .Include(s => s.UserSetting)
+                .GroupBy(s => s.UserSettingId)
+                .Select(g => g.OrderByDescending(s => s.Version).FirstOrDefault())
+                .ToListAsync();
+            
+            return subscriptions.Where(s => s != null)!;
+        }
+
+        private Subscription CreateOrExtendSubscriptionAsync(ProductKey productKey, bool isNewSetting, UserSetting userSetting, int version = 1)
+        {
+            Subscription? subscription = null!;
             DateTime currentDate = DateTime.UtcNow;
-            if (subscription.IsActive)
+            User user = productKey.User;
+
+            if(isNewSetting)
             {
-                subscription.EndDate = subscription.EndDate.AddMonths(productKey.Period);
+                subscription = new()
+                {
+                    Version = version,
+                    StartDate = currentDate,
+                    EndDate = currentDate.AddMonths(productKey.Period),
+                    UserId = user.Id,
+                    Username = user.Username,
+                    ProductOptionId = productKey.ProductOptionId,
+                    Code = productKey.Code,
+                    UserSettingId = userSetting.Id
+                };
             }
             else
             {
-                subscription.IsActive = true;
+                Subscription oldSubscription = userSetting.Subscriptions.OrderByDescending(s => s.Version).First();
+                version = oldSubscription.Version + 1;
+
+                if(oldSubscription.IsActive)
+                {
+                    subscription = new()
+                    {
+                        Version = version,
+                        StartDate = oldSubscription.StartDate,
+                        EndDate = oldSubscription.EndDate.AddMonths(productKey.Period),
+                        UserId = user.Id,
+                        Username = user.Username,
+                        ProductOptionId = productKey.ProductOptionId,
+                        Code = productKey.Code,
+                        UserSettingId = userSetting.Id
+                    };
+                }
+                else
+                {
+                    subscription = new()
+                    {
+                        Version = version,
+                        StartDate = currentDate,
+                        EndDate = currentDate.AddMonths(productKey.Period),
+                        UserId = user.Id,
+                        Username = user.Username,
+                        ProductOptionId = productKey.ProductOptionId,
+                        Code = productKey.Code,
+                        UserSettingId = userSetting.Id
+                    };
+                }
+                oldSubscription.IsActive = false;
             }
-            subscription.UpdatedAt = currentDate;
-            subscription.StartDate = currentDate;
-            subscription.ProductOptionId = productKey.ProductOptionId;
-            subscription.Code = productKey.Code;
-            _context.Subscriptions.Update(subscription);
-            await _context.SaveChangesAsync();
+            _context.Subscriptions.Add(subscription);
+            return subscription;
         }
-
-        public async Task<IEnumerable<Subscription>> GetSubscriptionsOfTypeAsync<TUserSetting>(ulong userId, bool isActive) where TUserSetting : UserSetting
+    
+        public async Task<Dictionary<ulong, Dictionary<ulong, int>>> GetUsersActiveSubsCountPerProduct(CancellationToken cancellationToken)
         {
-             var subscriptions = await _context.Subscriptions
-                .Include(s => s.UserSetting)
-                .Where(s => s.UserId == userId && s.IsActive == isActive)
-                .Where(s => s.UserSetting is TUserSetting)
-                .ToListAsync();
+            var usersActiveSubsCountByProduct = await _context.Subscriptions
+                .AsNoTracking()
+                .Where(s => s.IsActive)
+                .Include(s => s.ProductOption)
+                    .ThenInclude(po => po!.Product)
+                .GroupBy(s => new { s.UserId, s.ProductOption!.Product.RoleId })
+                .Select(g => new
+                {
+                    UserId = g.Key.UserId,
+                    RoleId = g.Key.RoleId,
+                    SubscriptionCount = g.Count()
+                })
+                .ToListAsync(cancellationToken);
 
-            return subscriptions;
+            var result = usersActiveSubsCountByProduct
+                .GroupBy(s => s.UserId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.ToDictionary(x => x.RoleId ?? 0, x => x.SubscriptionCount)
+                );
+
+            return result;
         }
-
-        // public async Task<IEnumerable<Subscription>> GetSubscriptionsOfTypeAsync(ulong userId, bool isActive) where TUserSetting : UserSetting;
-        // {
-        //     var subscriptions = await _context.Subscriptions
-        //         .Include(s => s.UserSetting)
-        //         .Where(s => s.UserId == userId && s.IsActive == isActive)
-        //         .Where(sb)
-        //         .ToListAsync();
-        //     return subscriptions;
-        //     // var proRaffles = await _context.ProRaffles
-        //     //     .Include(s => s.Subscription)
-        //     //     .Where(s => s.UserId == userId && s.Subscription.IsActive == isActive)
-        //     //     .ToListAsync();
-        //     // return proRaffles;
-        // }
-        // public async Task<Subscription> CreateSubscriptionAsync(SubscriptionRequest request)
-        // {   
-        //     var productKey = await _context.ProductKeys
-        //         .Include(pk => pk.User)
-        //         .Include(pk => pk.ProductOption.Product)
-        //         .FirstOrDefaultAsync(pk => pk.Code == request.Code) 
-        //         ?? throw new ServiceException(StatusCodes.Status404NotFound, "Product key not found.");
-        //     if(productKey.IsActivated) throw new ServiceException(StatusCodes.Status409Conflict, $"Code {request.Code} has already been activated.");
-        //     productKey.IsActivated = true;
-
-        //     UserSetting? userSetting = null;
-        //     switch(productKey.ProductOption.Product.Name)
-        //     {
-        //         case ProductName.ProRaffle:
-        //         {
-        //             userSetting = await _context.ProRaffles
-        //                 .Include(prs => prs.Subscription)
-        //                 .FirstOrDefaultAsync(prs => prs.Key == request.AlphabotKey);   
-        //             break;
-        //         }
-        //     }
-
-        //     DateTime currentDate = DateTime.UtcNow;
-        //     User user = productKey.User;
-        //     Subscription? subscription = null;
-        //     if(userSetting == null)
-        //     {
-        //         subscription = new Subscription
-        //         {
-        //             StartDate = currentDate,
-        //             EndDate = currentDate.AddMonths(productKey.Period),
-        //             UserId = user.Id,
-        //             Username = user.Username,
-        //             ProductOptionId = productKey.ProductOptionId,
-        //             Code = productKey.Code
-        //         };
-
-        //         _context.Subscriptions.Add(subscription);
-
-        //         userSetting = new ProRaffle{
-        //             Key = request.AlphabotKey
-        //         };
-        //         _context.UserSettings.Add(userSetting);
-        //         subscription.UserSetting = userSetting;
-        //         await _context.SaveChangesAsync();
-        //     }
-
-        //     return subscription!;
-
-        //     // var existingSubscription = await _context.Subscriptions
-        //     //     .Include(s => s.AlphabotProcess)
-        //     //     .Where(s => s.UserId == request.UserId && s.IsActive && s.AlphabotProcess.AlphabotKey == request.AlphabotKey)
-        //     //    .FirstOrDefaultAsync();
-
-        //     // var subscription = existingSubscription;
-        //     // DateTime currentDate = DateTime.UtcNow;
-        //     // if (subscription != null)
-        //     // {
-        //     //     if (subscription.IsActive)
-        //     //     {
-        //     //         subscription.EndDate = subscription.EndDate.add(ac.ProductPeriod);
-        //     //     }
-        //     //     else
-        //     //     {
-        //     //         // subscription.EndDate = currentDate.AddMonths(invoice.ProductPeriod);
-        //     //         subscription.IsActive = true;
-        //     //     }
-        //     //     subscription.UpdatedAt = currentDate;
-        //     //     subscription.StartDate = currentDate;
-        //     //     subscription.LastNotificationCheck = currentDate;
-        //     //     subscription.Username = invoice.Username;
-        //     //     // subscription.ProductOptionId = invoice.ProductOptionId;
-
-        //     //     _context.Subscriptions.Update(subscription);
-        //     //     await _context.SaveChangesAsync();
-        //     // }
-        //     // else
-        //     // {
-        //     //     subscription = new Subscription
-        //     //     {
-        //     //         StartDate = currentDate,
-        //     //         // EndDate = currentDate.AddMonths(invoice.ProductPeriod),
-        //     //         UserId = userId,
-        //     //         Username = invoice.Username,
-        //     //         // ProductId = invoice.ProductId,
-        //     //         // ProductOptionId = invoice.ProductOptionId,
-        //     //     };
-        //     //     _context.Subscriptions.Add(subscription);
-        //     //     await _context.SaveChangesAsync();
-
-        //     //     //explicity load the reference
-        //     //     await _context.Entry(subscription).Reference(s => s.Product).LoadAsync();
-        //     // }
-
-
-        //     // DateTime startDate = DateTime.UtcNow;
-        //     // Subscription subscription = new()
-        //     // {
-        //     //     StartDate = startDate,
-        //     //     EndDate = startDate.AddMonths(productKey.Period),
-        //     //     UserId = request.UserId,
-        //     //     Code = request.Code,
-        //     // };
-
-        //     // _context.Subscriptions.Add(subscription);
-        //     // await _context.SaveChangesAsync();
-
-        //     //explicity load the reference
-        //     // await _context.Entry(subscription).Reference(s => s.AlphabotProcess).LoadAsync();
-
-        //     // try
-        //     // {
-        //     //     _ = await _userService.CreateUserAsync(new(){
-        //     //         Id = request.UserId
-        //     //     });
-        //     // }
-        //     // catch (ServiceException ex)
-        //     // {
-        //     //     if(ex.StatusCode == StatusCodes.Status409Conflict)
-        //     //     {
-
-        //     //     }
-        //     // }
-
-        // }
-
-        // public async Task<Subscription> CreateFreeSubscriptionAsync(SubscriptionRequest request)
-        // {
-        //     var user = await _context.Users.FindAsync(request.UserId);
-        //     if (user == null) throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
-
-        //     var productOption = await _context.ProductOptions
-        //         .Where(po => po.Id == request.ProductOptionId)
-        //         .Include(po => po.Product)
-        //         .Include(po => po.Subscriptions)
-        //         .FirstOrDefaultAsync();
-
-        //     if (productOption == null) throw new ServiceException(StatusCodes.Status404NotFound, "Product option not found");
-        //     if (productOption.Product != null && productOption.Product.Type != ProductName.Free)
-        //         throw new ServiceException(StatusCodes.Status400BadRequest, $"Invalid product option: {productOption.Product.Type}");
-
-        //     if (productOption.Subscriptions!.Any(s => s.UserId == user.Id))
-        //     {
-        //         throw new ServiceException(StatusCodes.Status409Conflict, $"Free Subscriptions already exists for user: {user.Username}");
-        //     }
-
-        //     DateTime startDate = DateTime.UtcNow;
-        //     Subscription subscription = new()
-        //     {
-        //         StartDate = startDate,
-        //         EndDate = startDate.AddDays(productOption.Period),
-        //         UserId = user.Id,
-        //         ProductOptionId = productOption.Id,
-        //         ProductId = productOption.ProductId
-        //     };
-
-        //     _context.Subscriptions.Add(subscription);
-        //     await _context.SaveChangesAsync();
-        //     return subscription;
-        // }
-
-        // public async Task<Subscription> CreatePaidSubscriptionAsync(ulong userId, Invoice invoice)
-        // {
-        //     var existingSubscription = await _context.Subscriptions
-        //         .Include(s => s.Product)
-        //         .Where(s => s.UserId == userId && s.ProductId == 1)//invoice.ProductId)
-        //        .FirstOrDefaultAsync();
-
-        //     var subscription = existingSubscription;
-        //     DateTime currentDate = DateTime.UtcNow;
-        //     if (subscription != null)
-        //     {
-        //         if (subscription.IsActive)
-        //         {
-        //             // subscription.EndDate = subscription.EndDate.AddMonths(invoice.ProductPeriod);
-        //         }
-        //         else
-        //         {
-        //             // subscription.EndDate = currentDate.AddMonths(invoice.ProductPeriod);
-        //             subscription.IsActive = true;
-        //         }
-        //         subscription.UpdatedAt = currentDate;
-        //         subscription.StartDate = currentDate;
-        //         subscription.LastNotificationCheck = currentDate;
-        //         subscription.Username = invoice.Username;
-        //         // subscription.ProductOptionId = invoice.ProductOptionId;
-
-        //         _context.Subscriptions.Update(subscription);
-        //         await _context.SaveChangesAsync();
-        //     }
-        //     else
-        //     {
-        //         subscription = new Subscription
-        //         {
-        //             StartDate = currentDate,
-        //             // EndDate = currentDate.AddMonths(invoice.ProductPeriod),
-        //             UserId = userId,
-        //             Username = invoice.Username,
-        //             // ProductId = invoice.ProductId,
-        //             // ProductOptionId = invoice.ProductOptionId,
-        //         };
-        //         _context.Subscriptions.Add(subscription);
-        //         await _context.SaveChangesAsync();
-
-        //         //explicity load the reference
-        //         await _context.Entry(subscription).Reference(s => s.Product).LoadAsync();
-        //     }
-
-        //     return subscription;
-        // }
-
-
     }
 }

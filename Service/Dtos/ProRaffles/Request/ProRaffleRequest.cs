@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using ProPayments.Service.Dtos.UserSettings.Request;
 

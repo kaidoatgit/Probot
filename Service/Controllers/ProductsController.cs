@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ProPayments.Service.Dtos.ProductOptions.Response;
 using ProPayments.Service.Dtos.Products.Request;
 using ProPayments.Service.Dtos.Products.Response;
 using ProPayments.Service.Mappers;
@@ -17,19 +18,13 @@ namespace ProPayments.Service.Controllers
             _productService = productService;
             _mapper = mapper;
         }
-
-        [HttpGet("with_options")]
-        public async Task<IActionResult> GetProductsWithOptionsAsync()
+        
+        [HttpGet]
+        public async Task<IActionResult> GetProductsAsync()
         {
-            var productsWithOptions = await _productService.GetProductsWithOptionsAsync();
-            return Ok(productsWithOptions);
-        }
-
-        [HttpPost("roleId")]
-        public async Task<IActionResult> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> request)
-        {
-            var isModified = await _productService.UpdateProductsRoleIdAsync(request);
-            return isModified ? NoContent() : StatusCode(304); //304 = not modified
+            var products = await _productService.GetProductsAsync();
+            List<ProductResponse> productsResponse = products.Select(p => _mapper.MapToProductResponse(p)).ToList();
+            return Ok(productsResponse);
         }
 
         [HttpGet("{id}")]
@@ -40,12 +35,20 @@ namespace ProPayments.Service.Controllers
             return Ok(productResponse);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetProductsAsync()
+        [HttpGet("with_options")]
+        public async Task<IActionResult> GetProductsWithOptionsAsync()
         {
-            var products = await _productService.GetProductsAsync();
-            List<ProductResponse> productsResponse = products.Select(p => _mapper.MapToProductResponse(p)).ToList();
+            var products = await _productService.GetProductsWithOptionsAsync();
+            IEnumerable<ProductResponse> productsResponse = products
+                .Select(p => _mapper.MapToProductResponse(p));
             return Ok(productsResponse);
+        }
+
+        [HttpPost("roleId")]
+        public async Task<IActionResult> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> request)
+        {
+            var isModified = await _productService.UpdateProductsRoleIdAsync(request);
+            return isModified ? NoContent() : StatusCode(304); //304 = not modified
         }
 
         [HttpGet("options")]

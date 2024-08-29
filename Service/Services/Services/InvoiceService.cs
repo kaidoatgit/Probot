@@ -45,8 +45,7 @@ namespace ProPayments.Service.Services.Services
                         PeriodDescription = po.PeriodDescription
                     }).ToList()
             };
-
-
+            
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();
             return invoice;

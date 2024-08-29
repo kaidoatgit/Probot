@@ -1,6 +1,5 @@
 ﻿using ProPayments.Service.Data.Entities;
 using ProPayments.Service.Dtos.Products.Request;
-using ProPayments.Service.Dtos.Products.Response;
 
 namespace ProPayments.Service.Services.Services.IServices
 {
@@ -8,9 +7,8 @@ namespace ProPayments.Service.Services.Services.IServices
     {
         Task<IEnumerable<Product>> GetProductsAsync();
         Task<Product> GetProductByIdAsync(int productId);
-
         Task<IEnumerable<ProductOption>> GetProductOptionsAsync();
-        Task<IEnumerable<ProductWithOptionsResponse>> GetProductsWithOptionsAsync();
+        Task<IEnumerable<Product>> GetProductsWithOptionsAsync();
         Task<bool> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> request);
 
     }

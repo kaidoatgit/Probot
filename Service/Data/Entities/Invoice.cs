@@ -1,4 +1,5 @@
-﻿using ProPayments.Service.Data.Entities.Enums;
+﻿using Microsoft.EntityFrameworkCore;
+using ProPayments.Service.Data.Entities.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ProPayments.Service.Data.Entities
@@ -45,7 +46,7 @@ namespace ProPayments.Service.Data.Entities
 
         public ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
 
-        internal void UpdateCodes(IEnumerable<ProductKey> productKeys)
+        internal void UpdateProductKeyCodes(SubscriptionContext context, IEnumerable<ProductKey> productKeys)
         {
             foreach (var productKey in productKeys)
             {
@@ -54,19 +55,42 @@ namespace ProPayments.Service.Data.Entities
                 if (invoiceItem != null)
                 {
                     invoiceItem.ProductKeyCode = productKey.Code;
+                    context.Entry(invoiceItem).Property(ii => ii.ProductKeyCode).IsModified = true;
                 }
             }
         }
 
-        internal void UpdateOrderData(OrderStatus orderStatus)
+        internal void UpdateOrderData(SubscriptionContext context, OrderStatus orderStatus)
         {
             OrderStatus = orderStatus;
+            context.Entry(this).Property(i => i.OrderStatus).IsModified = true;
         }
         
-        internal void UpdateTransactionData(Transaction transaction)
+        internal void UpdateTransactionData(SubscriptionContext context, Transaction transaction)
         {
             TransactionHash = transaction.Hash;
             PaymentDate = transaction.PaymentDate;
+            context.Entry(this).Property(i => i.TransactionHash).IsModified = true;
+            context.Entry(this).Property(i => i.PaymentDate).IsModified = true;
         }
+
+        // internal async Task UpdateData(SubscriptionContext context, Transaction transaction, IEnumerable<ProductKey> productKeys, CancellationToken stoppingToken)
+        // {
+        //     await context.Invoices
+        //         .Where(i => i.Id == Id)
+        //         .ExecuteUpdateAsync(u => u
+        //             .SetProperty(i => i.OrderStatus, OrderStatus.Completed)
+        //             .SetProperty(i => i.TransactionHash, transaction.Hash)
+        //             .SetProperty(i => i.PaymentDate, transaction.PaymentDate),
+        //         stoppingToken);
+            
+        //     foreach (var productKey in productKeys)
+        //     {
+        //         await context.InvoiceItems
+        //             .Where(ii => ii.Id == productKey.OrderItemId && ii.ProductOptionId == productKey.ProductOptionId)
+        //             .ExecuteUpdateAsync(u => u.SetProperty(i => i.ProductKeyCode, productKey.Code),
+        //             stoppingToken);
+        //     }
+        // }
     }
 }

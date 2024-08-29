@@ -19,9 +19,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Logging.ClearProviders();
+// builder.Logging.ClearProviders();
+// builder.Logging.AddConsole(); // Adds Console logging
+// builder.Logging.AddDebug(); // Adds Debug logging
+
 builder.Services.Configure<ServiceConfiguration>(builder.Configuration.GetSection("ServiceConfiguration"));
-builder.Services.AddDbContext<SubscriptionContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("SubscriptionDatabase")));
+builder.Services.AddDbContext<SubscriptionContext>(options => 
+{
+    options.UseSqlite(builder.Configuration.GetConnectionString("SubscriptionDatabase"));
+        // .LogTo(Console.WriteLine, LogLevel.Information); // Logs SQL queries to console;
+});
 builder.Services.AddSignalR().AddJsonProtocol(options =>
 {
     options.PayloadSerializerOptions = new JsonSerializerOptions
@@ -58,7 +65,7 @@ builder.Services.AddSingleton<Mapper>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
-builder.Services.AddScoped<ISubscriptionService, ProPayments.Service.Services.Services.SubscriptionService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IProductKeyService, ProductKeyService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -81,7 +88,6 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 await app.SeedDatabaseAsync();
-app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -92,4 +98,5 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationhub");
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.Run();

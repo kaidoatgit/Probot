@@ -2,7 +2,7 @@
 
 namespace ProPayments.Service.Dtos.UserSettings.Request
 {
-    public class UserSettingRequest
+    public abstract class UserSettingRequest
     {
         [Required]
         public ulong UserId { get; set; }

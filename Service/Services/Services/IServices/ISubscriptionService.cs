@@ -1,14 +1,12 @@
 ﻿using ProPayments.Service.Data.Entities;
+using ProPayments.Service.Dtos.UserSettings.Request;
 
 namespace ProPayments.Service.Services.Services.IServices
 {
     public interface ISubscriptionService
     {
-        // Task<Subscription> CreateFreeSubscriptionAsync(SubscriptionRequest request);
-        // Task<Subscription> CreatePaidSubscriptionAsync(ulong userId, Invoice invoice);
-        // Task<Subscription> CreateSubscriptionAsync(SubscriptionRequest request);
-        Task CreateSubscriptionAsync(ProductKey productKey, ulong userSettingId);
-        Task ExtendSubscriptionAsync(Subscription subscription, ProductKey productKey);
-        Task<IEnumerable<Subscription>> GetSubscriptionsOfTypeAsync<TUserSetting>(ulong userId, bool isActive) where TUserSetting : UserSetting;
+        Task<IEnumerable<Subscription>> GetSubscriptionsOfTypeAsync<TUserSetting>(ulong userId) where TUserSetting : UserSetting;
+        Task<Subscription> CreateSubscriptionOfTypeAsync<TUserSetting>(UserSettingRequest request) where TUserSetting : UserSetting;
+        Task<Dictionary<ulong, Dictionary<ulong, int>>> GetUsersActiveSubsCountPerProduct(CancellationToken cancellationToken);
     }
 }

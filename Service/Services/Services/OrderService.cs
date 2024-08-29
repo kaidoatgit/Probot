@@ -18,7 +18,6 @@ namespace ProPayments.Service.Services.Services
     public class OrderService : IOrderService, IOrderMonitorService
     {
         private readonly SubscriptionContext _context;
-        private readonly ISubscriptionService _subscriptionService;
         private readonly IProductKeyService _productKeyService;
         private readonly IInvoiceService _invoiceService;
         private readonly ITransactionService _transactionService;
@@ -27,12 +26,11 @@ namespace ProPayments.Service.Services.Services
         private readonly IHubContext<NotificationHub, INotificationClient> _hubContext;
         private readonly IMonitorService _monitorService;
 
-        public OrderService(SubscriptionContext context, Mapper mapper, ISubscriptionService subscriptionService, IProductKeyService productKeyService, ITransactionService transactionService, IInvoiceService invoiceService, 
+        public OrderService(SubscriptionContext context, Mapper mapper, IProductKeyService productKeyService, ITransactionService transactionService, IInvoiceService invoiceService, 
         IOrderQueueService orderQueueService, IHubContext<NotificationHub, INotificationClient> hubContext, IMonitorService monitorService)
         {
             _context = context;
             _mapper = mapper;
-            _subscriptionService = subscriptionService;
             _productKeyService = productKeyService;
             _transactionService = transactionService;
             _invoiceService = invoiceService;
@@ -44,7 +42,8 @@ namespace ProPayments.Service.Services.Services
         public async Task<Order> CreateOrderAsync(OrderRequest request)
         {
             var user = await _context.Users
-                .FindAsync(request.UserId) ?? throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
+                .FindAsync(request.UserId)
+                ?? throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
 
             var distinctProductOptions = await _context.ProductOptions
                 .Where(po => request.ProductOptionsId.Contains(po.Id))
@@ -63,7 +62,7 @@ namespace ProPayments.Service.Services.Services
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var productOptions = request.ProductOptionsId
+                List<ProductOption> productOptions = request.ProductOptionsId
                     .Select(id => distinctProductOptions.First(po => po.Id == id))
                     .ToList();   
 
@@ -99,7 +98,9 @@ namespace ProPayments.Service.Services.Services
         public async Task<Order> GetOrderByIdAsync(ulong orderId)
         {
             var order = await _context.Orders
-                .FindAsync(orderId) ?? throw new ServiceException(StatusCodes.Status404NotFound, "Order not found");
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == orderId)
+                ?? throw new ServiceException(StatusCodes.Status404NotFound, "Order not found");
             return order;
         }
 
@@ -123,12 +124,15 @@ namespace ProPayments.Service.Services.Services
             {
                 var transaction = order.Transaction;
 
-                order.Complete();
-                transaction.Close(request.Transaction.Hash);
-                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeys(order);
-                invoice.UpdateOrderData(OrderStatus.Completed);
-                invoice.UpdateTransactionData(transaction);
-                invoice.UpdateCodes(productKeys);
+                /*
+                * Problem: when updating an order retrived from memory all related entities are detected as modified
+                * Reason: this happens because EF Core doesn't have the original state of the entity from the database to compare against,
+                *         so it assumes that all properties may have been changed.
+                * Solution: ensure the Order entity initially is not tracked, and manually set property to modified = true
+                */
+                _context.Entry(order).State = EntityState.Unchanged;
+                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeys(order, CancellationToken.None);
+                order.Complete(_context, productKeys.ToList());
 
                 await _context.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
@@ -148,11 +152,10 @@ namespace ProPayments.Service.Services.Services
         {
             try
             {
-                var invoice = order.Invoice;
-                invoice.UpdateOrderData(OrderStatus.Expired);
-                _context.Entry(invoice).State = EntityState.Modified;
-
+                order.Invoice.UpdateOrderData(_context, OrderStatus.Expired);
                 _context.Orders.Remove(order);
+
+                // Console.WriteLine("Before Saving:\n" + _context.ChangeTracker.DebugView.LongView);
                 await _context.SaveChangesAsync();
 
                 var orderResult = new OrderResult { OrderStatus = OrderStatus.Expired, OrderId = order.Id };
@@ -179,25 +182,28 @@ namespace ProPayments.Service.Services.Services
             using var dbTransaction = await _context.Database.BeginTransactionAsync(stoppingToken);
             try
             {
-                // Ensure the User entity is not tracked
-                _context.Entry(order.User).State = EntityState.Unchanged;
-                var transaction = order.Transaction;
-                var invoice = order.Invoice;
+                /*
+                * Problem: when updating an order retrived from memory all related entities are detected as modified
+                * Reason: this happens because EF Core doesn't have the original state of the entity from the database to compare against,
+                *         so it assumes that all properties may have been changed.
+                * Solution: ensure the Order entity initially is not tracked, and manually set property to modified = true
+                */
+                _context.Entry(order).State = EntityState.Unchanged;
+                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeys(order, stoppingToken);
+                order.Complete(_context, productKeys.ToList());
 
-                order.Complete();
-                transaction.Close(transaction.Hash!);
-                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeys(order);
-                invoice.UpdateOrderData(OrderStatus.Completed);
-                invoice.UpdateCodes(productKeys.ToList());
-                invoice.UpdateTransactionData(transaction);
-
-                _context.Orders.Update(order);
+                // _context.Orders.Update(order);
                 await _context.SaveChangesAsync(stoppingToken);
                 await dbTransaction.CommitAsync(stoppingToken);
 
+
                 orderResult.OrderStatus = OrderStatus.Completed;
-                orderResult.TotalProductKeys = productKeys.Count();
-                orderResult.ProductRoleIds = invoice.InvoiceItems.Select(ii => ii.ProductRoleId!.Value).Distinct().ToList();
+                orderResult.TotalKeysByProduct = productKeys
+                    .Where(p => p.ProductOption.Product.RoleId.HasValue) // Ensure RoleId is not null
+                    .GroupBy(p => p.ProductOption.Product.RoleId!.Value)  // Group by RoleId
+                    .ToDictionary(g => g.Key, g => g.Count());           // Convert to dictionary with counts
+                // orderResult.TotalProductKeys = productKeys.Count();
+                // orderResult.ProductRoleIds = order.Invoice.InvoiceItems.Select(ii => ii.ProductRoleId!.Value).Distinct().ToList();
             }
             catch (Exception)
             {

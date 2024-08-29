@@ -9,7 +9,6 @@ namespace ProPayments.Service.Services.BackgroundServices
 {
     public class TransactionMonitorService : BackgroundService
     {
-        private readonly IServiceProvider _serviceProvider;
         private readonly ISolanaRpcClient _rpcClient;
         private readonly IMonitorService _monitorService;
         private static readonly TimeSpan _monitoringPeriod = TimeSpan.FromSeconds(10);
@@ -17,9 +16,8 @@ namespace ProPayments.Service.Services.BackgroundServices
         private readonly ConcurrentDictionary<string, int> _failedTransactions = new();
         private readonly SemaphoreSlim _processTransactionsSemaphore = new(1);
 
-        public TransactionMonitorService(IServiceProvider serviceProvider, ISolanaRpcClient rpcClient, IMonitorService monitorService, IOptions<ServiceConfiguration> serviceConfiguration)
+        public TransactionMonitorService(ISolanaRpcClient rpcClient, IMonitorService monitorService, IOptions<ServiceConfiguration> serviceConfiguration)
         {
-            _serviceProvider = serviceProvider;
             _rpcClient = rpcClient;
             _monitorService = monitorService;
             _serviceConfiguration = serviceConfiguration.Value;

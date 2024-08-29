@@ -2,7 +2,6 @@
 using ProPayments.Service.Data;
 using ProPayments.Service.Data.Entities;
 using ProPayments.Service.Dtos.Products.Request;
-using ProPayments.Service.Dtos.Products.Response;
 using ProPayments.Service.Exceptions;
 using ProPayments.Service.Mappers;
 using ProPayments.Service.Services.Services.IServices;
@@ -22,47 +21,31 @@ namespace ProPayments.Service.Services.Services
 
         public async Task<Product> GetProductByIdAsync(int productId)
         {
-            var product = await _context.Products.FindAsync(productId);
-            if (product == null) throw new ServiceException(StatusCodes.Status404NotFound, $"Product {productId} not found");
+            var product = await _context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == productId)
+                ?? throw new ServiceException(StatusCodes.Status404NotFound, $"Product {productId} not found");
             return product;
         }
 
         public async Task<IEnumerable<Product>> GetProductsAsync()
         {
-            return await _context.Products.ToListAsync();
+            return await _context.Products.AsNoTracking().ToListAsync();
         }
 
         public async Task<IEnumerable<ProductOption>> GetProductOptionsAsync()
         {
-            var productOptions = await _context.ProductOptions.ToListAsync();
+            var productOptions = await _context.ProductOptions.AsNoTracking().ToListAsync();
             return productOptions;
         }
 
-        public async Task<IEnumerable<ProductWithOptionsResponse>> GetProductsWithOptionsAsync()
+        public async Task<IEnumerable<Product>> GetProductsWithOptionsAsync()
         {
-            var products = await _context.ProductOptions
-                .Include(p => p.Product)
+            var products = await _context.Products
+                .AsNoTracking()
+                .Include(p => p.ProductOptions)
                 .ToListAsync();
-
-            var optionsGroupedByProduct = products
-             .GroupBy(p => p.Product) // Group by Product
-             .Select(g => new ProductWithOptionsResponse
-             {
-                 Id = g.Key!.Id,
-                 RoleId = g.Key.RoleId,
-                 Name = g.Key.Name,
-                 Description = g.Key.Description,
-                 ProductOptions = g.Select(p => new ProductOptionResponse
-                 {
-                     Id = p.Id,
-                     Period = p.Period,
-                     Price = p.Price,
-                     PeriodDescription = p.PeriodDescription
-                 }).ToList()
-             })
-             .ToList(); // Perform grouping and projection in memory
-
-            return optionsGroupedByProduct;
+            return products;
         }
 
         public async Task<bool> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> request)

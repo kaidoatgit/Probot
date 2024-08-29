@@ -21,5 +21,14 @@ namespace ProPayments.Service.Data.Entities
         public ICollection<ProductKey> ProductKeys { get; set; } = new List<ProductKey>(); //Navigation purpose
         public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>(); //Navigation purpose
         public ICollection<UserSetting> UserSettings { get; set; } = null!;//Navigation purpose
+
+        [NotMapped]
+        public Summary? Summary { get; set; }
+    }
+
+    public class Summary
+    {
+        public Dictionary<ulong, int> InactiveKeysPerProduct { get; set; } = new();
+        public Dictionary<ulong, int> ActiveSubsPerProduct { get; set; } = new();
     }
 }

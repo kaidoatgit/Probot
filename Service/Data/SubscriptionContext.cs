@@ -126,27 +126,21 @@ namespace ProPayments.Service.Data
             modelBuilder.Entity<ProductKey>()
                 .Property(pk => pk.Version)
                 .IsConcurrencyToken();
-                
-            // Configure TPH Inheritance for UserProductConfiguration
-            // modelBuilder.Entity<UserSetting>()
-            //     .HasOne(ps => ps.Subscription)
-            //     .WithOne(s => s.UserSetting)
-            //     .HasForeignKey<UserSetting>(ps => ps.SubscriptionId)
-            //     .OnDelete(DeleteBehavior.Cascade);
 
-            // Configure the TPH Discriminator Column
-            // modelBuilder.Entity<UserSetting>()
-            //     .HasDiscriminator<string>("ConfigurationType")
-            //     .HasValue<ProRaffle>("ProRaffle")
-            //     .HasValue<ProBidSetting>("ProBidSetting");
-
-            // Configure TPT Inheritance for UserProductConfiguration
+            // Configure TPT Inheritance for UserSetting
             modelBuilder.Entity<UserSetting>()
                 .ToTable("UserSettings");
+                // .Property(us => us.Version)
+                // .IsConcurrencyToken();
 
             modelBuilder.Entity<ProRaffle>()
                 .ToTable("ProRaffles")
-                .HasIndex(prs => prs.Key)
+                .HasBaseType<UserSetting>()
+                .Property(pr => pr.Version)  // This assumes "Version" is inherited from UserSetting
+                .IsConcurrencyToken();      // Mark the Version property as the concurrency token
+
+            modelBuilder.Entity<ProRaffle>()
+                .HasIndex(pr => pr.Key)      // Create a unique index on the Key property
                 .IsUnique();
         }
     }
