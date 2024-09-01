@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ProPayments.Client.Services.Managers
+﻿
+namespace Probot.Client.Services.Managers
 {
     public class CancelationTokenManager
     {

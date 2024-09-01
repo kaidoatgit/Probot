@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using ProPayments.Client.Models;
+using Probot.Client.Models;
 
-namespace ProPayments.Client.Services.Managers;
+namespace Probot.Client.Services.Managers;
 
 public class CartManager
 {

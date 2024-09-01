@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ProPayments.Client.Clients.ProPayments;
-using ProPayments.Client.Configs;
-using ProPayments.Client.Mappers;
-using ProPayments.Client.Services.Managers;
+using Probot.Client.Clients.SubscriptionApi;
+using Probot.Client.Configs;
+using Probot.Client.Mappers;
+using Probot.Client.Services.Managers;
 
-namespace ProPayments.Client
+namespace Probot.Client
 {
     internal class Program
     {
@@ -14,7 +14,7 @@ namespace ProPayments.Client
             try
             {
                 var services = ConfigureServices();
-                var bot = services.GetRequiredService<ProPayments>();
+                var bot = services.GetRequiredService<Probot>();
                 Console.CancelKeyPress += (sender, e) =>
                 {
                     e.Cancel = true;
@@ -47,6 +47,7 @@ namespace ProPayments.Client
             services.AddHttpClient<OrderClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/orders/"); });
             services.AddHttpClient<ProRaffleClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/pro_raffles/"); });
             services.AddHttpClient<SubscriptionClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/subscriptions/"); });
+            services.AddHttpClient<ProductKeyClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/product_keys/"); });
             services.AddSingleton<CancelationTokenManager>();
             services.AddSingleton<DiscordManager>();
             services.AddSingleton<OrderManager>();
@@ -67,8 +68,8 @@ namespace ProPayments.Client
             //        AutoReconnect = false
             //    });
             //});
-            services.AddSingleton<ProPayments>();
-            //services.AddLogging(configure => configure.AddConsole());
+            services.AddSingleton<Probot>();
+            // services.AddLogging(configure => configure.AddConsole().AddDebug());
             return services.BuildServiceProvider();
         }
     }

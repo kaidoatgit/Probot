@@ -1,9 +1,9 @@
 ﻿using DSharpPlus.Entities;
-using ProPayments.Client.Clients.ProPayments;
-using ProPayments.Client.Mappers;
-using ProPayments.Client.Models;
+using Probot.Client.Clients.SubscriptionApi;
+using Probot.Client.Mappers;
+using Probot.Client.Models;
 
-namespace ProPayments.Client.Services.Managers
+namespace Probot.Client.Services.Managers
 {
     public class ProductManager
     {
@@ -35,7 +35,7 @@ namespace ProPayments.Client.Services.Managers
                 return false;
             }
 
-            var products = apiResponse.Data.Select(p => _mapper.MapToProduct(p)).ToList();
+            var products = apiResponse.Data.Select(p => _mapper.MapToProduct(p));
             var productsToUpdate = new List<Product>();
             foreach (var role in guildRoles)
             {
@@ -58,13 +58,13 @@ namespace ProPayments.Client.Services.Managers
             return await UpdateProductsRoleIdAsync(productsToUpdate);
         }
 
-        private async Task<bool> UpdateProductsRoleIdAsync(List<Product> products)
+        private async Task<bool> UpdateProductsRoleIdAsync(List<Product> productsToUpdate)
         {
-            if (!products.Any())
+            if (!productsToUpdate.Any())
             {
                 return true;
             }
-            var productsRoleIdRequest = _mapper.MapToUpdateProductsRoleIdRequest(products);
+            var productsRoleIdRequest = _mapper.MapToUpdateProductsRoleIdRequest(productsToUpdate);
             return await _productClient.UpdateProductsRoleIdAsync(productsRoleIdRequest);
         }
 

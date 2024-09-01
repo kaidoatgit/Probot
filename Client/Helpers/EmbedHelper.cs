@@ -1,9 +1,8 @@
 ﻿using DSharpPlus.Entities;
-using ProPayments.Client.Models;
-using ProPayments.Client.Services.Managers;
+using Probot.Client.Models;
 using System.Text;
 
-namespace ProPayments.Client.Helpers
+namespace Probot.Client.Helpers
 {
     public static class EmbedHelper
     {

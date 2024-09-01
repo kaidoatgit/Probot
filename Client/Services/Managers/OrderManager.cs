@@ -1,11 +1,11 @@
-﻿using ProPayments.Client.Clients.ProPayments;
-using ProPayments.Client.Dtos.Order.Request;
-using ProPayments.Client.Exceptions;
-using ProPayments.Client.Mappers;
-using ProPayments.Client.Models;
+﻿using Probot.Client.Clients.SubscriptionApi;
+using Probot.Client.Exceptions;
+using Probot.Client.Mappers;
+using Probot.Client.Models;
+using Probot.Shared.Dtos.Order.Request;
 using System.Collections.Concurrent;
 
-namespace ProPayments.Client.Services.Managers
+namespace Probot.Client.Services.Managers
 {
     public class OrderManager
     {

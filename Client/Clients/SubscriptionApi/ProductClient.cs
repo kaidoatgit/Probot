@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
-using ProPayments.Client.Clients.ProPayments.Dtos;
-using ProPayments.Client.Dtos.Product.Request;
-using ProPayments.Client.Dtos.Product.Response;
+using Probot.Shared.Dtos;
+using Probot.Shared.Dtos.Product.Request;
+using Probot.Shared.Dtos.Product.Response;
 using System.Net.Http.Json;
 
-namespace ProPayments.Client.Clients.ProPayments
+namespace Probot.Client.Clients.SubscriptionApi
 {
     public class ProductClient
     {

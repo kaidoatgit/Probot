@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace ProPayments.Client.Models
+namespace Probot.Client.Models
 {
     public class Subscription
     {

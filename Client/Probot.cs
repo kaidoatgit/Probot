@@ -6,16 +6,16 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ProPayments.Client.Commands;
-using ProPayments.Client.Configs;
-using ProPayments.Client.Extensions;
-using ProPayments.Client.Helpers;
-using ProPayments.Client.Models;
-using ProPayments.Client.Services.Managers;
+using Probot.Client.Commands;
+using Probot.Client.Configs;
+using Probot.Client.Extensions;
+using Probot.Client.Helpers;
+using Probot.Client.Models;
+using Probot.Client.Services.Managers;
 
-namespace ProPayments.Client
+namespace Probot.Client
 {
-    public class ProPayments
+    public class Probot
     {
         private readonly DiscordClient _discordClient;
         private readonly ProductManager _productManager;
@@ -29,7 +29,7 @@ namespace ProPayments.Client
 
         public SlashCommandsExtension? SlashCommands { get; private set; }
 
-        public ProPayments(IOptions<AppSettings> appSettings, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager, DiscordManager discordManager, CancelationTokenManager tokenManager, CartManager cartManager)
+        public Probot(IOptions<AppSettings> appSettings, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager, DiscordManager discordManager, CancelationTokenManager tokenManager, CartManager cartManager)
         {
             _appSettings = appSettings.Value;
             _discordClient = new DiscordClient(new DiscordConfiguration
@@ -131,7 +131,7 @@ namespace ProPayments.Client
                 return;
             }
 
-            bool commandsAddedSuccessfully = await args.Guild.AddAlphabotCommandsInfo(_appSettings.BotChannelId);
+            bool commandsAddedSuccessfully = await args.Guild.AddAlphabotCommandsInfo(_appSettings.ProRaffleChannelId);
             if (!commandsAddedSuccessfully)
             {
                 _tokenManager.Cancel();
@@ -166,8 +166,9 @@ namespace ProPayments.Client
             if (!e.RolesBefore.Contains(verifiedRole) && e.RolesAfter.Contains(verifiedRole))
             {
                 var user = _userManager.GetUserFromMemory(discordMember.Id);
-                await _discordManager.UpdateDiscordMemberAsync(discordMember, roles, user?.Subscriptions);
+                await _discordManager.UpdateDiscordMemberAsync(discordMember, roles, user?.Metrics);
             }
+            await Task.CompletedTask;
         }
 
         private async Task OnClientComponentInteractionCreated(DiscordClient sender, ComponentInteractionCreateEventArgs args)
@@ -280,7 +281,6 @@ namespace ProPayments.Client
                         }
 
                         await modal.Result.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
-                        Console.WriteLine($"Ja nao estou: discordMessage.id={discordMessage.Id}");
 
                         var inputValue = modal.Result.Values.Values.First().Trim();
                         if (int.TryParse(inputValue, out int itemId))

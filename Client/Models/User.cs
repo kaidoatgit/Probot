@@ -1,19 +1,17 @@
-﻿using Newtonsoft.Json;
-using System.Text;
+﻿using System.Text;
 
-namespace ProPayments.Client.Models
+namespace Probot.Client.Models
 {
     public class User
     {
         public ulong Id { get; set; }
-        public string Username { get; private set; }
+        public string Username { get; set; } = string.Empty;
         public string WalletAddress { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;        
+        public Metrics? Metrics { get; set; }
 
-        public Dictionary<ulong, int> InactiveKeysPerProduct { get; set; } = new();
-        public Dictionary<ulong, int> ActiveSubsPerProduct { get; set; } = new();
-        public List<Subscription> Subscriptions { get; set; } = new();
-
+        public User() {}
+        
         public User(ulong id, string username, string walletAddress)
         {
             Id = id;
@@ -27,58 +25,38 @@ namespace ProPayments.Client.Models
             Username = user.Username;
             WalletAddress = user.WalletAddress;
             Email = user.Email;
-            Subscriptions = user.Subscriptions;
         }
 
         public override string ToString()
         {
             StringBuilder stringBuilder = new();
-            stringBuilder.AppendLine($"Username: {Username}");
-            foreach (var subscription in Subscriptions)
+            stringBuilder.AppendLine($"{Username}|{Id}");
+
+            if(Metrics?.ActiveSubsPerProduct.Count > 0)
             {
-                stringBuilder.AppendLine(subscription.ToString());
+                stringBuilder.Append("-> Active subscription per product: ");
+                foreach (var (product, activeSubsCount) in Metrics.ActiveSubsPerProduct)
+                {
+                    stringBuilder.Append($"({product}:{activeSubsCount})\t");
+                }
+            } 
+            stringBuilder.AppendLine();
+            if(Metrics?.InactiveKeysPerProduct.Count > 0)
+            {
+                stringBuilder.Append("-> Inactivated keys per product: ");
+                foreach (var (product, inactiveKeysCount) in Metrics.InactiveKeysPerProduct)
+                {
+                    stringBuilder.Append($"({product}:{inactiveKeysCount})");
+                }
             }
             return stringBuilder.ToString();
         }
+    }
+    
 
-        public void RemoveSubscription(ulong subscriptionProductRoleId)
-        {
-            if (Subscriptions != null)
-            {
-                Subscriptions.RemoveAll(s => s.ProductRoleId == subscriptionProductRoleId);
-            }
-        }
-
-        public void AddOrUpdateSubscription(Subscription subscription)
-        {
-            var existingSubscription = Subscriptions.FirstOrDefault(s => s.ProductRoleId == subscription.ProductRoleId);
-            if (existingSubscription != null)
-            {
-                var index = Subscriptions.IndexOf(existingSubscription);
-                if (index >= 0)
-                {
-                    Subscriptions[index] = subscription;
-                }
-            }
-            else
-            {
-                Subscriptions?.Add(subscription);
-            }
-        }
-
-        public void AddInactivatedKeysPerProduct(Dictionary<ulong, int> totalKeysByProduct)
-        {
-            foreach (var kvp in totalKeysByProduct)
-            {
-                if (InactiveKeysPerProduct.TryGetValue(kvp.Key, out int currentValue))
-                {
-                    InactiveKeysPerProduct[kvp.Key] = currentValue + kvp.Value;
-                }
-                else
-                {
-                    InactiveKeysPerProduct[kvp.Key] = kvp.Value;
-                }
-            }
-        }
+    public class Metrics
+    {
+        public Dictionary<ulong, int> InactiveKeysPerProduct { get; set; } = new();
+        public Dictionary<ulong, int> ActiveSubsPerProduct { get; set; } = new();
     }
 }

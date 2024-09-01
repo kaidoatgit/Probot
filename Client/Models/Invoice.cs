@@ -1,7 +1,7 @@
 ﻿using System.Text;
-using ProPayments.Client.Models.Enums;
+using Probot.Shared.Enums;
 
-namespace ProPayments.Client.Models
+namespace Probot.Client.Models
 {
     public class Invoice
     {

@@ -1,11 +1,11 @@
-﻿namespace ProPayments.Client.Configs
+﻿namespace Probot.Client.Configs
 {
     public class AppSettings
     {
         public string Token { get; set; } = string.Empty;
         public ulong SubscriptionChannelId { get; set; }
         public ulong NotificationChannelId { get; set; }
-        public ulong BotChannelId { get; set; }
+        public ulong ProRaffleChannelId { get; set; }
     }
 
 }

@@ -1,8 +1,6 @@
-using System;
 using System.Text;
-using ProPayments.Client.Models.Enums;
 
-namespace ProPayments.Client.Models;
+namespace Probot.Client.Models;
 
 public class CartItem
 {

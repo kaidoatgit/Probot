@@ -1,7 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using DSharpPlus.Entities;
 using Newtonsoft.Json;
-namespace ProPayments.Client.Models
+
+namespace Probot.Client.Models
 {
     public class Order
     {

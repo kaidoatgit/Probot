@@ -1,8 +1,8 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-using ProPayments.Client.Helpers;
+using Probot.Client.Helpers;
 
-namespace ProPayments.Client.Extensions
+namespace Probot.Client.Extensions
 {
     public static class GuildExtension
     {
@@ -51,7 +51,7 @@ namespace ProPayments.Client.Extensions
             }
         }
 
-        public static async Task RevokeRolesAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles, List<ulong?> productRolesIds)
+        public static async Task TryRevokeRolesAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles, List<ulong?> productRolesIds)
         {
             try
             {

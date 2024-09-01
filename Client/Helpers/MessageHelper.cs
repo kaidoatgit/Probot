@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace ProPayments.Client.Helpers
+namespace Probot.Client.Helpers
 {
     public static class MessageHelper
     {

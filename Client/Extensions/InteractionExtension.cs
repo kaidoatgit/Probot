@@ -1,10 +1,10 @@
 ﻿using System.Text;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using ProPayments.Client.Helpers;
-using ProPayments.Client.Models;
+using Probot.Client.Helpers;
+using Probot.Client.Models;
 
-namespace ProPayments.Client.Extensions
+namespace Probot.Client.Extensions
 {
     public static class InteractionHelper
     {

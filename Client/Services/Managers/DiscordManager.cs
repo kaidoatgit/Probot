@@ -1,31 +1,30 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-using ProPayments.Client.Models;
+using Probot.Client.Models;
 
-namespace ProPayments.Client.Services.Managers
+namespace Probot.Client.Services.Managers
 {
     public class DiscordManager
     {
         private readonly SemaphoreSlim _concurrentMemberUpdate = new(1, 1);
 
-        public async Task UpdateDiscordMemberAsync(DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> roles, List<Subscription>? subscriptions)
+        public async Task UpdateDiscordMemberAsync(DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> roles, Metrics? metrics)
         {
             await _concurrentMemberUpdate.WaitAsync();
             try
             {
-                if (subscriptions == null)
+                if (metrics == null)
                 {
                     return;
                 }
 
-                foreach (var subscription in subscriptions)
+                foreach (var (roleId, role) in roles)
                 {
-                    if (roles.TryGetValue(subscription.ProductRoleId, out var role))
+                    var inactiveKeysCount = metrics.InactiveKeysPerProduct.GetValueOrDefault(roleId);
+                    var activeSubsCount = metrics.ActiveSubsPerProduct.GetValueOrDefault(roleId);
+                    if((inactiveKeysCount > 0 || activeSubsCount > 0) && !member.Roles.Contains(role))
                     {
-                        if (!member.Roles.Contains(role))
-                        {
-                            await member.GrantRoleAsync(role);
-                        }
+                        await member.GrantRoleAsync(role);
                     }
                 }
                 await Task.Delay(TimeSpan.FromSeconds(1));

@@ -1,34 +1,38 @@
 ﻿using System.Text;
-using System.Text.RegularExpressions;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
+using DSharpPlus.SlashCommands.Attributes;
 using Microsoft.AspNetCore.Http;
-using ProPayments.Client.Clients.ProPayments;
-using ProPayments.Client.Dtos.ProductKey.Request;
-using ProPayments.Client.Dtos.ProRaffle.Request;
-using ProPayments.Client.Extensions;
-using ProPayments.Client.Helpers;
-using ProPayments.Client.Mappers;
-using ProPayments.Client.Models;
+using Probot.Client.Clients.SubscriptionApi;
+using Probot.Client.Extensions;
+using Probot.Client.Helpers;
+using Probot.Client.Mappers;
+using Probot.Client.Models;
+using Probot.Shared.Dtos.ProRaffle.Request;
 
-namespace ProPayments.Client.Commands
+namespace Probot.Client.Commands
 {
+    [SlashRequireGuild]
+    [SlashCommandGroup("pro-raffle", "Commands for manage Pro Raffle automation bot")]
     public class UserCommands : ApplicationCommandModule
     {
         private readonly Mapper _mapper;
         private readonly UserClient _userClient;
         private readonly ProRaffleClient _proRaffleClient;
         private readonly SubscriptionClient _subscriptionClient;
-        public UserCommands(Mapper mapper, ProRaffleClient proRaffleClient, UserClient userClient, SubscriptionClient subscriptionClient)
+        private readonly ProductKeyClient _productKeyClient;
+        public UserCommands(Mapper mapper, ProRaffleClient proRaffleClient, UserClient userClient, SubscriptionClient subscriptionClient, ProductKeyClient productKeyClient)
         {
             _mapper = mapper;
             _proRaffleClient = proRaffleClient;
             _userClient = userClient;
             _subscriptionClient = subscriptionClient;
+            _productKeyClient = productKeyClient;
         }
 
+        // [SlashCooldown(3, 60*5, SlashCooldownBucketType.User)]
         [SlashCommand("product-keys", "List all product keys and respective details.")]
         public async Task GetProductKeysCommand(InteractionContext ctx)
         {
@@ -39,7 +43,7 @@ namespace ProPayments.Client.Commands
             };
             try
             {
-                var productKeyResponse = await _userClient.GetProductKeysAsync(ctx.User.Id, isActivated: false);
+                var productKeyResponse = await _productKeyClient.GetProductKeysAsync(ctx.User.Id, isActivated: false);
                 if (productKeyResponse.Data == null)
                 {
                     embed.Description = MessageHelper.GenericErrorMessage();
@@ -87,7 +91,7 @@ namespace ProPayments.Client.Commands
             try
             {
                 string description = string.Empty;
-                var productKeyResponse = await _userClient.GetProductKeyAsync(ctx.User.Id, code, isActivated: false);
+                var productKeyResponse = await _productKeyClient.GetProductKeyAsync(ctx.User.Id, code, isActivated: false);
                 if (productKeyResponse.Data == null)
                 {
                     if(productKeyResponse.StatusCode == StatusCodes.Status400BadRequest)
@@ -149,15 +153,14 @@ namespace ProPayments.Client.Commands
                             Description = description,
                             Color = DiscordColor.Red
                         };                        
-                        message = new DiscordMessageBuilder().WithEmbed(embed);
-                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(message));
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(new DiscordMessageBuilder().WithEmbed(embed)));
                     }
                     else
                     {
                         Subscription subscription = _mapper.MapToSubscription(subscriptionResponse.Data);
                         embed = EmbedHelper.CreateActivationCodeResultEmbed(subscription);
-                        message = new DiscordMessageBuilder().WithEmbed(embed);
-                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(message).WithContent($"Activation Success {EmojisHelper.Tada}"));
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(new DiscordMessageBuilder().WithEmbed(embed))
+                            .WithContent($"Activation Success {EmojisHelper.Tada}"));
                     }
                 }
                 else if (answer.Result.Id == "activatekey_no_btn")
@@ -242,7 +245,7 @@ namespace ProPayments.Client.Commands
                 }
                 else if(subscriptionResponse.Data.Any())
                 {
-                    var subscriptions = subscriptionResponse.Data.Select(s => _mapper.MapToSubscription(s)).ToList();
+                    var subscriptions = subscriptionResponse.Data.Select(s => _mapper.MapToSubscription(s));
                     var description = new StringBuilder();
                     foreach (var subscription in subscriptions)
                     {
@@ -266,5 +269,31 @@ namespace ProPayments.Client.Commands
                 Console.WriteLine($"[BotStatusCommand] {ex.Message}");
             }
         }
+    
+    
+         #region interaction example
+        // [SlashCommand("Just-Random", "Testing some commands")]
+        // public static async Task RandomAsync(InteractionContext ctx, 
+        //     [Option("Mention", "The person to mention if the command has one.")] SnowflakeObject snowflakeObject)
+        // {
+        //     await ctx.DeferAsync();
+
+        //     var noButton = new DiscordButtonComponent(ButtonStyle.Danger, "activatekey_no_btn", $"No {EmojisHelper.X}");
+        //     var yesButton = new DiscordButtonComponent(ButtonStyle.Success, "activatekey_yes_btn", $"Yes {EmojisHelper.WhiteCheckMark}");
+        //     var builder = new DiscordFollowupMessageBuilder()
+        //         .WithContent("Select an option")
+        //         .AddComponents(noButton, yesButton);
+        //     var message = await ctx.FollowUpAsync(builder);
+        //     var answer = await message.WaitForButtonAsync(ctx.User, TimeSpan.FromMinutes(2));
+        //     if (answer.Result.Id == "activatekey_yes_btn")
+        //     {
+        //         await ctx.EditFollowupAsync(message.Id, new DiscordWebhookBuilder().WithContent("Thanks"));
+        //     }
+        //     else
+        //     {
+        //         await ctx.EditFollowupAsync(message.Id, new DiscordWebhookBuilder().WithContent("Thanks"));
+        //     }
+        // }
+        #endregion
     }
 }

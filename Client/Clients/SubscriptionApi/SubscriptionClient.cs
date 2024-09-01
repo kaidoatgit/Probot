@@ -1,12 +1,12 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using ProPayments.Client.Clients.ProPayments.Dtos;
-using ProPayments.Client.Dtos.ProRaffle.Request;
-using ProPayments.Client.Dtos.Subscription.Response;
-using ProPayments.Client.Dtos.UserSetting.Converters;
+using Probot.Shared.Dtos;
+using Probot.Shared.Dtos.ProRaffle.Request;
+using Probot.Shared.Dtos.Subscription.Response;
+using Probot.Shared.Dtos.UserSetting.Converters;
 
-namespace ProPayments.Client.Clients.ProPayments;
+namespace Probot.Client.Clients.SubscriptionApi;
 
 public class SubscriptionClient
 {

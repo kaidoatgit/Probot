@@ -1,6 +1,6 @@
 ﻿using DSharpPlus.Entities;
 
-namespace ProPayments.Client.Extensions
+namespace Probot.Client.Extensions
 {
     public static class DiscordMessageExtension
     {

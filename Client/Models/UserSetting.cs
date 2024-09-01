@@ -1,4 +1,4 @@
-namespace ProPayments.Client.Models
+namespace Probot.Client.Models
 {
     public class UserSetting
     {

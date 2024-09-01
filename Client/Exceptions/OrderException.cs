@@ -1,4 +1,4 @@
-﻿namespace ProPayments.Client.Exceptions
+﻿namespace Probot.Client.Exceptions
 {
     public class OrderException : Exception
     {

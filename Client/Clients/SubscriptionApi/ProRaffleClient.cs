@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
-using ProPayments.Client.Clients.ProPayments.Dtos;
-using ProPayments.Client.Dtos.ProductKey.Request;
+using Probot.Shared.Dtos;
+using Probot.Shared.Dtos.ProRaffle.Request;
 using System.Net.Http.Json;
 
-namespace ProPayments.Client.Clients.ProPayments
+namespace Probot.Client.Clients.SubscriptionApi
 {
     public class ProRaffleClient
     {

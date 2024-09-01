@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
-using ProPayments.Client.Clients.ProPayments.Dtos;
-using ProPayments.Client.Dtos.Order.Request;
-using ProPayments.Client.Dtos.Order.Response;
+using Probot.Shared.Dtos;
+using Probot.Shared.Dtos.Order.Request;
+using Probot.Shared.Dtos.Order.Response;
 using System.Net.Http.Json;
 
-namespace ProPayments.Client.Clients.ProPayments
+namespace Probot.Client.Clients.SubscriptionApi
 {
     public class OrderClient
     {
@@ -37,12 +37,12 @@ namespace ProPayments.Client.Clients.ProPayments
                         apiResponse.StatusCode = (int)response.StatusCode;
                         apiResponse.ErrorMessage = response.ReasonPhrase;
                     }
-                    Console.WriteLine($"[RegisterOrderAsync] {apiResponse.ErrorMessage}");
+                    Console.WriteLine($"[CreateOrderAsync] {apiResponse.ErrorMessage}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[RegisterOrderAsync] {ex.Message}");
+                Console.WriteLine($"[CreateOrderAsync] {ex.Message}");
                 apiResponse.ErrorMessage = ex.Message;
                 apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
             }

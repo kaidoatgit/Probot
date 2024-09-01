@@ -1,11 +1,11 @@
-﻿using ProPayments.Client.Clients.ProPayments;
-using ProPayments.Client.Dtos.User.Request;
-using ProPayments.Client.Helpers;
-using ProPayments.Client.Mappers;
-using ProPayments.Client.Models;
+﻿using Probot.Client.Clients.SubscriptionApi;
+using Probot.Client.Helpers;
+using Probot.Client.Mappers;
+using Probot.Client.Models;
+using Probot.Shared.Dtos.User.Request;
 using System.Collections.Concurrent;
 
-namespace ProPayments.Client.Services.Managers
+namespace Probot.Client.Services.Managers
 {
     public class UserManager
     {
@@ -22,19 +22,21 @@ namespace ProPayments.Client.Services.Managers
             Console.WriteLine("User Manager created");
         }
 
+        public ConcurrentDictionary<ulong, User> Users => _users;
+        
         public async Task<bool> LoadUsersToMemoryAsync()
         {
             _users.Clear();
-            var apiResponse = await _userClient.GetUsersWithSummaryAsync();
+            var apiResponse = await _userClient.GetUsersWithMetricsAsync();
             if (apiResponse.Data == null)
             {
                 return false;
             }
 
             var usersWithsubscriptions = apiResponse.Data;
-            foreach (var userWithSummary in usersWithsubscriptions)
+            foreach (var userWithMetrics in usersWithsubscriptions)
             {
-                var user = _mapper.MapToUser(userWithSummary);
+                var user = _mapper.MapToUser(userWithMetrics);
                 Console.WriteLine(user.ToString());
                 _users[user.Id] = user;
             }
@@ -115,8 +117,10 @@ namespace ProPayments.Client.Services.Managers
             var existingUser = GetUserFromMemory(userId);
             if(existingUser != null)
             {
-                var updatedUser = new User(existingUser);
-                updatedUser.WalletAddress = walletAddress;
+                var updatedUser = new User(existingUser)
+                {
+                    WalletAddress = walletAddress
+                };
                 _users.TryUpdate(userId, updatedUser, existingUser);
             }
         }
@@ -137,28 +141,18 @@ namespace ProPayments.Client.Services.Managers
             return user;
         }
 
-        // public void RemoveSubscriptionForUser(ulong userId, ulong subscriptionProductRoleId)
-        // {
-        //     var user = GetUserFromMemory(userId);
-        //     Console.WriteLine("Before Removing:\n" + user?.ToString());
-        //     user?.RemoveSubscription(subscriptionProductRoleId);
-        //     Console.WriteLine("After Removing\n" + user?.ToString());
-        // }
-
-        // public void AddOrUpdateSubscriptionForUser(ulong userId, Subscription subscription)
-        // {
-        //     var user = GetUserFromMemory(userId);
-        //     Console.WriteLine("Before Add/Update:\n" + user?.ToString());
-        //     user?.AddOrUpdateSubscription(subscription);
-        //     Console.WriteLine("After Add/Update:\n" + user?.ToString());
-        // }
-
-        public void AddInactivatedKeysPerProduct(ulong userId, Dictionary<ulong, int> totalKeysByProduct)
+        public void ReplaceMetricsForUser(ulong userId, Metrics metrics)
         {
-            var user = GetUserFromMemory(userId);
-            user?.AddInactivatedKeysPerProduct(totalKeysByProduct);
+            _users.TryUpdate(userId, 
+                new User
+                {
+                    Id = userId,
+                    Metrics = metrics,
+                    Username = _users[userId].Username,
+                    WalletAddress = _users[userId].WalletAddress,
+                    Email = _users[userId].Email
+                },
+                _users[userId]);
         }
-
-        public ConcurrentDictionary<ulong, User> Users => _users;
     }
 }

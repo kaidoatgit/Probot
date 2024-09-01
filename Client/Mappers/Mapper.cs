@@ -1,20 +1,22 @@
-﻿using ProPayments.Client.Dtos.Product.Response;
-using ProPayments.Client.Dtos.Product.Request;
-using ProPayments.Client.Dtos.Subscription.Response;
-using ProPayments.Client.Models;
+﻿using Probot.Client.Models;
+using Probot.Shared.Dtos.Order.Response;
+using Probot.Shared.Dtos.Product.Request;
+using Probot.Shared.Dtos.Product.Response;
+using Probot.Shared.Dtos.ProductKey.Response;
+using Probot.Shared.Dtos.ProRaffle.Response;
+using Probot.Shared.Dtos.Subscription.Response;
+using Probot.Shared.Dtos.User.Response;
+using Probot.Shared.Dtos.UserSetting.Response;
 using Riok.Mapperly.Abstractions;
-using ProPayments.Client.Dtos.Order.Response;
-using ProPayments.Client.Dtos.User.Response;
-using ProPayments.Client.Dtos.ProductKey.Response;
-using ProPayments.Client.Dtos.UserSetting.Response;
-using ProPayments.Client.Dtos.ProRaffle.Response;
 
-namespace ProPayments.Client.Mappers
+namespace Probot.Client.Mappers
 {
     [Mapper]
     public partial class Mapper
     {
-        public partial User MapToUser(UserSummaryResponse apiResponse);
+        [MapProperty(nameof(UserMetricsResponse.ActiveSubsPerProduct), nameof(@User.Metrics.ActiveSubsPerProduct))]
+        [MapProperty(nameof(UserMetricsResponse.InactiveKeysPerProduct), nameof(@User.Metrics.InactiveKeysPerProduct))]
+        public partial User MapToUser(UserMetricsResponse apiResponse);
         public partial Product MapToProduct(ProductResponse apiResponse);
         public partial IEnumerable<UpdateProductRoleIdRequest> MapToUpdateProductsRoleIdRequest(List<Product> products);
         public partial Subscription MapToSubscription(SubscriptionResponse apiResponse);
