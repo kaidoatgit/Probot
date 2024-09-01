@@ -1,0 +1,213 @@
+﻿using System.Data;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Probot.Data;
+using Probot.Data.Entities;
+using Probot.SubscriptionApi.Mappers;
+using Probot.SubscriptionApi.Services.Hubs;
+using Probot.SubscriptionApi.Services.Hubs.IClients;
+using Probot.SubscriptionApi.Services.Services.IServices;
+using Probot.Shared.Dtos.Subscription.Response;
+
+namespace Probot.SubscriptionApi.Services.BackgroundServices
+{
+    public partial class SubscriptionCheckService : BackgroundService
+    {
+        // private static readonly TimeSpan _reminderPeriod = TimeSpan.FromHours(1);
+        // private static readonly List<TimeSpan> _notificationPeriods = new()
+        // {
+        //     TimeSpan.Zero,
+        //     TimeSpan.FromDays(1),
+        //     TimeSpan.FromDays(3),
+        //     TimeSpan.FromDays(7)
+        // };
+
+        private static readonly TimeSpan _reminderPeriod = TimeSpan.FromSeconds(20);
+        private static readonly List<TimeSpan> _notificationPeriods = new()
+        {
+           TimeSpan.Zero,
+        //    TimeSpan.FromMinutes(1),
+        //    TimeSpan.FromMinutes(2),
+           TimeSpan.FromMinutes(3)
+        };
+        
+        private readonly IServiceProvider _serviceProvider;
+        private readonly IHubContext<NotificationHub, INotificationClient> _hubContext;
+        private readonly Mapper _mapper;
+
+        public SubscriptionCheckService(IServiceProvider serviceProvider, IHubContext<NotificationHub, INotificationClient> hubContext, Mapper mapper)
+        {
+            _serviceProvider = serviceProvider;
+            _hubContext = hubContext;
+            _mapper = mapper;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            using var timer = new PeriodicTimer(_reminderPeriod);
+            var subsReminders = new List<SubscriptionReminder>();
+
+            while (await timer.WaitForNextTickAsync(stoppingToken) && !stoppingToken.IsCancellationRequested)
+            {
+                var task = SendSubscriptionsRemindersAsync(stoppingToken)
+                    .ContinueWith(async antecedentTask => 
+                        await SendUsersMetricsAsync(stoppingToken, antecedentTask.Result), TaskContinuationOptions.OnlyOnRanToCompletion)
+                    .Unwrap();
+                
+                try
+                {
+                    await task;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SubscriptionCheckService] {ex.Message}");
+                }
+            }
+        }
+
+        private async Task<IEnumerable<ulong>> SendSubscriptionsRemindersAsync(CancellationToken stoppingToken)
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ProbotContext>();
+            var subscriptions = await dbContext.Subscriptions
+                .Where(s => s.IsActive)
+                .Include(s => s.UserSetting)
+                .Include(s => s.ProductOption)
+                    .ThenInclude(po => po.Product)
+                .ToListAsync(stoppingToken);
+
+            var subsReminders = new List<SubscriptionReminder>();
+            var now = DateTime.UtcNow;
+
+            foreach (var subscription in subscriptions)
+            {
+                TimeSpan timeLeft = subscription.EndDate - now;
+                DateTime lastNotificationSent = subscription.LastNotificationCheck ?? DateTime.MinValue;
+
+                foreach (var period in _notificationPeriods)
+                {
+                    var notificationTime = subscription.EndDate - period;
+                    if (timeLeft <= period && notificationTime > lastNotificationSent)
+                    {    
+                        if (subscription.UserSetting is ProRaffle proRaffle) 
+                        {
+                            subscription.LastNotificationCheck = notificationTime;  
+                            if(period == TimeSpan.Zero)
+                            {
+                                subscription.IsActive = false;
+                                proRaffle.IsPaused = true;
+                            }   
+                            try
+                            {
+                                await dbContext.SaveChangesAsync(stoppingToken);
+                                subsReminders.Add(MapToSubscriptionReminder(subscription, proRaffle.Key));
+                            }
+                            catch (DbUpdateConcurrencyException ex)
+                            {
+                                Console.WriteLine($"Concurrency exception: {ex.Message}");
+                                dbContext.Entry(subscription).State = EntityState.Detached;
+                                dbContext.Entry(proRaffle).State = EntityState.Detached;
+                            } 
+                        }    
+                        break;
+                    }
+                }
+            }
+
+            if (subsReminders.Any())
+            {
+                Console.WriteLine("-------------------- -------------- ENTREI ReceiveSubscriptionsReminders ------------------ ----------------- ");
+                Dictionary<ulong, List<SubscriptionReminder>> userSubscriptionsReminders = subsReminders
+                    .GroupBy(s => s.UserId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                await _hubContext.Clients.All.ReceiveSubscriptionsReminders(userSubscriptionsReminders);
+                return subsReminders
+                    .Where(reminder => !reminder.IsActive)
+                    .Select(reminder => reminder.UserId)
+                    .ToHashSet();
+            }
+            return Enumerable.Empty<ulong>();
+        }
+
+        
+        #region Uncomment for testing
+        // private async Task<IEnumerable<ulong>> SendSubscriptionsRemindersTestAsync(CancellationToken stoppingToken)
+        // {
+        //     var subsReminders = new List<SubscriptionReminder>();
+        //     using var scope = _serviceProvider.CreateScope();
+        //     var dbContext = scope.ServiceProvider.GetRequiredService<SubscriptionContext>();
+        //     var subscriptions = await dbContext.Subscriptions
+        //         .Where(s => s.IsActive && (s.Id == 2 || s.Id == 5 || s.Id == 8 || s.Id == 12))
+        //         .Include(s => s.UserSetting)
+        //         .Include(s => s.ProductOption)
+        //             .ThenInclude(po => po.Product)
+        //         .ToListAsync(cancellationToken: stoppingToken);
+
+        //     foreach(var subscription in subscriptions)
+        //     {
+        //         if (subscription.UserSetting is ProRaffle proRaffle)
+        //         {
+        //             proRaffle.IsPaused = true;
+        //             subscription.IsActive = false;
+
+        //             try
+        //             {
+        //                 await dbContext.SaveChangesAsync(stoppingToken);
+        //                 subsReminders.Add(MapToSubscriptionReminder(subscription, proRaffle.Key));
+        //             }
+        //             catch (DbUpdateConcurrencyException ex)
+        //             {
+        //                 Console.WriteLine($"Concurrency exception: {ex.Message}");
+        //                 dbContext.Entry(subscription).State = EntityState.Detached;
+        //                 dbContext.Entry(proRaffle).State = EntityState.Detached;
+        //             }   
+        //         }
+        //     }
+        //     // subsReminders.Clear();
+        //     if (subsReminders.Any())
+        //     {
+        //         Console.WriteLine("-------------------- -------------- ENTREI ReceiveSubscriptionsReminders ------------------ ----------------- ");
+        //         Dictionary<ulong, List<SubscriptionReminder>> userSubscriptionsReminders = subsReminders
+        //             .GroupBy(s => s.UserId)
+        //             .ToDictionary(g => g.Key, g => g.ToList());
+        //         await _hubContext.Clients.All.ReceiveSubscriptionsReminders(userSubscriptionsReminders);
+        //         return subsReminders
+        //             .Where(reminder => !reminder.IsActive)
+        //             .Select(reminder => reminder.UserId)
+        //             .ToHashSet();
+        //     }
+        //     return Enumerable.Empty<ulong>();
+        // }
+        #endregion
+
+        private async Task SendUsersMetricsAsync(CancellationToken stoppingToken, IEnumerable<ulong> usersWithInactivatedSubs)
+        {
+            if(!usersWithInactivatedSubs.Any())
+            {
+                return;
+            }
+            using var scope = _serviceProvider.CreateScope();
+            var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+            IEnumerable<User> allUsers = await userService.GetUsersWithMetricsAsync(stoppingToken);
+            List<User> users = allUsers.Where(u => usersWithInactivatedSubs.Contains(u.Id)).ToList();
+            Console.WriteLine("-------------------- -------------- ENTREI ReceiveUsersMetrics ------------------ ----------------- ");
+            await _hubContext.Clients.All.ReceiveUsersMetrics(users);
+        }
+
+        private static SubscriptionReminder MapToSubscriptionReminder(Subscription subscription, string alphabotKey)
+        {
+            var subscriptionReminder = new SubscriptionReminder()
+            {
+                UserId = subscription.UserId,
+                Username = subscription.Username,
+                AlphabotKey = alphabotKey,
+                ProductRoleId = subscription.ProductOption!.Product.RoleId!.Value,
+                IsActive = subscription.IsActive, //subscription.EndDate > DateTime.UtcNow,
+                EndDate = subscription.EndDate,
+                DaysLeft = subscription.IsActive ? (DateTime.UtcNow - subscription.EndDate).Days : 0
+            };
+
+            return subscriptionReminder;
+        }
+    }
+}
