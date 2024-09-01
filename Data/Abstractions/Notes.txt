@@ -1,0 +1,6 @@
+If I would be using clean architecture then:
+-> Here would be placed interfaces for example:
+IProductRepository -> void Insert(Product p);
+IUserRepository -> void Delete(User u);
+
+-> Then it would be the responsability of the Infrastructure Project to implement this abstractions
