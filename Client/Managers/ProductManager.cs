@@ -3,7 +3,7 @@ using Probot.Client.Clients.SubscriptionApi;
 using Probot.Client.Mappers;
 using Probot.Client.Models;
 
-namespace Probot.Client.Services.Managers
+namespace Probot.Client.Managers
 {
     public class ProductManager
     {

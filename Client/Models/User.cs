@@ -39,8 +39,8 @@ namespace Probot.Client.Models
                 {
                     stringBuilder.Append($"({product}:{activeSubsCount})\t");
                 }
-            } 
-            stringBuilder.AppendLine();
+            }
+            stringBuilder.AppendLine(); 
             if(Metrics?.InactiveKeysPerProduct.Count > 0)
             {
                 stringBuilder.Append("-> Inactivated keys per product: ");

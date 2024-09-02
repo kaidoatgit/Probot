@@ -1,11 +1,44 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using Probot.Client.Helpers;
+using Probot.Client.Models;
 
 namespace Probot.Client.Extensions
 {
     public static class GuildExtension
     {
+        private static readonly SemaphoreSlim _concurrentMemberUpdate = new(1, 1);
+
+        public static async Task UpdateRolesAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> roles, Metrics? metrics)
+        {
+            await _concurrentMemberUpdate.WaitAsync();
+            try
+            {
+                if (metrics == null)
+                {
+                    return;
+                }
+
+                foreach (var (roleId, role) in roles)
+                {
+                    var inactiveKeysCount = metrics.InactiveKeysPerProduct.GetValueOrDefault(roleId);
+                    var activeSubsCount = metrics.ActiveSubsPerProduct.GetValueOrDefault(roleId);
+                    if((inactiveKeysCount > 0 || activeSubsCount > 0) && !member.Roles.Contains(role))
+                    {
+                        await member.GrantRoleAsync(role);
+                    }
+                }
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing role assignment: {ex.Message}");
+            }
+            finally
+            {
+                _concurrentMemberUpdate.Release();
+            }
+        }
 
         public static async Task TryAddRoleAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles,  ulong productRoleId)
         {
@@ -18,15 +51,33 @@ namespace Probot.Client.Extensions
             }
         }
 
-        public static async Task TryRevokeRoleAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles,  ulong productRoleId)
+        public static async Task TryRevokeRoleAsync(this DiscordMember member, DiscordRole discordRole)
         {
-            if (guildRoles.TryGetValue(productRoleId, out var role))
+            try
             {
-                if (!member.Roles.Contains(role))
+                if (!member.Roles.Contains(discordRole))
                 {
-                    await member.RevokeRoleAsync(role);
+                    await member.RevokeRoleAsync(discordRole);
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error][TryRevokeRoleAsync] {ex.Message}");
+            }
+        }
+
+        public static async Task<DiscordMember?> TryGetMemberAsync(this DiscordGuild guild, ulong userId)
+        {
+            DiscordMember? member = null;
+            try
+            {
+                member = await guild.GetMemberAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Error][TryGetMemberAsync] {ex.Message}");
+            }
+            return member;
         }
 
         public static async Task AddRolesAsync(this DiscordMember member, IReadOnlyDictionary<ulong, DiscordRole> guildRoles,  List<ulong> productRolesIds)
@@ -63,7 +114,7 @@ namespace Probot.Client.Extensions
                     }
                     if (guildRoles.TryGetValue(id.Value, out var role))
                     {
-                        if (!member.Roles.Contains(role))
+                        if (member.Roles.Contains(role))
                         {
                             await member.RevokeRoleAsync(role);
                         }

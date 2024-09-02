@@ -12,7 +12,7 @@ using Probot.Shared.Dtos.Order.Response;
 using Probot.Shared.Dtos.Subscription.Response;
 using Probot.Shared.Enums;
 
-namespace Probot.Client.Services.Managers
+namespace Probot.Client.Managers
 {
     public partial class HubManager
     {
@@ -162,9 +162,14 @@ namespace Probot.Client.Services.Managers
             Console.WriteLine($"Users to remind: {userSubscriptionsReminders.Count}");
             foreach (var (userId, subsReminders) in userSubscriptionsReminders)
             {
-                var member = await guild.GetMemberAsync(userId);
+                var member = await guild.TryGetMemberAsync(userId);
+                if(member == null)
+                {
+                    continue;
+                }
+
                 StringBuilder description = new();
-                Console.WriteLine($"{userId}|{member.Nickname} - #Reminders: {subsReminders.Count}");
+                Console.WriteLine($"{userId}|{member.Username} - #Reminders: {subsReminders.Count}");
 
                 foreach (var subReminder in subsReminders)
                 {
@@ -255,22 +260,16 @@ namespace Probot.Client.Services.Managers
         
         private async Task ProcessUsersMetricsAsync(DiscordGuild guild, List<User> usersMetrics)
         {
-            Console.WriteLine($"[ProcessUsersMetricsAsync] Total users: {usersMetrics.Count}");
+            Console.WriteLine($"Total users metrics to process: {usersMetrics.Count}");
             foreach (var user in usersMetrics)
             {
+                var member = await guild.TryGetMemberAsync(user.Id);
+                if(member == null) { continue; }
+                
                 Metrics? metrics = user.Metrics;
-                if(metrics == null) { continue; }
-
-                DiscordMember? member = null!;
-                try
-                {
-                    member = await guild.GetMemberAsync(user.Id);
-                    _userManager.ReplaceMetricsForUser(user.Id, metrics);
-                }
-                catch (Exception)
-                {
-                    continue;
-                }                
+                _userManager.ReplaceMetricsForUser(user.Id, metrics);
+                var userMemory = _userManager.GetUserFromMemory(user.Id);
+                if(metrics == null) { continue; }       
 
                 var inactiveKeysPerProduct = metrics.InactiveKeysPerProduct;
                 var activeSubsPerProduct = metrics.ActiveSubsPerProduct;
@@ -284,6 +283,10 @@ namespace Probot.Client.Services.Managers
 
                 foreach (var (roleId, role) in guild.Roles)
                 {
+                    if(!_productManager.Products.Any(p => p.RoleId == roleId))
+                    {
+                        continue;
+                    }
                     var inactiveKeysCount = metrics.InactiveKeysPerProduct.GetValueOrDefault(roleId);
                     if(inactiveKeysCount > 0)
                     {
@@ -295,7 +298,7 @@ namespace Probot.Client.Services.Managers
                     {
                         continue;
                     }
-                    await member.RevokeRoleAsync(role);
+                    await member.TryRevokeRoleAsync(role);
                 }
             }
         }

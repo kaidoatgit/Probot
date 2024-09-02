@@ -5,7 +5,7 @@ using Probot.Client.Models;
 using Probot.Shared.Dtos.User.Request;
 using System.Collections.Concurrent;
 
-namespace Probot.Client.Services.Managers
+namespace Probot.Client.Managers
 {
     public class UserManager
     {
@@ -141,7 +141,7 @@ namespace Probot.Client.Services.Managers
             return user;
         }
 
-        public void ReplaceMetricsForUser(ulong userId, Metrics metrics)
+        public void ReplaceMetricsForUser(ulong userId, Metrics? metrics)
         {
             _users.TryUpdate(userId, 
                 new User

@@ -19,15 +19,13 @@ namespace Probot.Client.Commands
     public class UserCommands : ApplicationCommandModule
     {
         private readonly Mapper _mapper;
-        private readonly UserClient _userClient;
         private readonly ProRaffleClient _proRaffleClient;
         private readonly SubscriptionClient _subscriptionClient;
         private readonly ProductKeyClient _productKeyClient;
-        public UserCommands(Mapper mapper, ProRaffleClient proRaffleClient, UserClient userClient, SubscriptionClient subscriptionClient, ProductKeyClient productKeyClient)
+        public UserCommands(Mapper mapper, ProRaffleClient proRaffleClient, SubscriptionClient subscriptionClient, ProductKeyClient productKeyClient)
         {
             _mapper = mapper;
             _proRaffleClient = proRaffleClient;
-            _userClient = userClient;
             _subscriptionClient = subscriptionClient;
             _productKeyClient = productKeyClient;
         }
@@ -94,9 +92,10 @@ namespace Probot.Client.Commands
                 var productKeyResponse = await _productKeyClient.GetProductKeyAsync(ctx.User.Id, code, isActivated: false);
                 if (productKeyResponse.Data == null)
                 {
-                    if(productKeyResponse.StatusCode == StatusCodes.Status400BadRequest)
+                    if(productKeyResponse.StatusCode == StatusCodes.Status400BadRequest ||
+                        productKeyResponse.StatusCode == StatusCodes.Status404NotFound)
                     {
-                        description = $"{EmojisHelper.X} {productKeyResponse.ErrorMessage}";
+                        description = $"{EmojisHelper.X} Product key not found or already activated";
                     }
                     else
                     {
@@ -138,8 +137,12 @@ namespace Probot.Client.Commands
                     var subscriptionResponse = await _subscriptionClient.CreateProRaffleSubscriptionAsync(proRaffleRequest);
                     if (subscriptionResponse.Data == null)
                     {
-
-                        if(subscriptionResponse.StatusCode == StatusCodes.Status400BadRequest || subscriptionResponse.StatusCode == StatusCodes.Status409Conflict)
+                        if(subscriptionResponse.StatusCode == StatusCodes.Status400BadRequest ||
+                            subscriptionResponse.StatusCode == StatusCodes.Status404NotFound)
+                        {
+                            description = $"{EmojisHelper.X} Product key not found or already activated";
+                        }
+                        else if(subscriptionResponse.StatusCode == StatusCodes.Status409Conflict)
                         {
                             description = $"{EmojisHelper.X} {subscriptionResponse.ErrorMessage}";
                         }
@@ -159,8 +162,7 @@ namespace Probot.Client.Commands
                     {
                         Subscription subscription = _mapper.MapToSubscription(subscriptionResponse.Data);
                         embed = EmbedHelper.CreateActivationCodeResultEmbed(subscription);
-                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(new DiscordMessageBuilder().WithEmbed(embed))
-                            .WithContent($"Activation Success {EmojisHelper.Tada}"));
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(new DiscordMessageBuilder().WithEmbed(embed)));
                     }
                 }
                 else if (answer.Result.Id == "activatekey_no_btn")
@@ -232,7 +234,7 @@ namespace Probot.Client.Commands
         {
             var embed = new DiscordEmbedBuilder
             {
-                Description = "It appears that you currently have no active Pro Raffle subscriptions. If you believe this is an error, please contact support.",
+                Description = $"{EmojisHelper.Warning} It appears that you currently have no active Pro Raffle subscriptions. If you believe this is an error, please contact support.",
                 Color = DiscordColor.Orange
             };
             try

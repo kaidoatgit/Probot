@@ -1,5 +1,5 @@
 ﻿
-namespace Probot.Client.Services.Managers
+namespace Probot.Client.Managers
 {
     public class CancelationTokenManager
     {

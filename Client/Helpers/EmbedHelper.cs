@@ -340,7 +340,7 @@ namespace Probot.Client.Helpers
             embed.Color = DiscordColor.Green;
             embed.AddField($"{EmojisHelper.Calendar_Spiral} Start Date", $"<t:{((DateTimeOffset)subscription.StartDate).ToUnixTimeSeconds()}:D>", true);
             embed.AddField($"{EmojisHelper.Calendar_Spiral} End Date", $"<t:{((DateTimeOffset)subscription.EndDate).ToUnixTimeSeconds()}:D>", true);
-            embed.AddField($"\u200B", $"Use command: `/bot-status` to view Pro raffle details of each Alphabot Key.");
+            embed.AddField($"\u200B", $"**Activation Success {EmojisHelper.Tada}**\nUse command: `/bot-status` to view all the details of your subscriptions.");
 
             return embed.Build();
         }

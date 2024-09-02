@@ -5,7 +5,7 @@ using Probot.Client.Models;
 using Probot.Shared.Dtos.Order.Request;
 using System.Collections.Concurrent;
 
-namespace Probot.Client.Services.Managers
+namespace Probot.Client.Managers
 {
     public class OrderManager
     {

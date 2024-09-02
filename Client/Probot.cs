@@ -11,7 +11,7 @@ using Probot.Client.Configs;
 using Probot.Client.Extensions;
 using Probot.Client.Helpers;
 using Probot.Client.Models;
-using Probot.Client.Services.Managers;
+using Probot.Client.Managers;
 
 namespace Probot.Client
 {
@@ -24,12 +24,11 @@ namespace Probot.Client
         private readonly HubManager _hubManager;
         private readonly CancelationTokenManager _tokenManager;
         private readonly AppSettings _appSettings;
-        private readonly DiscordManager _discordManager;
         private readonly CartManager _cartManager;
 
         public SlashCommandsExtension? SlashCommands { get; private set; }
 
-        public Probot(IOptions<AppSettings> appSettings, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager, DiscordManager discordManager, CancelationTokenManager tokenManager, CartManager cartManager)
+        public Probot(IOptions<AppSettings> appSettings, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager, CancelationTokenManager tokenManager, CartManager cartManager)
         {
             _appSettings = appSettings.Value;
             _discordClient = new DiscordClient(new DiscordConfiguration
@@ -45,7 +44,6 @@ namespace Probot.Client
             _orderManager = orderManager;
             _userManager = userManager;
             _hubManager = hubManager;
-            _discordManager = discordManager;
             _tokenManager = tokenManager;
             _cartManager = cartManager;
 
@@ -166,7 +164,7 @@ namespace Probot.Client
             if (!e.RolesBefore.Contains(verifiedRole) && e.RolesAfter.Contains(verifiedRole))
             {
                 var user = _userManager.GetUserFromMemory(discordMember.Id);
-                await _discordManager.UpdateDiscordMemberAsync(discordMember, roles, user?.Metrics);
+                await discordMember.UpdateRolesAsync(roles, user?.Metrics);
             }
             await Task.CompletedTask;
         }
@@ -244,7 +242,13 @@ namespace Probot.Client
                     }
                     else
                     {
-                        Console.WriteLine($"{selectedProduct.Label}|{selectedDuration.Label}");
+                        var cartItems = _cartManager.GetItemsFromCart(discordMessage.Id)!;
+                        if(cartItems.Count >= Cart.MaxItemsPerCart) 
+                        {
+                            await args.Interaction.NotifyWithMessage(MessageHelper.MaxItemsPerCart, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                            return;
+                        }
+
 
                         Product product = _productManager.GetProductByRoleId(selectedProduct.Value)!;
                         int selectedPeriod = int.Parse(selectedDuration.Value);
@@ -259,7 +263,8 @@ namespace Probot.Client
                         _cartManager.AddItemToCart(discordMessage.Id, cartItem);
 
                         var originalComponents = discordMessage.Components;
-                        var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(discordMessage.Id)!);
+                        var embed = EmbedHelper.CreateShoppingCartEmbed(cartItems);
+                        Console.WriteLine($"{selectedProduct.Label}|{selectedDuration.Label}|Total item:{cartItems.Count}");
 
                         await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
                             .AddEmbed(embed)
@@ -315,7 +320,6 @@ namespace Probot.Client
                         }
                         try
                         {
-                            Console.WriteLine($"Total carts: {_cartManager.ShoppingCarts.Count()}");
                             await args.Interaction.DeferAsync(true);
 
                             var order = await _orderManager.CreateOrderAsync(discordUser.Id, cart);
@@ -331,7 +335,6 @@ namespace Probot.Client
                         finally
                         {
                             _cartManager.RemoveCart(discordMessage.Id);
-                            Console.WriteLine($"Total carts: {_cartManager.ShoppingCarts.Count()}");
                         }
                         break;
                     }

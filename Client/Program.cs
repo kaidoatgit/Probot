@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Probot.Client.Clients.SubscriptionApi;
 using Probot.Client.Configs;
 using Probot.Client.Mappers;
-using Probot.Client.Services.Managers;
+using Probot.Client.Managers;
 
 namespace Probot.Client
 {
@@ -49,13 +49,13 @@ namespace Probot.Client
             services.AddHttpClient<SubscriptionClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/subscriptions/"); });
             services.AddHttpClient<ProductKeyClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/product_keys/"); });
             services.AddSingleton<CancelationTokenManager>();
-            services.AddSingleton<DiscordManager>();
             services.AddSingleton<OrderManager>();
             services.AddSingleton<ProductManager>();
             services.AddSingleton<UserManager>();
             services.AddSingleton<CartManager>();
             services.AddSingleton<Mapper>();
             services.AddSingleton<HubManager>();
+            services.AddSingleton<Probot>();
             //services.AddSingleton(provider =>
             //{
             //    var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
@@ -68,7 +68,6 @@ namespace Probot.Client
             //        AutoReconnect = false
             //    });
             //});
-            services.AddSingleton<Probot>();
             // services.AddLogging(configure => configure.AddConsole().AddDebug());
             return services.BuildServiceProvider();
         }
