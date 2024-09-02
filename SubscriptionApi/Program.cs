@@ -1,7 +1,7 @@
 using Microsoft.OpenApi.Models;
 using Probot.SubscriptionApi.Clients;
 using Probot.SubscriptionApi.Clients.IClients;
-using Probot.SubscriptionApi.Config;
+using Probot.SubscriptionApi.Options;
 using Probot.Data;
 using Probot.SubscriptionApi.Mappers;
 using Probot.SubscriptionApi.Middleware;
@@ -21,13 +21,8 @@ var builder = WebApplication.CreateBuilder(args);
 // builder.Logging.AddConsole(); // Adds Console logging
 // builder.Logging.AddDebug(); // Adds Debug logging
 
-builder.Services.Configure<ServiceConfiguration>(builder.Configuration.GetSection("ServiceConfiguration"));
+builder.Services.Configure<ServiceSettings>(builder.Configuration.GetSection("ServiceSettings"));
 builder.Services.AddProbotContext(builder.Configuration);
-// builder.Services.AddDbContext<SubscriptionContext>(options => 
-// {
-//     options.UseSqlite(builder.Configuration.GetConnectionString("SubscriptionDatabase"));
-//         // .LogTo(Console.WriteLine, LogLevel.Information); // Logs SQL queries to console;
-// });
 builder.Services.AddSignalR().AddJsonProtocol(options =>
 {
     options.PayloadSerializerOptions = new JsonSerializerOptions

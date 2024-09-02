@@ -2,6 +2,7 @@
 using Probot.SubscriptionApi.Services.BackgroundServices.IServices;
 using Probot.SubscriptionApi.Services.Shared.IShared;
 using Probot.Shared.Enums;
+using System.Collections.Concurrent;
 
 namespace Probot.SubscriptionApi.Services.BackgroundServices
 {
@@ -53,7 +54,7 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
             }
         }
 
-        private bool IsSetIdle(IEnumerable<Order> orders)
+        private bool IsSetIdle(ConcurrentDictionary<ulong, Order> orders)
         {
             lock (_preventMultipleAccess)
             {
@@ -74,17 +75,16 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
             using var timer = new PeriodicTimer(_monitoringPeriod);
             while (!stoppingToken.IsCancellationRequested && await timer.WaitForNextTickAsync(stoppingToken))
             {
-                var orders = _orderQueueService.GetAllOrders();
+                var orders = _orderQueueService.Orders;
                 if (IsSetIdle(orders))
                 {
                     Console.WriteLine("[Order Monitor] -> Set to idle");
                     return;
                 }
-                foreach (var order in orders)
+                foreach (var (orderId, order) in orders)
                 {
                     try
                     {
-
                         if (order.Status == OrderStatus.Pending && DateTime.UtcNow > order.ExpiryTime)
                         {
                             order.Status = OrderStatus.Expired;
@@ -94,6 +94,7 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
                         }
                         else if (order.Status == OrderStatus.Matched)
                         {
+                            order.Status = OrderStatus.Completed;
                             using var scope = _serviceProvider.CreateScope();
                             var orderMonitorService = scope.ServiceProvider.GetRequiredService<IOrderMonitorService>();
                             await orderMonitorService.CompleteOrderAsync(order, stoppingToken);
@@ -101,7 +102,7 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error processing order {order.Id}: {ex.Message}");
+                        Console.WriteLine($"Error processing order {orderId}: {ex.Message}");
                     }
                 }
             }
@@ -115,14 +116,14 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
 
                 await foreach (var tx in _monitorService.TransactionChannel.Reader.ReadAllAsync(stoppingToken))
                 {
-                    var orders = _orderQueueService.GetAllOrders();
-                    foreach (var order in orders)
+                    var orders = _orderQueueService.Orders;
+                    foreach (var (orderId, order) in orders)
                     {
                         if (string.Equals(tx.Address, order.Transaction?.PaymentAddress, StringComparison.InvariantCultureIgnoreCase)
                             && order.Transaction?.TotalAmount == tx.Amount
                             && order.Status == OrderStatus.Pending)
                         {
-                            Console.WriteLine($"Orders matched for transaction: {tx.Hash}");
+                            Console.WriteLine($"Order matched for transaction: {tx.Hash}");
                             order.Transaction.Hash = tx.Hash;
                             order.Status = OrderStatus.Matched;
                             break;

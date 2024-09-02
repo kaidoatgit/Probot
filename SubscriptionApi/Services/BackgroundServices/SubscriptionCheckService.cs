@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Probot.Data;
 using Probot.Data.Entities;
-using Probot.SubscriptionApi.Mappers;
 using Probot.SubscriptionApi.Services.Hubs;
 using Probot.SubscriptionApi.Services.Hubs.IClients;
 using Probot.SubscriptionApi.Services.Services.IServices;
@@ -13,33 +12,28 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
 {
     public partial class SubscriptionCheckService : BackgroundService
     {
-        // private static readonly TimeSpan _reminderPeriod = TimeSpan.FromHours(1);
-        // private static readonly List<TimeSpan> _notificationPeriods = new()
-        // {
-        //     TimeSpan.Zero,
-        //     TimeSpan.FromDays(1),
-        //     TimeSpan.FromDays(3),
-        //     TimeSpan.FromDays(7)
-        // };
+        #region Testing purpose
+        // private static readonly TimeSpan _reminderPeriod = TimeSpan.FromSeconds(0.1);
+        // // use now.AddHours(1) inside the method for simulating the time ticking
+        // private DateTime now = DateTime.UtcNow; 
+        #endregion
 
-        private static readonly TimeSpan _reminderPeriod = TimeSpan.FromSeconds(20);
+        private static readonly TimeSpan _reminderPeriod = TimeSpan.FromHours(1);
         private static readonly List<TimeSpan> _notificationPeriods = new()
         {
-           TimeSpan.Zero,
-        //    TimeSpan.FromMinutes(1),
-        //    TimeSpan.FromMinutes(2),
-           TimeSpan.FromMinutes(3)
+            TimeSpan.Zero,
+            TimeSpan.FromDays(1),
+            TimeSpan.FromDays(3),
+            TimeSpan.FromDays(7)
         };
-        
+
         private readonly IServiceProvider _serviceProvider;
         private readonly IHubContext<NotificationHub, INotificationClient> _hubContext;
-        private readonly Mapper _mapper;
 
-        public SubscriptionCheckService(IServiceProvider serviceProvider, IHubContext<NotificationHub, INotificationClient> hubContext, Mapper mapper)
+        public SubscriptionCheckService(IServiceProvider serviceProvider, IHubContext<NotificationHub, INotificationClient> hubContext)
         {
             _serviceProvider = serviceProvider;
             _hubContext = hubContext;
-            _mapper = mapper;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -82,11 +76,11 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
             foreach (var subscription in subscriptions)
             {
                 TimeSpan timeLeft = subscription.EndDate - now;
-                DateTime lastNotificationSent = subscription.LastNotificationCheck ?? DateTime.MinValue;
+                DateTimeOffset lastNotificationSent = subscription.LastNotificationCheck ?? DateTime.MinValue;
 
                 foreach (var period in _notificationPeriods)
                 {
-                    var notificationTime = subscription.EndDate - period;
+                    DateTime notificationTime = subscription.EndDate - period;
                     if (timeLeft <= period && notificationTime > lastNotificationSent)
                     {    
                         if (subscription.UserSetting is ProRaffle proRaffle) 
@@ -130,7 +124,7 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
         }
 
         
-        #region Uncomment for testing
+        #region Testing purpose
         // private async Task<IEnumerable<ulong>> SendSubscriptionsRemindersTestAsync(CancellationToken stoppingToken)
         // {
         //     var subsReminders = new List<SubscriptionReminder>();
@@ -202,9 +196,9 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
                 Username = subscription.Username,
                 AlphabotKey = alphabotKey,
                 ProductRoleId = subscription.ProductOption!.Product.RoleId!.Value,
-                IsActive = subscription.IsActive, //subscription.EndDate > DateTime.UtcNow,
+                IsActive = subscription.IsActive,
                 EndDate = subscription.EndDate,
-                DaysLeft = subscription.IsActive ? (DateTime.UtcNow - subscription.EndDate).Days : 0
+                DaysLeft = subscription.IsActive ? (subscription.EndDate - DateTime.UtcNow).Days : 0
             };
 
             return subscriptionReminder;

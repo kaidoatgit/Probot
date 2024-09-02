@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Probot.SubscriptionApi.Clients.IClients;
-using Probot.SubscriptionApi.Config;
+using Probot.SubscriptionApi.Options;
 using Probot.SubscriptionApi.Services.BackgroundServices.IServices;
 using Probot.SubscriptionApi.Services.BackgroundServices.Models;
 using System.Threading.Channels;
@@ -16,9 +16,9 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices.Helpers
         private string? _latestHash;
         private readonly Task<string?> _startingHashTask;
         private readonly ISolanaRpcClient _rpcClient;
-        private readonly ServiceConfiguration _serviceConfiguration;
+        private readonly ServiceSettings _serviceConfiguration;
 
-        public MonitorService(ISolanaRpcClient rpcClient, IOptions<ServiceConfiguration> serviceConfiguration)
+        public MonitorService(ISolanaRpcClient rpcClient, IOptions<ServiceSettings> serviceConfiguration)
         {
             _orderSignal = new(0);
             _cancellationTokenSource = new();

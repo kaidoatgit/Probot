@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using Probot.SubscriptionApi.Clients.Dtos.Solana.Response;
 using Probot.SubscriptionApi.Clients.IClients;
-using Probot.SubscriptionApi.Config;
+using Probot.SubscriptionApi.Options;
 using Probot.SubscriptionApi.Services.BackgroundServices.IServices;
 using System.Collections.Concurrent;
 
@@ -12,11 +12,11 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
         private readonly ISolanaRpcClient _rpcClient;
         private readonly IMonitorService _monitorService;
         private static readonly TimeSpan _monitoringPeriod = TimeSpan.FromSeconds(10);
-        private readonly ServiceConfiguration _serviceConfiguration;
+        private readonly ServiceSettings _serviceConfiguration;
         private readonly ConcurrentDictionary<string, int> _failedTransactions = new();
         private readonly SemaphoreSlim _processTransactionsSemaphore = new(1);
 
-        public TransactionMonitorService(ISolanaRpcClient rpcClient, IMonitorService monitorService, IOptions<ServiceConfiguration> serviceConfiguration)
+        public TransactionMonitorService(ISolanaRpcClient rpcClient, IMonitorService monitorService, IOptions<ServiceSettings> serviceConfiguration)
         {
             _rpcClient = rpcClient;
             _monitorService = monitorService;

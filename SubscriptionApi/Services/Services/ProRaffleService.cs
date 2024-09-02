@@ -36,10 +36,6 @@ public class ProRaffleService : IProRaffleService
             .Include(pr => pr.Subscriptions)
             .SingleOrDefaultAsync(prs => prs.Key == request.AlphabotKey);
 
-        if(proRaffle != null && proRaffle.UserId != request.UserId)
-        {
-            throw new ServiceException(StatusCodes.Status409Conflict, $"Activation failed for Alphabot Key: `{request.AlphabotKey}`");
-        }
         if(proRaffle == null)
         {
             isNewSetting = true;

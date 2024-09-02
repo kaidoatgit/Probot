@@ -189,15 +189,15 @@ namespace Probot.SubscriptionApi.Services.Services
                 _context.Entry(order).State = EntityState.Unchanged;
                 IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeys(order, stoppingToken);
                 order.Complete(_context, productKeys);
-
-                await _context.SaveChangesAsync(stoppingToken);
-                await dbTransaction.CommitAsync(stoppingToken);
-
+                
                 orderResult.OrderStatus = OrderStatus.Completed;
                 orderResult.PurchasedKeysCountPerProduct = productKeys
                     .Where(p => p.ProductOption.Product.RoleId.HasValue)
                     .GroupBy(p => p.ProductOption.Product.RoleId!.Value)
                     .ToDictionary(g => g.Key, g => g.Count());
+
+                await _context.SaveChangesAsync(stoppingToken);
+                await dbTransaction.CommitAsync(stoppingToken);
             }
             catch (Exception)
             {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Probot.SubscriptionApi.Mappers;
 using Probot.SubscriptionApi.Services.Services.IServices;
 using Probot.Shared.Dtos.ProductKey.Response;
+using Probot.Shared.Dtos;
 
 namespace Probot.SubscriptionApi.Controllers;
 
@@ -21,9 +22,14 @@ public class ProductKeysController : ControllerBase
     public async Task<IActionResult> GetProductKeyAsync(string code, [FromQuery] ulong? userId, [FromQuery] bool? isActivated)
     {
         var productKey = await _productKeyService.GetProductKeyByCodeAsync(code, isActivated);
-        if(productKey.UserId != userId)
+        if(userId.HasValue && productKey.UserId != userId)
         {
-            return BadRequest($"Product Key with {code} does not belong to the user or does not exist.");
+            return BadRequest(new Metadata
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                ErrorMessage = $"Product Key with code:{code} does not belong to the user."
+            });
+            // return BadRequest($"Product Key with {code} does not belong to the user.");
         }
         ProductKeyResponse productKeyResponse = _mapper.MapToProductKeyResponse(productKey);
         return Ok(productKeyResponse);
@@ -33,7 +39,7 @@ public class ProductKeysController : ControllerBase
     public async Task<IActionResult> GetProductKeysAsync([FromQuery] ulong? userId, [FromQuery] bool? isActivated)
     {
         var productKeys = await _productKeyService.GetProductKeysAsync(userId, isActivated);
-        IEnumerable<ProductKeyResponse> productKeyResponses = productKeys.Select(pk => _mapper.MapToProductKeyResponse(pk));
-        return Ok(productKeyResponses);
+        IEnumerable<ProductKeyResponse> productKeysResponse = productKeys.Select(pk => _mapper.MapToProductKeyResponse(pk));
+        return Ok(productKeysResponse);
     }
 }

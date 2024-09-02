@@ -26,9 +26,6 @@ namespace Probot.SubscriptionApi.Services.Shared
             Console.WriteLine($"Total orders:{_orders.Count}");
         }
 
-        public IEnumerable<Order> GetAllOrders()
-        {
-            return _orders.Values;
-        }
+        public ConcurrentDictionary<ulong, Order> Orders => _orders;
     }
 }

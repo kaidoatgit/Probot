@@ -29,6 +29,16 @@ public class ProductKeyService : IProductKeyService
             };
             productKeys.Add(productKey);
             _context.ProductKeys.Add(productKey);
+
+            // Explicitly load the ProductOption
+            await _context.Entry(productKey)
+                        .Reference(pk => pk.ProductOption)
+                        .LoadAsync(cancellationToken);
+
+            // Explicitly load the Product from the ProductOption
+            await _context.Entry(productKey.ProductOption)
+                        .Reference(po => po.Product)
+                        .LoadAsync(cancellationToken);
         }
         
         await _context.SaveChangesAsync(cancellationToken);

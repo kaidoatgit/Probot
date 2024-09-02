@@ -25,7 +25,7 @@ namespace Probot.SubscriptionApi.Services.Services
             ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, isActivated: false, includeReferences: true);
             if(productKey.UserId != request.UserId)
             {
-                throw new ServiceException(StatusCodes.Status400BadRequest, $"Product Key with {request.Code} does not belong to the user or does not exist.");
+                throw new ServiceException(StatusCodes.Status400BadRequest, $"Product Key with {request.Code} does not belong to the user.");
             }
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
@@ -33,6 +33,11 @@ namespace Probot.SubscriptionApi.Services.Services
             {
                 productKey.IsActivated = true;
                 (bool isNewSetting, TUserSetting userSetting) = await _userSettingService.GetOrCreateUserSettingAsync<TUserSetting>(request);
+                if(!isNewSetting && userSetting.UserId != request.UserId)
+                {
+                    //attempting to access a Pro raffle setting that does not belong to the current user
+                    throw new ServiceException(StatusCodes.Status409Conflict, "Activation failed. You can only activate or extend subscriptions that you own.");
+                }
                 Subscription subscription = CreateSubscriptionAsync(productKey, isNewSetting, userSetting);
                 
                 productKey.Version = Guid.NewGuid();
