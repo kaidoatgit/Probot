@@ -1,0 +1,3 @@
+RaffleRequest:
+ProjectId - o projeto a ser sorteado 
+TeamId - a equipa que realizou o sorteio
