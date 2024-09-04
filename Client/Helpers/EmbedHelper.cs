@@ -6,6 +6,7 @@ namespace Probot.Client.Helpers
 {
     public static class EmbedHelper
     {
+        private const string _emptySpace = "ㅤ";
         private const string successImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1259290567586611321/order_success.webp?ex=668b253b&is=6689d3bb&hm=e28adeb3921b55b82a540207b43f9d7044cd6fb7be7fd36fae1c8c8b9229e450&";
 
         public static DiscordEmbed CreateProductDetailsEmbed(List<Product> Products)
@@ -13,9 +14,7 @@ namespace Probot.Client.Helpers
             var embed = new DiscordEmbedBuilder
             {
                 Title = "Product Details",
-                Color = DiscordColor.Gold,
-                Footer = new() { Text = "Pro Payments" },
-                Timestamp = DateTime.UtcNow
+                Color = DiscordColor.Gold
             };
 
             //Determine maximum lengths for Duration and PriceUSD columns across all products
@@ -63,6 +62,27 @@ namespace Probot.Client.Helpers
             return embed.Build();
         }
 
+        public static DiscordEmbed CreatePaymentWalletsEmbed(string? wallet)
+        {
+            if(string.IsNullOrEmpty(wallet))
+            {
+                wallet = "Undefined";
+            }
+            StringBuilder description = new();
+            description.AppendLine($"Solana");
+            description.AppendLine($"- ||{wallet}||");
+            description.Append(string.Concat(Enumerable.Repeat(_emptySpace, 18)));
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Payment Wallets",
+                Description = description.ToString(),
+                Color = DiscordColor.Gold
+            };
+
+            return embed.Build();
+        }
+
         public static DiscordEmbed CreateFreeProductEmbed(DateTime startDate, DateTime endDate, ulong? product)
         {
             var embed = new DiscordEmbedBuilder
@@ -104,9 +124,7 @@ namespace Probot.Client.Helpers
             {
                 Title = $"Shopping Cart",
                 Description = description.ToString(),
-                Color = DiscordColor.Gold,
-                Footer = new() { Text = "Pro Payments" },
-                Timestamp = DateTimeOffset.UtcNow
+                Color = DiscordColor.Gold
             };
             return embed.Build();
         }
@@ -294,7 +312,7 @@ namespace Probot.Client.Helpers
                 Title = "Become a privileged member",
                 Description = instructions.ToString(),
                 Color = DiscordColor.Gold,
-                Footer = new() { Text = "Pro Payments" },
+                Footer = new() { Text = "Subscriptions" },
                 Timestamp = DateTime.UtcNow
             };
 

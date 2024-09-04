@@ -56,9 +56,7 @@ namespace Probot.Client.Extensions
                 .AddEmbed(new DiscordEmbedBuilder()
                       .WithTitle("Shopping Cart")
                       .WithDescription(description.ToString())
-                      .WithColor(DiscordColor.Gold)
-                      .WithTimestamp(DateTimeOffset.UtcNow)
-                      .WithFooter(text: "Pro Payments"))
+                      .WithColor(DiscordColor.Gold))
                 .AddComponents(productDropdown)
                 .AddComponents(addItemButton, removeItemButton, confirmButton);
 
@@ -67,25 +65,40 @@ namespace Probot.Client.Extensions
                     .AsEphemeral(true));
         }
 
-        public static async Task NotifyWithWalletModal(this DiscordInteraction interaction)
+        public static async Task NotifyWithPaymentWallets(this DiscordInteraction interaction, string? wallet)
+        {
+            var solanaButton = new DiscordButtonComponent(ButtonStyle.Primary, "solana_wallet_btn", "Solana");
+
+            var embed = EmbedHelper.CreatePaymentWalletsEmbed(wallet);
+            var builder = new DiscordMessageBuilder()
+                .WithEmbed(embed)
+                .AddComponents(solanaButton);
+
+            await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                new DiscordInteractionResponseBuilder(builder)
+                .AsEphemeral(true));
+        }
+
+        public static async Task<string> NotifyWithWalletModal(this DiscordInteraction interaction, ulong interactionId)
         {
             var walletInput = new TextInputComponent("Solana address", "solana_wallet_input", "Enter your wallet address");
 
             var modal = new DiscordInteractionResponseBuilder()
                 .WithTitle("Register wallet")
-                .WithCustomId($"solana_submission_modal")
+                .WithCustomId($"solana_wallet_submission_{interactionId}")
                 .AddComponents(walletInput);
 
             await interaction.CreateResponseAsync(InteractionResponseType.Modal, modal);
+            return modal.CustomId;
         }
 
-        public static async Task<string> NotifyWithItemRemovalModal(this DiscordInteraction interaction, ulong messageId)
+        public static async Task<string> NotifyWithItemRemovalModal(this DiscordInteraction interaction, ulong interactionId)
         {
             var walletInput = new TextInputComponent("Item ID", "cart_item_id", "Enter the item ID you wish to remove");
 
             var modal = new DiscordInteractionResponseBuilder()
                 .WithTitle("Remove Item")
-                .WithCustomId($"cart_item_removal_submission_modal_{messageId}")
+                .WithCustomId($"cart_item_removal_submission_modal_{interactionId}")
                 .AddComponents(walletInput);
 
             await interaction.CreateResponseAsync(InteractionResponseType.Modal, modal);

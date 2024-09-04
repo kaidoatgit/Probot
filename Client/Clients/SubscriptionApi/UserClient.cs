@@ -119,5 +119,41 @@ namespace Probot.Client.Clients.SubscriptionApi
             }
             return apiResponse;
         }
+    
+        public async Task<ApiResponse<UserResponse>> GetUserAsync(ulong userId)
+        {
+            ApiResponse<UserResponse> apiResponse = new();
+            try
+            {
+                var response = await _httpClient.GetAsync($"{userId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    apiResponse.Data = await response.Content.ReadFromJsonAsync<UserResponse>();
+                }
+                else
+                {
+                    var metadata = await response.Content.ReadFromJsonAsync<Metadata>();
+                    if (metadata != null && metadata.StatusCode != 0)
+                    {
+                        apiResponse.StatusCode = metadata.StatusCode;
+                        apiResponse.ErrorMessage = metadata.ErrorMessage;
+                    }
+                    else
+                    {
+                        apiResponse.StatusCode = (int)response.StatusCode;
+                        apiResponse.ErrorMessage = response.ReasonPhrase;
+                    }
+                    Console.WriteLine($"[GetUserAsync] {apiResponse.ErrorMessage}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetUserAsync] {ex.Message}");
+                apiResponse.ErrorMessage = ex.Message;
+                apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+            }
+            return apiResponse;
+        }
+    
     }
 }

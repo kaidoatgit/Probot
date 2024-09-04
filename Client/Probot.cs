@@ -98,7 +98,7 @@ namespace Probot.Client
         private async Task OnClientReady(DiscordClient sender, ReadyEventArgs args)
         {
             Console.WriteLine("[Event] client ready fired [Event]");
-            await _discordClient.UpdateStatusAsync(new DiscordActivity("Handling commands", ActivityType.Watching));
+            await _discordClient.UpdateStatusAsync(new DiscordActivity("Subscriptions", ActivityType.Playing));
         }
 
         private async Task OnGuildAvailable(DiscordClient sender, GuildCreateEventArgs args)
@@ -193,12 +193,65 @@ namespace Probot.Client
                         break;
                     }
 
-                case "wallet_btn":
+                case "payment_wallets_btn":
                     {
-                        await args.Interaction.NotifyWithWalletModal();
+                        var user = await _userManager.GetUserAsync(discordUser.Id);
+                        await args.Interaction.NotifyWithPaymentWallets(user?.WalletAddress);
                         break;
                     }
+                
+                case "solana_wallet_btn":
+                    {
+                        try
+                        {
+                            string modalCustomId = await args.Interaction.NotifyWithWalletModal(args.Interaction.Id);
+                            var interactivity = _discordClient.GetInteractivity();
+                            var modal = await interactivity.WaitForModalAsync(modalCustomId, discordUser);
+                            if(modal.TimedOut)
+                            {
+                                return;
+                            }
 
+                            await modal.Result.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
+                            string walletAddress = modal.Result.Values.Values.First().Trim();
+
+                            var originalComponents = discordMessage.Components;
+                            DiscordEmbed embed = discordMessage.Embeds[0];
+                            string message = string.Empty;
+
+                            WalletResult result = _userManager.GetWalletAddressStatus(discordUser.Id, walletAddress);
+                            if(result == WalletResult.WalletExist || result == WalletResult.WalletFoundInOrder)
+                            {
+                                message = MessageHelper.WalletInUse(walletAddress);
+                            }
+                            else
+                            {
+                                bool isResultSuccess = await _userManager.AddOrUpdateUserAsync(discordUser.Id, discordUser.Username, walletAddress);
+                                if (isResultSuccess)
+                                {
+                                    embed = EmbedHelper.CreatePaymentWalletsEmbed(walletAddress);
+                                    message = MessageHelper.WalletSubmitSuccess(walletAddress);
+                                }
+                                else
+                                {
+                                    await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
+                                    return;
+                                }
+                            }
+                            
+                            await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
+                                .AddEmbed(embed)
+                                .AddComponents(originalComponents)
+                                .WithContent(message));
+                            
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message + ex.StackTrace + ex.InnerException);
+                        } 
+                        break;
+                    }
+                
                 case "product_details_btn":
                     {
                         await args.Interaction.NotifyWithProductDetails(_productManager.Products);
@@ -342,45 +395,47 @@ namespace Probot.Client
         }
 
         private async Task OnClientModalSubmitted(DiscordClient sender, ModalSubmitEventArgs args)
-        {
+        {   
+            var msg = await args.Interaction.GetOriginalResponseAsync();
             if (args.Interaction.Type == InteractionType.ModalSubmit)
             {
-                switch (args.Interaction.Data.CustomId)
-                {
-                    case "solana_submission_modal":
-                    {
-                        await args.Interaction.DeferAsync(true);
-                        var userId = args.Interaction.User.Id;
-                        var walletAddress = args.Values.Values.First().Trim();
+                // switch (args.Interaction.Data.CustomId)
+                // {
+                //     case "solana_wallet_submission":
+                //     {
+                        
+                //         await args.Interaction.DeferAsync(true);
+                //         var userId = args.Interaction.User.Id;
+                //         var walletAddress = args.Values.Values.First().Trim();
 
-                        var walletStatus = _userManager.GetWalletAddressStatus(userId, walletAddress);
-                        switch (walletStatus.Result)
-                        {
-                            case Result.WalletExist:
-                                {
-                                    await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(5));
-                                    return;
-                                }
-                            case Result.WalletFoundInOrder:
-                                {
-                                    await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
-                                    return;
-                                }
-                        }
+                //         var walletStatus = _userManager.GetWalletAddressStatus(userId, walletAddress);
+                //         switch (walletStatus.Result)
+                //         {
+                //             case Result.WalletExist:
+                //                 {
+                //                     await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                //                     return;
+                //                 }
+                //             case Result.WalletFoundInOrder:
+                //                 {
+                //                     await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
+                //                     return;
+                //                 }
+                //         }
 
-                        var username = args.Interaction.User.Username;
-                        var isResultSuccess = await _userManager.AddOrUpdateUserAsync(userId, username, walletAddress);
-                        if (isResultSuccess)
-                        {
-                            await args.Interaction.NotifyWithMessage(MessageHelper.WalletSubmitSuccess(walletAddress), defer: true);
-                        }
-                        else
-                        {
-                            await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
-                        }
-                        break;
-                    }
-                }
+                //         var username = args.Interaction.User.Username;
+                //         var isResultSuccess = await _userManager.AddOrUpdateUserAsync(userId, username, walletAddress);
+                //         if (isResultSuccess)
+                //         {
+                //             await args.Interaction.NotifyWithMessage(MessageHelper.WalletSubmitSuccess(walletAddress), defer: true);
+                //         }
+                //         else
+                //         {
+                //             await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
+                //         }
+                //         break;
+                //     }
+                // }
             }
         }
 

@@ -40,11 +40,9 @@ namespace Probot.Client.Helpers
         }
 
         public static string WalletSubmitSuccess(string walletAddress)
-            => $"Wallet **{walletAddress}** submitted with success";
+            => $"{EmojisHelper.WhiteCheckMark} Address **{walletAddress}** submitted with success";
 
-        public static string WalletExist(string walletAddress) 
-            => $"{EmojisHelper.X} User with the Wallet Address: **{walletAddress}** already exists. {EmojisHelper.X}";
-        public static string WalletFoundInActiveOrder(string walletAddress)
-            => $"Wallet Address: **{walletAddress}** is currently associated with an active order by another user.\nPlease wait until the active order is completed or canceled before using this wallet address.";
+        public static string WalletInUse(string walletAddress) 
+            => $"{EmojisHelper.X} Address: **{walletAddress}** already in use by another user.";
     }
 }

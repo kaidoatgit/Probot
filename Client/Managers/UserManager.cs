@@ -43,6 +43,16 @@ namespace Probot.Client.Managers
             return true;
         }
 
+        public async Task<User?> GetUserAsync(ulong userId)
+        {
+            var apiResponse = await _userClient.GetUserAsync(userId);
+            if (apiResponse.Data != null)
+            {
+                return _mapper.MapToUser(apiResponse.Data);
+            }
+            return null;
+        }
+
         private async Task<bool> CreateUserAsync(ulong userId, string username, string walletAddress)
         {
             var userRequest = new UserRequest
@@ -89,16 +99,15 @@ namespace Probot.Client.Managers
             return result;
         }
 
-        public WalletStatus GetWalletAddressStatus(ulong userId, string walletAddress)
+        public WalletResult GetWalletAddressStatus(ulong userId, string walletAddress)
         {
-            var walletResult = new WalletStatus();
+            var result = WalletResult.Default;
             var user = _users
                 .FirstOrDefault(users => string.Equals(users.Value.WalletAddress, walletAddress, StringComparison.InvariantCultureIgnoreCase))
                 .Value;
             if (user != null)
             {
-                walletResult.Result = Result.WalletExist;
-                walletResult.Message = MessageHelper.WalletExist(user.WalletAddress);
+                result = WalletResult.WalletExist;
             }
 
             var isWalletFoundInOrder = _orderManager
@@ -106,10 +115,9 @@ namespace Probot.Client.Managers
                 .Any(o => string.Equals(o.User?.WalletAddress, walletAddress, StringComparison.InvariantCultureIgnoreCase) && o.User?.Id != userId);
             if (isWalletFoundInOrder)
             {
-                walletResult.Result = Result.WalletFoundInOrder;
-                walletResult.Message = MessageHelper.WalletFoundInActiveOrder(walletAddress);
+                result = WalletResult.WalletFoundInOrder;
             }
-            return walletResult;
+            return result;
         }
 
         public void UpdateUserInMemory(ulong userId, string walletAddress)

@@ -153,7 +153,7 @@ namespace Probot.Client.Extensions
         {
             try
             {
-                var walletSubmissionButton = new DiscordButtonComponent(ButtonStyle.Success, "wallet_btn", "Payment Wallet 💳");
+                var walletSubmissionButton = new DiscordButtonComponent(ButtonStyle.Success, "payment_wallets_btn", "Payment Wallets 💳");
                 var subscribeButton = new DiscordButtonComponent(ButtonStyle.Primary, "subscribe_btn", "Subscribe 📝");
                 var productDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "product_details_btn", "Product Details 📋");
                 
