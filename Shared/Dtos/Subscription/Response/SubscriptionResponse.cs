@@ -1,4 +1,4 @@
-﻿using Probot.Shared.Dtos.UserSetting.Response;
+﻿using Probot.Shared.Dtos.ProductSetting.Response;
 
 namespace Probot.Shared.Dtos.Subscription.Response;
 public class SubscriptionResponse
@@ -10,5 +10,5 @@ public class SubscriptionResponse
     public string PeriodDescription { get; set; } = string.Empty;
     public ulong ProductRoleId { get; set; }
     
-    public UserSettingResponse? UserSetting { get; set; }
+    public ProductSettingResponse? ProductSetting { get; set; }
 }

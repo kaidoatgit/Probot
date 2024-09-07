@@ -1,13 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Probot.Shared.Dtos.ProRaffle.Response;
-using Probot.Shared.Dtos.UserSetting.Response;
+using Probot.Shared.Dtos.ProRaffleSetting.Response;
+using Probot.Shared.Dtos.ProductSetting.Response;
 
-namespace Probot.Shared.Dtos.UserSetting.Converters;
+namespace Probot.Shared.Dtos.ProductSetting.Converters;
 
-public class UserSettingResponseConverter : JsonConverter<UserSettingResponse>
+public class ProductSettingResponseConverter : JsonConverter<ProductSettingResponse>
 {
-    public override UserSettingResponse? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override ProductSettingResponse? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         using JsonDocument doc = JsonDocument.ParseValue(ref reader);
         var root = doc.RootElement;
@@ -24,13 +24,13 @@ public class UserSettingResponseConverter : JsonConverter<UserSettingResponse>
         // Deserialize based on the type
         var proRaffleResponse = type switch
         {
-            "ProRaffle" => JsonSerializer.Deserialize<ProRaffleResponse>(root.GetRawText(), options),
+            "ProRaffleSetting" => JsonSerializer.Deserialize<ProRaffleSettingResponse>(root.GetRawText(), options),
             _ => throw new JsonException($"Unknown type: {type}")
         };
         return proRaffleResponse;
     }
 
-    public override void Write(Utf8JsonWriter writer, UserSettingResponse value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, ProductSettingResponse value, JsonSerializerOptions options)
     {
         // Serialize the object based on its runtime type
         JsonSerializer.Serialize(writer, value, value.GetType(), options);

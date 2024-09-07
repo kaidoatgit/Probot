@@ -9,11 +9,11 @@ public class CompleteOrderRequest
     [Required]
     public ulong InvoiceId { get; set; }
     [Required]
-    public TransactionRequest Transaction { get; set; }
+    public TransactionRequest? Transaction { get; set; }
 }
 
 public class TransactionRequest
 {
-    public string Hash { get; set; }
+    public string Hash { get; set; } = string.Empty;
     public DateTime PaymentDate { get; set; }
 }

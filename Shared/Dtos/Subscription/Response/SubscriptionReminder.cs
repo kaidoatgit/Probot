@@ -4,8 +4,8 @@ namespace Probot.Shared.Dtos.Subscription.Response;
 public class SubscriptionReminder
 {
     public ulong UserId { get; set; }
-    public string AlphabotKey { get; set; }
-    public string? Username { get; set; }
+    public string AlphabotKey { get; set; } = null!;
+    public string Username { get; set; } = null!;
     public ulong ProductRoleId { get; set; }
     public bool IsActive { get; set; }
     public DateTimeOffset EndDate { get; set; }

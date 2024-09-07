@@ -1,9 +1,9 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace Probot.Shared.Dtos.ProRaffle.Request;
+namespace Probot.Shared.Dtos.ProRaffleSetting.Request;
 
-public class UpdateProRaffleKeyRequest
+public class UpdatePRSettingKeyRequest
 {
     [Required]
     public string CurrentKey { get; set; }
