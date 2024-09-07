@@ -5,11 +5,11 @@ using Probot.Shared.Dtos.Product.Request;
 using Probot.Shared.Dtos.Product.Response;
 using Probot.Shared.Dtos.ProductKey.Response;
 using Probot.Shared.Dtos.ProductOption.Response;
-using Probot.Shared.Dtos.ProRaffle.Response;
+using Probot.Shared.Dtos.ProRaffleSetting.Response;
 using Probot.Shared.Dtos.Subscription.Response;
 using Probot.Shared.Dtos.User.Request;
 using Probot.Shared.Dtos.User.Response;
-using Probot.Shared.Dtos.UserSetting.Response;
+using Probot.Shared.Dtos.ProductSetting.Response;
 using Riok.Mapperly.Abstractions;
 
 namespace Probot.SubscriptionApi.Mappers
@@ -18,9 +18,10 @@ namespace Probot.SubscriptionApi.Mappers
     public partial class Mapper
     {
         
-        [MapDerivedType(typeof(ProRaffle), typeof(ProRaffleResponse))]
-        public partial UserSettingResponse MapToUserSettingResponse(UserSetting userSetting); 
-        [MapNestedProperties(nameof(Subscription.ProductOption))]
+        [MapDerivedType(typeof(ProRaffleSetting), typeof(ProRaffleSettingResponse))]
+        public partial ProductSettingResponse MapToProductSettingResponse(ProductSetting productSetting); 
+        [MapProperty(nameof(@Subscription.Product.RoleId), nameof(SubscriptionResponse.ProductRoleId))]
+        [MapProperty(nameof(@Subscription.ProductKey.ProductOption.PeriodDescription), nameof(SubscriptionResponse.PeriodDescription))]
         public partial SubscriptionResponse MapToSubscriptionResponse(Subscription subscription);
         [MapNestedProperties(nameof(User.Metrics))]
         public partial UserMetricsResponse MapToUserMetricsResponse(User user);

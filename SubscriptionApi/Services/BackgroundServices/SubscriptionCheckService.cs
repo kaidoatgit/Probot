@@ -13,12 +13,12 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
     public partial class SubscriptionCheckService : BackgroundService
     {
         #region Testing purpose
-        // private static readonly TimeSpan _reminderPeriod = TimeSpan.FromSeconds(0.1);
+        private static readonly TimeSpan _reminderPeriod = TimeSpan.FromSeconds(20);
         // // use now.AddHours(1) inside the method for simulating the time ticking
         // private DateTime now = DateTime.UtcNow; 
         #endregion
 
-        private static readonly TimeSpan _reminderPeriod = TimeSpan.FromHours(1);
+        // private static readonly TimeSpan _reminderPeriod = TimeSpan.FromHours(1);
         private static readonly List<TimeSpan> _notificationPeriods = new()
         {
             TimeSpan.Zero,
@@ -65,9 +65,8 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
             var dbContext = scope.ServiceProvider.GetRequiredService<ProbotContext>();
             var subscriptions = await dbContext.Subscriptions
                 .Where(s => s.IsActive)
-                .Include(s => s.UserSetting)
-                .Include(s => s.ProductOption)
-                    .ThenInclude(po => po.Product)
+                .Include(s => s.ProductSetting)
+                .Include(s => s.Product)
                 .ToListAsync(stoppingToken);
 
             var subsReminders = new List<SubscriptionReminder>();
@@ -83,26 +82,26 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
                     DateTime notificationTime = subscription.EndDate - period;
                     if (timeLeft <= period && notificationTime > lastNotificationSent)
                     {    
-                        if (subscription.UserSetting is ProRaffle proRaffle) 
+                        if (subscription.ProductSetting is ProRaffleSetting proRaffleSettng) 
                         {
                             subscription.LastNotificationCheck = notificationTime;  
                             if(period == TimeSpan.Zero)
                             {
                                 subscription.IsActive = false;
-                                proRaffle.IsPaused = true;
+                                proRaffleSettng.IsPaused = true;
                             }   
                             try
                             {
                                 await dbContext.SaveChangesAsync(stoppingToken);
-                                subsReminders.Add(MapToSubscriptionReminder(subscription, proRaffle.Key));
+                                subsReminders.Add(MapToSubscriptionReminder(subscription, proRaffleSettng.Key));
                             }
                             catch (DbUpdateConcurrencyException ex)
                             {
                                 Console.WriteLine($"Concurrency exception: {ex.Message}");
                                 dbContext.Entry(subscription).State = EntityState.Detached;
-                                dbContext.Entry(proRaffle).State = EntityState.Detached;
+                                dbContext.Entry(proRaffleSettng).State = EntityState.Detached;
                             } 
-                        }    
+                        }
                         break;
                     }
                 }
@@ -132,28 +131,27 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
         //     var dbContext = scope.ServiceProvider.GetRequiredService<SubscriptionContext>();
         //     var subscriptions = await dbContext.Subscriptions
         //         .Where(s => s.IsActive && (s.Id == 2 || s.Id == 5 || s.Id == 8 || s.Id == 12))
-        //         .Include(s => s.UserSetting)
-        //         .Include(s => s.ProductOption)
-        //             .ThenInclude(po => po.Product)
+        //         .Include(s => s.ProductSetting)
+        //         .Include(s => s.Product)
         //         .ToListAsync(cancellationToken: stoppingToken);
 
         //     foreach(var subscription in subscriptions)
         //     {
-        //         if (subscription.UserSetting is ProRaffle proRaffle)
+        //         if (subscription.ProductSetting is ProRaffleSetting proRaffleSetting)
         //         {
-        //             proRaffle.IsPaused = true;
+        //             proRaffleSetting.IsPaused = true;
         //             subscription.IsActive = false;
 
         //             try
         //             {
         //                 await dbContext.SaveChangesAsync(stoppingToken);
-        //                 subsReminders.Add(MapToSubscriptionReminder(subscription, proRaffle.Key));
+        //                 subsReminders.Add(MapToSubscriptionReminder(subscription, proRaffleSetting.Key));
         //             }
         //             catch (DbUpdateConcurrencyException ex)
         //             {
         //                 Console.WriteLine($"Concurrency exception: {ex.Message}");
         //                 dbContext.Entry(subscription).State = EntityState.Detached;
-        //                 dbContext.Entry(proRaffle).State = EntityState.Detached;
+        //                 dbContext.Entry(proRaffleSetting).State = EntityState.Detached;
         //             }   
         //         }
         //     }
@@ -173,6 +171,22 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
         //     return Enumerable.Empty<ulong>();
         // }
         #endregion
+        
+        private static SubscriptionReminder MapToSubscriptionReminder(Subscription subscription, string alphabotKey)
+        {
+            var subscriptionReminder = new SubscriptionReminder()
+            {
+                UserId = subscription.UserId,
+                Username = subscription.ProductSetting!.Username,
+                AlphabotKey = alphabotKey,
+                ProductRoleId = subscription.Product!.RoleId!.Value,
+                IsActive = subscription.IsActive,
+                EndDate = subscription.EndDate,
+                DaysLeft = subscription.IsActive ? (subscription.EndDate - DateTime.UtcNow).Days : 0
+            };
+
+            return subscriptionReminder;
+        }
 
         private async Task SendUsersMetricsAsync(CancellationToken stoppingToken, IEnumerable<ulong> usersWithInactivatedSubs)
         {
@@ -188,20 +202,6 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
             await _hubContext.Clients.All.ReceiveUsersMetrics(users);
         }
 
-        private static SubscriptionReminder MapToSubscriptionReminder(Subscription subscription, string alphabotKey)
-        {
-            var subscriptionReminder = new SubscriptionReminder()
-            {
-                UserId = subscription.UserId,
-                Username = subscription.Username,
-                AlphabotKey = alphabotKey,
-                ProductRoleId = subscription.ProductOption!.Product.RoleId!.Value,
-                IsActive = subscription.IsActive,
-                EndDate = subscription.EndDate,
-                DaysLeft = subscription.IsActive ? (subscription.EndDate - DateTime.UtcNow).Days : 0
-            };
-
-            return subscriptionReminder;
-        }
+       
     }
 }

@@ -15,6 +15,11 @@ using Probot.SubscriptionApi.Services.Shared;
 using Probot.SubscriptionApi.Services.Shared.IShared;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using JsonSubTypes;
+using Probot.Shared.Dtos.ProductSetting.Request;
+using Probot.Shared.Dtos.ProRaffleSetting.Request;
+using Probot.Shared.Dtos.ProductSetting.Response;
+using Probot.Shared.Dtos.ProRaffleSetting.Response;
 
 var builder = WebApplication.CreateBuilder(args);
 // builder.Logging.ClearProviders();
@@ -28,7 +33,6 @@ builder.Services.AddSignalR().AddJsonProtocol(options =>
     options.PayloadSerializerOptions = new JsonSerializerOptions
     {
         ReferenceHandler = ReferenceHandler.IgnoreCycles,
-        // WriteIndented = true,
         PropertyNameCaseInsensitive = true
     };
 });
@@ -63,15 +67,27 @@ builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IProductKeyService, ProductKeyService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IProRaffleService, ProRaffleService>();
-builder.Services.AddScoped<IUserSettingService, UserSettingService>();
+builder.Services.AddScoped<IProRaffleSettingService, ProRaffleSettingService>();
 #endregion
 
 builder.Services.AddControllers(options =>
 {
     // Prevent trimming of the "Async" suffix from action names
     options.SuppressAsyncSuffixInActionNames = false;
+}).AddNewtonsoftJson(options =>
+{
+    options.SerializerSettings.Converters.Add(JsonSubtypesConverterBuilder
+        .Of<ProductSettingRequest>("Discriminator")
+        .RegisterSubtype<ProRaffleSettingRequest>(nameof(ProRaffleSettingRequest))
+        .SerializeDiscriminatorProperty()
+        .Build());
+    options.SerializerSettings.Converters.Add(JsonSubtypesConverterBuilder
+        .Of<ProductSettingResponse>("Discriminator")
+        .RegisterSubtype<ProRaffleSettingResponse>(nameof(ProRaffleSettingResponse))
+        .SerializeDiscriminatorProperty()
+        .Build());
 });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSwaggerGen(c =>

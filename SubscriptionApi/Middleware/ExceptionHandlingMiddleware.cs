@@ -38,6 +38,7 @@ namespace Probot.SubscriptionApi.Middleware
                     _logger.LogInformation(exception.Message);
                     context.Response.StatusCode = ex.StatusCode;
                     response.StatusCode = ex.StatusCode;
+                    response.ServiceResult = ex.ServiceResult;
                     response.ErrorMessage = ex.Message;
                     break;
                 default:

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Probot.Data;
 using Probot.Data.Entities;
+using Probot.Shared.Enums;
 using Probot.SubscriptionApi.Exceptions;
 using Probot.SubscriptionApi.Services.Services.IServices;
 
@@ -66,7 +67,7 @@ public class ProductKeyService : IProductKeyService
         }
 
         return await query.SingleOrDefaultAsync()
-            ?? throw new ServiceException(StatusCodes.Status404NotFound, $"Product Key with code: {code} not found.");
+            ?? throw new ServiceException(StatusCodes.Status404NotFound, ServiceResult.ProductKey404, $"Product Key with code: {code} not found.");
     }
 
     public async Task<IEnumerable<ProductKey>> GetProductKeysAsync(ulong? userId, bool? isActivated)

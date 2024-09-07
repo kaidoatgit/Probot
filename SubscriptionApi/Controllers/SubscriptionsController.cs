@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Probot.Data.Entities;
 using Probot.SubscriptionApi.Mappers;
 using Probot.SubscriptionApi.Services.Services.IServices;
-using Probot.Shared.Dtos.ProRaffle.Request;
 using Probot.Shared.Dtos.Subscription.Response;
+using Probot.Shared.Dtos.Subscription.Request;
+using Probot.Shared.Enums;
 
 namespace Probot.SubscriptionApi.Controllers
 {
@@ -20,18 +20,26 @@ namespace Probot.SubscriptionApi.Controllers
             _mapper = mapper;
         }
         
-        [HttpPost("pro-raffle")]
-        public async Task<IActionResult> CreateProRaffleSubscriptionAsync([FromBody] ProRaffleRequest request)
+        [HttpPost]
+        public async Task<IActionResult> CreateSubscriptionAsync([FromBody] SubscriptionRequest request)
         {
-            var subscription = await _subscriptionService.CreateSubscriptionOfTypeAsync<ProRaffle>(request);
+            var subscription = await _subscriptionService.CreateSubscriptionAsync(request);
             SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
             return Ok(subscriptionResponse);
         }
 
-        [HttpGet("{userId}/pro-raffle")]
-        public async Task<IActionResult> GetProRaffleSubscriptionsAsync(ulong userId)
+        [HttpPost("extend")]
+        public async Task<IActionResult> ExtendSubscriptionAsync([FromBody] SubscriptionRequest request)
         {
-            var subscriptions = await _subscriptionService.GetSubscriptionsOfTypeAsync<ProRaffle>(userId);
+            var subscription = await _subscriptionService.ExtendSubscriptionAsync(request);
+            SubscriptionResponse subscriptionResponse = _mapper.MapToSubscriptionResponse(subscription);
+            return Ok(subscriptionResponse);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetSubscriptionsAsync([FromQuery] ulong userId, [FromQuery] ProductName productName)
+        {
+            var subscriptions = await _subscriptionService.GetSubscriptionsAsync(userId, productName);
             IEnumerable<SubscriptionResponse> subscriptionsResponse = subscriptions.Select(s => _mapper.MapToSubscriptionResponse(s));
             return Ok(subscriptionsResponse);
         }

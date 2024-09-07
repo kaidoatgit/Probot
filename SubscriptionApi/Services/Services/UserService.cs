@@ -21,7 +21,6 @@ namespace Probot.SubscriptionApi.Services.Services
 
         public async Task<User> CreateUserAsync(UserRequest request)
         {
-            //.AsNoTracking() is not needed because is using AnyAsync which returns a bool and automatically wont be tracked
             bool foundUser = await _context.Users
                 .AnyAsync(u => u.Id == request.Id);
             if (foundUser)
@@ -69,10 +68,10 @@ namespace Probot.SubscriptionApi.Services.Services
                 {
                     User = user,
                     ActiveSubscriptions = user.Subscriptions
-                        .Where(s => s.IsActive && s.ProductOption != null && s.ProductOption.Product.RoleId.HasValue)
+                        .Where(s => s.IsActive && s.Product != null && s.Product.RoleId.HasValue)
                         .Select(s => new
                         {
-                            ProductRoleId = (ulong)s.ProductOption!.Product.RoleId!
+                            ProductRoleId = (ulong)s.Product!.RoleId!
                         })
                         .ToList(),
                     InactiveProductKeys = user.ProductKeys
