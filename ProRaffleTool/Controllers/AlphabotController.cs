@@ -13,7 +13,7 @@ using Probot.ProRaffleTool.Options;
 namespace Probot.ProRaffleTool.Controllers;
 
 [ApiController]
-[Route("[webhook/alphabot]")]
+[Route("webhook/alphabot")]
 public class AlphabotController : ControllerBase
 {
     private readonly ILogger<AlphabotController> _logger;
@@ -38,7 +38,7 @@ public class AlphabotController : ControllerBase
         _memoryCache = memoryCache;
     }
 
-    [HttpPost("raffle")]
+    [HttpPost("raffles")]
     public async Task<IActionResult> Register([FromBody] RaffleRequest request)
     {
         var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_proRaffleSettings.AlphabotWebhookKey));
@@ -58,9 +58,9 @@ public class AlphabotController : ControllerBase
             var raffle = request.Data?.Raffle;
             if(raffle == null) return Ok();
             
-            if (!_memoryCache.TryGetValue(_cacheKey, out List<ProRaffle>? prSettings))
+            if (!_memoryCache.TryGetValue(_cacheKey, out List<ProRaffleSetting>? prSettings))
             {
-                prSettings = await _context.ProRaffles
+                prSettings = await _context.ProRaffleSettings
                     .Where(pr => !pr.IsPaused)
                     .ToListAsync();
 
@@ -72,14 +72,14 @@ public class AlphabotController : ControllerBase
                 foreach (var prSetting in prSettings!)
                 {
                     // Directly calling the async method
-                    _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.UserId, raffle.Slug)
-                    .ContinueWith(task =>
-                    {
-                        if (task.IsFaulted)
-                        {
-                            _logger.LogError(task.Exception, "Error registering raffle for key {Key}", prSetting.Key);
-                        }
-                    });
+                    _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, raffle.Slug);
+                    // .ContinueWith(task =>
+                    // {
+                    //     if (task.IsFaulted)
+                    //     {
+                    //         _logger.LogError(task.Exception, "Error registering raffle for user with username {Username}", prSetting.Username);
+                    //     }
+                    // });
                 }
             }            
         }

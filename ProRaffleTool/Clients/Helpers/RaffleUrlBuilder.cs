@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.WebUtilities;
 using Probot.ProRaffleTool.Models.Enums;
 
-namespace Probot.ProRaffleTool.Helpers;
+namespace Probot.ProRaffleTool.Clients.Helpers;
 
 public static class RaffleUrlBuilder
 {

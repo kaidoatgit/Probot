@@ -50,9 +50,9 @@ public class RaffleRegistrationService: BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ProbotContext>();
         
-        _logger.LogCritical($"<RAFFLES BACKGROUND SERVICE> Registering old raffles <RAFFLES BACKGROUND SERVICE>");
+        _logger.LogInformation($"<RAFFLES BACKGROUND SERVICE> Registering old raffles <RAFFLES BACKGROUND SERVICE>");
         var currentTime = DateTime.Now;
-        var prSettings = await dbContext.ProRaffles
+        var prSettings = await dbContext.ProRaffleSettings
                 .Where(pr => !pr.IsPaused)
                 .ToListAsync();
         
@@ -64,25 +64,11 @@ public class RaffleRegistrationService: BackgroundService
         await Task.WhenAll(tasks);
 
         string formattedDateTime = DateTime.Now.ToString("yyyy-MM-dd:HH:mm:ss");
-        _logger.LogCritical($"<RAFFLES BACKGROUND SERVICE> Old raffles registered at {formattedDateTime}<RAFFLES BACKGROUND SERVICE>");
-        LogResult();
+        _logger.LogInformation("<RAFFLES BACKGROUND SERVICE> Old raffles registered at {CurrentTime} <RAFFLES BACKGROUND SERVICE>", formattedDateTime);
+        _logger.LogInformation("Metrics Result:\n{Metrics}", LogMetricsResult());
     }
 
-    private void LogResult()
-    {
-        StringBuilder sb = new();
-        foreach (var (apiKey, metrics) in _raffleMetrics)
-        {
-            sb.AppendLine($"Id: {apiKey}");
-            sb.Append($"  Twitter Raffles: {metrics.TwitterRafflesCount}");
-            sb.Append($", Community Raffles: {metrics.CommunityRafflesCount}");
-            sb.Append($", Sum: {metrics.TotalRafflesCount}");
-            sb.AppendLine($", Registered: {metrics.TotalRegistered}");            
-        }
-        _logger.LogCritical(sb.ToString());
-    }
-
-    public async Task RegisterRaffles(ProRaffle prSetting)
+    public async Task RegisterRaffles(ProRaffleSetting prSetting)
     {
         try
         {
@@ -100,12 +86,11 @@ public class RaffleRegistrationService: BackgroundService
                 return;
             }
             
-            var raffleMetrics = _raffleMetrics.GetOrAdd(prSetting.Key, _ => new RaffleMetrics());
-            raffleMetrics.TotalRegistered = 0;
-            raffleMetrics.TwitterRafflesCount = twitterRaffles.Count();
-            raffleMetrics.CommunityRafflesCount = communityRaffles.Count();
+            var raffleMetrics = _raffleMetrics.GetOrAdd(prSetting.Username, _ => new RaffleMetrics());
+            raffleMetrics.UpdateCount(twitterRaffles.Count(), communityRaffles.Count());
                 
-            var rateLimiter = _rateLimiters.GetOrAdd(prSetting.Key, _ => new RateLimiter());
+            var rateLimiter = _rateLimiters.GetOrAdd(prSetting.Username, _ => new RateLimiter());
+
             var registrationTasks = raffles.Select(raffle => RegisterRaffleWithThrottle(raffle, prSetting, rateLimiter, raffleMetrics));
             await Task.WhenAll(registrationTasks);
         }
@@ -114,19 +99,37 @@ public class RaffleRegistrationService: BackgroundService
         }
     }
 
-    private async Task<RegisterInRaffleResponse> RegisterRaffleWithThrottle(RaffleDetail raffle, ProRaffle prSetting, RateLimiter rateLimiter, RaffleMetrics raffleMetrics)
+    private async Task<RegisterInRaffleResponse> RegisterRaffleWithThrottle(RaffleDetail raffle, ProRaffleSetting prSetting, RateLimiter rateLimiter, RaffleMetrics raffleMetrics)
     {
         await rateLimiter.WaitAsync();
         RegisterInRaffleResponse clientResponse = new();
         try
         {
-            clientResponse = await _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.UserId, raffle.Slug!);
-            raffleMetrics.TotalRegistered++;
+            clientResponse = await _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, raffle.Slug!);
+            if(clientResponse.Success)
+            {
+                raffleMetrics.TotalRegistered++;
+            }
         }
         catch (Exception e)
         {
             _logger.LogError(" <REGISTER RAFFLE WITH THROTTLE> " + e.Message);
         }
         return clientResponse;
+    }
+    
+
+    private string LogMetricsResult()
+    {
+        StringBuilder sb = new();
+        foreach (var (apiKey, metrics) in _raffleMetrics)
+        {
+            sb.AppendLine($"Id: {apiKey}");
+            sb.Append($"  Twitter Raffles: {metrics.TwitterRafflesCount}");
+            sb.Append($", Community Raffles: {metrics.CommunityRafflesCount}");
+            sb.Append($", Sum: {metrics.TotalRafflesCount}");
+            sb.AppendLine($", Registered: {metrics.TotalRegistered}");            
+        }
+        return sb.ToString();
     }
 }

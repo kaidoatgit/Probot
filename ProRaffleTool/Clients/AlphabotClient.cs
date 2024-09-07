@@ -1,10 +1,9 @@
-
-using Newtonsoft.Json;
 using Probot.ProRaffleTool.Clients.Dtos.Request;
 using Probot.ProRaffleTool.Clients.Dtos.Response;
+using Probot.ProRaffleTool.Clients.Helpers;
 using Probot.ProRaffleTool.Models.Enums;
-using Probot.ProRaffleTool.Helpers;
 using System.Net;
+using System.Text.Json;
 
 namespace Probot.ProRaffleTool.Clients;
 
@@ -18,7 +17,7 @@ public class AlphabotClient
         _httpClient = httpClient;
         _logger = logger;
     }
-    public async Task<RegisterInRaffleResponse> RegisterInRaffleAsync(string apiKey, ulong userId, string slug)
+    public async Task<RegisterInRaffleResponse> RegisterInRaffleAsync(string apiKey, string username, string slug)
     {
         RegisterInRaffleResponse clientResponse = new();
         HttpStatusCode? httpStatusCode = HttpStatusCode.Accepted;
@@ -32,29 +31,34 @@ public class AlphabotClient
             response.EnsureSuccessStatusCode();
 
             string result = await response.Content.ReadAsStringAsync();
-            clientResponse = JsonConvert.DeserializeObject<RegisterInRaffleResponse>(result)!;
+            clientResponse = JsonSerializer.Deserialize<RegisterInRaffleResponse>(result)!;
 
             httpStatusCode = HttpStatusCode.OK;
             messageResult = clientResponse.Data?.ResultMd ?? string.Empty;
         }
-        catch (JsonException jsonException)
+        catch (Exception exception)
         {
-            httpStatusCode = HttpStatusCode.BadRequest;
-            messageResult = " <RegisterRaffle> " + jsonException.Message;
+            if(exception is JsonException jsonException)
+            {                
+                httpStatusCode = HttpStatusCode.BadRequest;
+                messageResult = " <RegisterRaffle> " + jsonException.Message;
+            }
+            else if(exception is HttpRequestException httpException)
+            {
+                httpStatusCode = httpException.StatusCode;
+                messageResult = " <RegisterRaffle> " + httpException.Message;
+            }
+            else
+            {
+                httpStatusCode = HttpStatusCode.InternalServerError;
+                messageResult = " <RegisterRaffle> Internal error ";
+            }
+            
+            _logger.LogError("{Username} Http code: {Code} {Message}, Slug: {Slug}", username, httpStatusCode, messageResult, slug);
         }
-        catch (HttpRequestException httpException)
-        {
-            httpStatusCode = httpException.StatusCode;
-            messageResult = " <RegisterRaffle> " + httpException.Message;
-        }
-        catch
-        {
-            httpStatusCode = HttpStatusCode.InternalServerError;
-            messageResult = " <RegisterRaffle> Internal error ";
-        }
-        _logger.LogWarning("{UserId} Http code: {Code} {Message}, Slug: {Slug}, Registration: {flag} {error}",
-            userId, httpStatusCode, messageResult, slug, clientResponse.Success,
-            clientResponse.Errors?.FirstOrDefault()?.Message);
+        
+        _logger.LogInformation("{Username} Http code: {Code} {Message}, Slug: {Slug}, Registration: {flag} {error}",
+            username, httpStatusCode, messageResult, slug, clientResponse.Success, clientResponse.Errors?.FirstOrDefault()?.Message);
         return clientResponse;
     }
 
@@ -71,7 +75,7 @@ public class AlphabotClient
             response.EnsureSuccessStatusCode();
 
             string result = await response.Content.ReadAsStringAsync();
-            clientResponse = JsonConvert.DeserializeObject<RaffleResponse>(result)!;
+            clientResponse = JsonSerializer.Deserialize<RaffleResponse>(result)!;
         }
         catch (HttpRequestException httpException)
         {
