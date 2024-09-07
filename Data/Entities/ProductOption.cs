@@ -20,7 +20,6 @@ public class ProductOption
 
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>(); //Navigation purpose
     public ICollection<ProductKey> ProductKeys { get; set; } = new List<ProductKey>(); //Navigation purpose
-    public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();  //Navigation purpose
 
 }
 

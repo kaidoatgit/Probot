@@ -14,4 +14,5 @@ public class Product
     public string? Description { get; set; }
 
     public ICollection<ProductOption> ProductOptions { get; set; } = new List<ProductOption>();  //Navigation purpose
+    public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();  //Navigation purpose
 }

@@ -11,8 +11,8 @@ using Probot.Data;
 namespace Probot.Data.Migrations
 {
     [DbContext(typeof(ProbotContext))]
-    [Migration("20240901063412_Init")]
-    partial class Init
+    [Migration("20240907135008_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -344,7 +344,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 9, 1, 6, 34, 12, 467, DateTimeKind.Utc).AddTicks(3916),
+                            CreatedAt = new DateTime(2024, 9, 7, 13, 50, 8, 482, DateTimeKind.Utc).AddTicks(4903),
                             Period = 1,
                             PeriodDescription = "1 Month",
                             Price = 12m,
@@ -353,7 +353,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 9, 1, 6, 34, 12, 467, DateTimeKind.Utc).AddTicks(3925),
+                            CreatedAt = new DateTime(2024, 9, 7, 13, 50, 8, 482, DateTimeKind.Utc).AddTicks(4914),
                             Period = 2,
                             PeriodDescription = "2 Months",
                             Price = 20m,
@@ -362,12 +362,44 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2024, 9, 1, 6, 34, 12, 467, DateTimeKind.Utc).AddTicks(3926),
+                            CreatedAt = new DateTime(2024, 9, 7, 13, 50, 8, 482, DateTimeKind.Utc).AddTicks(4916),
                             Period = 3,
                             PeriodDescription = "3 Months",
                             Price = 30m,
                             ProductId = 1
                         });
+                });
+
+            modelBuilder.Entity("Probot.Data.Entities.ProductSetting", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(0);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(1);
+
+                    b.Property<ulong>("UserId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(3);
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(2);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("ProductSettings", (string)null);
+
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("Probot.Data.Entities.Subscription", b =>
@@ -380,7 +412,7 @@ namespace Probot.Data.Migrations
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(11);
+                        .HasColumnOrder(2);
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT")
@@ -388,7 +420,7 @@ namespace Probot.Data.Migrations
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(7);
+                        .HasColumnOrder(10);
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER")
@@ -396,42 +428,42 @@ namespace Probot.Data.Migrations
 
                     b.Property<DateTime?>("LastNotificationCheck")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(9);
+                        .HasColumnOrder(11);
 
-                    b.Property<int>("ProductOptionId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(10);
+                        .HasColumnOrder(5);
+
+                    b.Property<ulong?>("ProductSettingId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnOrder(6);
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(6);
+                        .HasColumnOrder(9);
 
                     b.Property<ulong>("UserId")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(2);
-
-                    b.Property<ulong>("UserSettingId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(4);
+                        .HasColumnOrder(3);
 
                     b.Property<string>("Username")
                         .HasColumnType("TEXT")
-                        .HasColumnOrder(3);
+                        .HasColumnOrder(4);
 
                     b.Property<int>("Version")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(5);
+                        .HasColumnOrder(7);
 
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.HasIndex("ProductOptionId");
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductSettingId");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserSettingId");
 
                     b.ToTable("Subscriptions");
                 });
@@ -516,57 +548,25 @@ namespace Probot.Data.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Probot.Data.Entities.UserSetting", b =>
+            modelBuilder.Entity("Probot.Data.Entities.ProRaffleSetting", b =>
                 {
-                    b.Property<ulong>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(0);
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(1);
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(3);
-
-                    b.Property<ulong>("UserId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(2);
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserSettings", (string)null);
-
-                    b.UseTptMappingStrategy();
-                });
-
-            modelBuilder.Entity("Probot.Data.Entities.ProRaffle", b =>
-                {
-                    b.HasBaseType("Probot.Data.Entities.UserSetting");
+                    b.HasBaseType("Probot.Data.Entities.ProductSetting");
 
                     b.Property<bool>("IsPaused")
-                        .HasColumnType("INTEGER")
-                        .HasColumnOrder(2);
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Key")
                         .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(1);
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("Version")
                         .IsConcurrencyToken()
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(3);
+                        .HasColumnType("TEXT");
 
                     b.HasIndex("Key")
                         .IsUnique();
 
-                    b.ToTable("ProRaffles", (string)null);
+                    b.ToTable("ProRaffleSettings", (string)null);
                 });
 
             modelBuilder.Entity("Probot.Data.Entities.Invoice", b =>
@@ -657,6 +657,17 @@ namespace Probot.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Probot.Data.Entities.ProductSetting", b =>
+                {
+                    b.HasOne("Probot.Data.Entities.User", "User")
+                        .WithMany("ProductSettings")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Probot.Data.Entities.Subscription", b =>
                 {
                     b.HasOne("Probot.Data.Entities.ProductKey", "ProductKey")
@@ -665,11 +676,15 @@ namespace Probot.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Probot.Data.Entities.ProductOption", "ProductOption")
+                    b.HasOne("Probot.Data.Entities.Product", "Product")
                         .WithMany("Subscriptions")
-                        .HasForeignKey("ProductOptionId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Probot.Data.Entities.ProductSetting", "ProductSetting")
+                        .WithMany("Subscriptions")
+                        .HasForeignKey("ProductSettingId");
 
                     b.HasOne("Probot.Data.Entities.User", "User")
                         .WithMany("Subscriptions")
@@ -677,19 +692,13 @@ namespace Probot.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Probot.Data.Entities.UserSetting", "UserSetting")
-                        .WithMany("Subscriptions")
-                        .HasForeignKey("UserSettingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Product");
 
                     b.Navigation("ProductKey");
 
-                    b.Navigation("ProductOption");
+                    b.Navigation("ProductSetting");
 
                     b.Navigation("User");
-
-                    b.Navigation("UserSetting");
                 });
 
             modelBuilder.Entity("Probot.Data.Entities.Transaction", b =>
@@ -703,22 +712,11 @@ namespace Probot.Data.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("Probot.Data.Entities.UserSetting", b =>
+            modelBuilder.Entity("Probot.Data.Entities.ProRaffleSetting", b =>
                 {
-                    b.HasOne("Probot.Data.Entities.User", "User")
-                        .WithMany("UserSettings")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Probot.Data.Entities.ProRaffle", b =>
-                {
-                    b.HasOne("Probot.Data.Entities.UserSetting", null)
+                    b.HasOne("Probot.Data.Entities.ProductSetting", null)
                         .WithOne()
-                        .HasForeignKey("Probot.Data.Entities.ProRaffle", "Id")
+                        .HasForeignKey("Probot.Data.Entities.ProRaffleSetting", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -747,6 +745,8 @@ namespace Probot.Data.Migrations
             modelBuilder.Entity("Probot.Data.Entities.Product", b =>
                 {
                     b.Navigation("ProductOptions");
+
+                    b.Navigation("Subscriptions");
                 });
 
             modelBuilder.Entity("Probot.Data.Entities.ProductKey", b =>
@@ -759,7 +759,10 @@ namespace Probot.Data.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("ProductKeys");
+                });
 
+            modelBuilder.Entity("Probot.Data.Entities.ProductSetting", b =>
+                {
                     b.Navigation("Subscriptions");
                 });
 
@@ -769,13 +772,8 @@ namespace Probot.Data.Migrations
 
                     b.Navigation("ProductKeys");
 
-                    b.Navigation("Subscriptions");
+                    b.Navigation("ProductSettings");
 
-                    b.Navigation("UserSettings");
-                });
-
-            modelBuilder.Entity("Probot.Data.Entities.UserSetting", b =>
-                {
                     b.Navigation("Subscriptions");
                 });
 #pragma warning restore 612, 618

@@ -19,7 +19,7 @@ public class User
     public ICollection<Order> Orders { get; set; } = new List<Order>(); //Navigation purpose
     public ICollection<ProductKey> ProductKeys { get; set; } = new List<ProductKey>(); //Navigation purpose
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>(); //Navigation purpose
-    public ICollection<UserSetting> UserSettings { get; set; } = new List<UserSetting>(); //Navigation purpose
+    public ICollection<ProductSetting> ProductSettings { get; set; } = new List<ProductSetting>(); //Navigation purpose
 
     [NotMapped]
     public Metrics? Metrics { get; set; }

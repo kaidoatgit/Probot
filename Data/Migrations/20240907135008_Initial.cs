@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Probot.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -106,20 +106,20 @@ namespace Probot.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserSettings",
+                name: "ProductSettings",
                 columns: table => new
                 {
                     Id = table.Column<ulong>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UserId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", nullable: false)
+                    Username = table.Column<string>(type: "TEXT", nullable: false),
+                    UserId = table.Column<ulong>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserSettings", x => x.Id);
+                    table.PrimaryKey("PK_ProductSettings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserSettings_Users_UserId",
+                        name: "FK_ProductSettings_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -209,7 +209,7 @@ namespace Probot.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProRaffles",
+                name: "ProRaffleSettings",
                 columns: table => new
                 {
                     Id = table.Column<ulong>(type: "INTEGER", nullable: false)
@@ -220,11 +220,11 @@ namespace Probot.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProRaffles", x => x.Id);
+                    table.PrimaryKey("PK_ProRaffleSettings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ProRaffles_UserSettings_Id",
+                        name: "FK_ProRaffleSettings_ProductSettings_Id",
                         column: x => x.Id,
-                        principalTable: "UserSettings",
+                        principalTable: "ProductSettings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -299,16 +299,16 @@ namespace Probot.Data.Migrations
                     Id = table.Column<ulong>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    Code = table.Column<string>(type: "TEXT", nullable: false),
                     UserId = table.Column<ulong>(type: "INTEGER", nullable: false),
                     Username = table.Column<string>(type: "TEXT", nullable: true),
-                    UserSettingId = table.Column<ulong>(type: "INTEGER", nullable: false),
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProductSettingId = table.Column<ulong>(type: "INTEGER", nullable: true),
                     Version = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
                     StartDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     EndDate = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    LastNotificationCheck = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    ProductOptionId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Code = table.Column<string>(type: "TEXT", nullable: false)
+                    LastNotificationCheck = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -320,15 +320,14 @@ namespace Probot.Data.Migrations
                         principalColumn: "Code",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Subscriptions_ProductOptions_ProductOptionId",
-                        column: x => x.ProductOptionId,
-                        principalTable: "ProductOptions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_Subscriptions_ProductSettings_ProductSettingId",
+                        column: x => x.ProductSettingId,
+                        principalTable: "ProductSettings",
+                        principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Subscriptions_UserSettings_UserSettingId",
-                        column: x => x.UserSettingId,
-                        principalTable: "UserSettings",
+                        name: "FK_Subscriptions_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -349,9 +348,9 @@ namespace Probot.Data.Migrations
                 columns: new[] { "Id", "CreatedAt", "Period", "PeriodDescription", "Price", "ProductId" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2024, 9, 1, 6, 34, 12, 467, DateTimeKind.Utc).AddTicks(3916), 1, "1 Month", 12m, 1 },
-                    { 2, new DateTime(2024, 9, 1, 6, 34, 12, 467, DateTimeKind.Utc).AddTicks(3925), 2, "2 Months", 20m, 1 },
-                    { 3, new DateTime(2024, 9, 1, 6, 34, 12, 467, DateTimeKind.Utc).AddTicks(3926), 3, "3 Months", 30m, 1 }
+                    { 1, new DateTime(2024, 9, 7, 13, 50, 8, 482, DateTimeKind.Utc).AddTicks(4903), 1, "1 Month", 12m, 1 },
+                    { 2, new DateTime(2024, 9, 7, 13, 50, 8, 482, DateTimeKind.Utc).AddTicks(4914), 2, "2 Months", 20m, 1 },
+                    { 3, new DateTime(2024, 9, 7, 13, 50, 8, 482, DateTimeKind.Utc).AddTicks(4916), 3, "3 Months", 30m, 1 }
                 });
 
             migrationBuilder.CreateIndex(
@@ -402,8 +401,19 @@ namespace Probot.Data.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProRaffles_Key",
-                table: "ProRaffles",
+                name: "IX_ProductSettings_UserId",
+                table: "ProductSettings",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductSettings_Username",
+                table: "ProductSettings",
+                column: "Username",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProRaffleSettings_Key",
+                table: "ProRaffleSettings",
                 column: "Key",
                 unique: true);
 
@@ -414,9 +424,14 @@ namespace Probot.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Subscriptions_ProductOptionId",
+                name: "IX_Subscriptions_ProductId",
                 table: "Subscriptions",
-                column: "ProductOptionId");
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subscriptions_ProductSettingId",
+                table: "Subscriptions",
+                column: "ProductSettingId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Subscriptions_UserId",
@@ -424,20 +439,10 @@ namespace Probot.Data.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Subscriptions_UserSettingId",
-                table: "Subscriptions",
-                column: "UserSettingId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_OrderId",
                 table: "Transactions",
                 column: "OrderId",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserSettings_UserId",
-                table: "UserSettings",
-                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -450,7 +455,7 @@ namespace Probot.Data.Migrations
                 name: "LogEntries");
 
             migrationBuilder.DropTable(
-                name: "ProRaffles");
+                name: "ProRaffleSettings");
 
             migrationBuilder.DropTable(
                 name: "Subscriptions");
@@ -465,7 +470,7 @@ namespace Probot.Data.Migrations
                 name: "ProductKeys");
 
             migrationBuilder.DropTable(
-                name: "UserSettings");
+                name: "ProductSettings");
 
             migrationBuilder.DropTable(
                 name: "OrderItems");

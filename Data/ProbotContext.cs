@@ -17,8 +17,8 @@ public class ProbotContext : DbContext
     public virtual DbSet<ProductOption> ProductOptions { get; set; } = null!;
     public virtual DbSet<LogEntry> LogEntries { get; set; } = null!;
     public virtual DbSet<ProductKey> ProductKeys { get; set; } = null!;
-    public virtual DbSet<UserSetting> UserSettings { get; set; } = null!;
-    public virtual DbSet<ProRaffle> ProRaffles { get; set; } = null!;
+    public virtual DbSet<ProductSetting> SubscriptionSettings { get; set; } = null!;
+    public virtual DbSet<ProRaffleSetting> ProRaffleSettings { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

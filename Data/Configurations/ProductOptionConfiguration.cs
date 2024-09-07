@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Probot.Data.Entities;
-using Probot.Shared.Enums;
 
 namespace Probot.Data.Configurations;
 
