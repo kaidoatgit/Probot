@@ -4,6 +4,12 @@ using Probot.Client.Clients.SubscriptionApi;
 using Probot.Client.Configs;
 using Probot.Client.Mappers;
 using Probot.Client.Managers;
+using Newtonsoft.Json;
+using JsonSubTypes;
+using Probot.Shared.Dtos.ProductSetting.Request;
+using Probot.Shared.Dtos.ProRaffleSetting.Request;
+using Probot.Shared.Dtos.ProductSetting.Response;
+using Probot.Shared.Dtos.ProRaffleSetting.Response;
 
 namespace Probot.Client
 {
@@ -21,9 +27,6 @@ namespace Probot.Client
                     bot.Stop();
                 };
                 await bot.RunAsync(services);
-
-                //just to read the message
-                // Console.ReadKey();
             }
             catch (Exception e)
             {
@@ -45,7 +48,7 @@ namespace Probot.Client
             services.AddHttpClient<UserClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/users/"); });
             services.AddHttpClient<ProductClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/products/"); });
             services.AddHttpClient<OrderClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/orders/"); });
-            services.AddHttpClient<ProRaffleClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/pro_raffles/"); });
+            services.AddHttpClient<ProRaffleSettingClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/pro_raffle_settings/"); });
             services.AddHttpClient<SubscriptionClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/subscriptions/"); });
             services.AddHttpClient<ProductKeyClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/product_keys/"); });
             services.AddSingleton<CancelationTokenManager>();
@@ -55,19 +58,25 @@ namespace Probot.Client
             services.AddSingleton<CartManager>();
             services.AddSingleton<Mapper>();
             services.AddSingleton<HubManager>();
+            services.AddSingleton(provider =>
+            {
+                var settings = new JsonSerializerSettings();
+                
+                settings.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<ProductSettingRequest>("Discriminator")
+                    .RegisterSubtype<ProRaffleSettingRequest>(nameof(ProRaffleSettingRequest))
+                    .SerializeDiscriminatorProperty()
+                    .Build());
+
+                settings.Converters.Add(JsonSubtypesConverterBuilder
+                    .Of<ProductSettingResponse>("Discriminator")
+                    .RegisterSubtype<ProRaffleSettingResponse>(nameof(ProRaffleSettingResponse))
+                    .SerializeDiscriminatorProperty()
+                    .Build());
+
+                return settings;
+            });
             services.AddSingleton<Probot>();
-            //services.AddSingleton(provider =>
-            //{
-            //    var appSettings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            //    return new DiscordClient(new DiscordConfiguration
-            //    {
-            //        Token = appSettings.Token,
-            //        TokenType = TokenType.Bot,
-            //        Intents = DiscordIntents.All,
-            //        MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Error,
-            //        AutoReconnect = false
-            //    });
-            //});
             // services.AddLogging(configure => configure.AddConsole().AddDebug());
             return services.BuildServiceProvider();
         }

@@ -278,14 +278,17 @@ namespace Probot.Client.Helpers
             description.AppendLine("`/product-keys`");
             description.AppendLine("List all product keys and respective details.");
             description.AppendLine();
-            description.AppendLine("`/activate-key`");
-            description.AppendLine("Activate a product key by associating it with your Alphabot API key. Once activated, Pro Raffle automation will be enabled automatically.");
+            description.AppendLine("`/new-subscription`");
+            description.AppendLine("Use a product key to create a new subscription and associate it to Alphabot. Once activated, Pro Raffle automation will be enabled automatically.");
+            description.AppendLine();
+            description.AppendLine("`/extend-subscription`");
+            description.AppendLine("Use a product key to extend an existing subscription");
             description.AppendLine();
             description.AppendLine("`/update-alphabot-key`");
             description.AppendLine("Replace the current alphabot key with a new one.");
             description.AppendLine();
             description.AppendLine("`/bot-status`");
-            description.AppendLine("Displays your settings for each API key and indicates if Pro Raffle is running");
+            description.AppendLine("Displays your settings for each subscription and indicates if Pro Raffle is running");
 
             var embed = new DiscordEmbedBuilder
             {
@@ -319,14 +322,16 @@ namespace Probot.Client.Helpers
             return embed.Build();
         }
 
-        public static DiscordEmbed CreateActivationCodeEmbed(ProductKey productKey, string alphabotKey)
+        public static DiscordEmbed CreateSubscriptionEmbed(string username, ProductKey productKey, string alphabotKey)
         {
             var description = new StringBuilder();
-            description.Append($"🎟️ Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
+            description.Append($"{EmojisHelper.User} Username");
+            description.AppendLine($"```{username}```");
+            description.Append($"{EmojisHelper.Ticket} Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
             description.AppendLine($"```{productKey.Code}```");
             description.Append($"{EmojisHelper.Key} Key");
             description.AppendLine($"```{alphabotKey}```");
-            description.AppendLine($"Are you sure you want to __create__ or __extend__ your ProRaffle subscription with this product code and key{EmojisHelper.QuestionMark}");
+            description.AppendLine($"Are you sure you want to __create__ a new subscription with this product code and API key{EmojisHelper.QuestionMark}");
             description.AppendLine($"\u200B");
             description.AppendLine("**Note: this action is irreversible.**");
 
@@ -339,14 +344,36 @@ namespace Probot.Client.Helpers
             return embed.Build();
         }
 
-        public static DiscordEmbed CreateActivationCodeResultEmbed(Subscription subscription)
+        public static DiscordEmbed ExtendSubscriptionEmbed(string username, ProductKey productKey)
         {
-            var proRaffle = (ProRaffle) subscription.UserSetting!;
             var description = new StringBuilder();
+            description.Append($"{EmojisHelper.User} Username");
+            description.AppendLine($"```{username}```");
+            description.Append($"{EmojisHelper.Ticket} Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
+            description.AppendLine($"```{productKey.Code}```");
+            description.AppendLine($"Are you sure you want to __extend__ your subscription by using this product code{EmojisHelper.QuestionMark}");
+            description.AppendLine($"\u200B");
+            description.AppendLine("**Note: this action is irreversible.**");
+
+            var embed = new DiscordEmbedBuilder
+            {
+                Description = description.ToString(),
+                Color = DiscordColor.Gold
+            };
+
+            return embed.Build();
+        }
+
+        public static DiscordEmbed CreateSubscriptionResultEmbed(Subscription subscription)
+        {
+            var proRaffleSetting = (ProRaffleSetting) subscription.ProductSetting!;
+            var description = new StringBuilder();
+             description.Append($"{EmojisHelper.User} Username");
+            description.AppendLine($"```{proRaffleSetting.Username}```");
             description.Append($"🎟️ Code | Duration: {subscription.PeriodDescription}");
             description.AppendLine($"```{subscription.Code}```");
             description.Append($"{EmojisHelper.Key} Key");
-            description.AppendLine($"```{proRaffle.Key}```\u200B");
+            description.AppendLine($"```{proRaffleSetting.Key}```\u200B");
 
             var embed = new DiscordEmbedBuilder
             {

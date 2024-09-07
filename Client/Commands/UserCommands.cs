@@ -10,22 +10,24 @@ using Probot.Client.Extensions;
 using Probot.Client.Helpers;
 using Probot.Client.Mappers;
 using Probot.Client.Models;
-using Probot.Shared.Dtos.ProRaffle.Request;
+using Probot.Shared.Dtos.ProRaffleSetting.Request;
+using Probot.Shared.Dtos.Subscription.Request;
+using Probot.Shared.Enums;
 
 namespace Probot.Client.Commands
 {
     [SlashRequireGuild]
-    [SlashCommandGroup("pro-raffle", "Commands for manage Pro Raffle automation bot")]
+    [SlashCommandGroup("pro-raffle", "Commands to manage Pro Raffle automation bot")]
     public class UserCommands : ApplicationCommandModule
     {
         private readonly Mapper _mapper;
-        private readonly ProRaffleClient _proRaffleClient;
+        private readonly ProRaffleSettingClient _proRaffleSettingClient;
         private readonly SubscriptionClient _subscriptionClient;
         private readonly ProductKeyClient _productKeyClient;
-        public UserCommands(Mapper mapper, ProRaffleClient proRaffleClient, SubscriptionClient subscriptionClient, ProductKeyClient productKeyClient)
+        public UserCommands(Mapper mapper, ProRaffleSettingClient proRaffleClient, SubscriptionClient subscriptionClient, ProductKeyClient productKeyClient)
         {
             _mapper = mapper;
-            _proRaffleClient = proRaffleClient;
+            _proRaffleSettingClient = proRaffleClient;
             _subscriptionClient = subscriptionClient;
             _productKeyClient = productKeyClient;
         }
@@ -70,10 +72,14 @@ namespace Probot.Client.Commands
             }
         }
 
-        [SlashCommand("activate-key", "Activate a product key by associating it with your Alphabot API key.")]
-        public async Task ActivateProductKeysCommand(InteractionContext ctx,
+
+        [SlashCommand("new-subscription", "Use a product key to create a new subscription and associate it to Alphabot.")]
+        public async Task NewSubscriptionCommand(InteractionContext ctx,
+            [MaximumLength(15)]
+            [MinimumLength(4)]
+            [Option("username", "Unique identifier to associate with this activation")] string username,
             [Option("product-key", "Product key which you purchased")] string code,
-            [Option("alphabot-key", "API key provided by AlphaBot")] string key)
+            [Option("alphabot-key", "API key provided by Alphabot")] string key)
         {
             
             if (!code.IsProductKeyFormat() || !key.IsAlphabotKeyFormat())
@@ -112,7 +118,7 @@ namespace Probot.Client.Commands
                 ProductKey productKey = _mapper.MapToProductKey(productKeyResponse.Data);
                 var noButton = new DiscordButtonComponent(ButtonStyle.Danger, "activatekey_no_btn", $"No {EmojisHelper.X}");
                 var yesButton = new DiscordButtonComponent(ButtonStyle.Success, "activatekey_yes_btn", $"Yes {EmojisHelper.WhiteCheckMark}");
-                var embed = EmbedHelper.CreateActivationCodeEmbed(productKey, key);
+                var embed = EmbedHelper.CreateSubscriptionEmbed(username, productKey, key);
                 var message = new DiscordMessageBuilder()
                     .WithEmbed(embed)
                     .AddComponents(noButton, yesButton);
@@ -128,21 +134,25 @@ namespace Probot.Client.Commands
                 }
                 if (answer.Result.Id == "activatekey_yes_btn")
                 {
-                    var proRaffleRequest = new ProRaffleRequest
+                    var subscriptionRequest = new SubscriptionRequest
                     {
                         UserId = ctx.User.Id,
                         Code = productKey.Code,
-                        AlphabotKey = key
+                        ProductSettingRequest = new ProRaffleSettingRequest
+                        {
+                            Username = username,
+                            AlphabotKey = key
+                        }
                     };
-                    var subscriptionResponse = await _subscriptionClient.CreateProRaffleSubscriptionAsync(proRaffleRequest);
+                    var subscriptionResponse = await _subscriptionClient.CreateSubscriptionAsync(subscriptionRequest);
                     if (subscriptionResponse.Data == null)
                     {
-                        if(subscriptionResponse.StatusCode == StatusCodes.Status400BadRequest ||
-                            subscriptionResponse.StatusCode == StatusCodes.Status404NotFound)
+                        if(subscriptionResponse.ServiceResult == ServiceResult.ProductKey400 || 
+                            subscriptionResponse.ServiceResult == ServiceResult.ProductKey404)
                         {
                             description = $"{EmojisHelper.X} Product key not found or already activated";
                         }
-                        else if(subscriptionResponse.StatusCode == StatusCodes.Status409Conflict)
+                        else if(subscriptionResponse.ServiceResult == ServiceResult.ProductSetting409)
                         {
                             description = $"{EmojisHelper.X} {subscriptionResponse.ErrorMessage}";
                         }
@@ -161,7 +171,7 @@ namespace Probot.Client.Commands
                     else
                     {
                         Subscription subscription = _mapper.MapToSubscription(subscriptionResponse.Data);
-                        embed = EmbedHelper.CreateActivationCodeResultEmbed(subscription);
+                        embed = EmbedHelper.CreateSubscriptionResultEmbed(subscription);
                         await ctx.EditResponseAsync(new DiscordWebhookBuilder(new DiscordMessageBuilder().WithEmbed(embed)));
                     }
                 }
@@ -172,11 +182,167 @@ namespace Probot.Client.Commands
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ActivateProductKeysCommand] {ex.Message}");
+                Console.WriteLine($"[NewSubscriptionCommand] {ex.Message}");
             }
         }
 
+        
+        [SlashCommand("extend-subscription", "Use a product key to extend an existing subscription")]
+        public async Task ExtendSubscriptionCommand(InteractionContext ctx,
+            [MaximumLength(15)]
+            [MinimumLength(4)]
+            [Option("username", "Subscription identifier")] string username,
+            [Option("product-key", "Product key which you purchased")] string code)
+        {
+            if (!code.IsProductKeyFormat())
+            {
+                await ctx.CreateResponseAsync(embed: new DiscordEmbedBuilder
+                {
+                    Description = $"{EmojisHelper.Warning} Incorrect product-key.",
+                    Color = DiscordColor.Orange
+                }, true);
+                return;
+            }
 
+            try
+            {
+                string description = string.Empty;
+                var productKeyResponse = await _productKeyClient.GetProductKeyAsync(ctx.User.Id, code, isActivated: false);
+                if (productKeyResponse.Data == null)
+                {
+                    if(productKeyResponse.StatusCode == StatusCodes.Status400BadRequest ||
+                        productKeyResponse.StatusCode == StatusCodes.Status404NotFound)
+                    {
+                        description = $"{EmojisHelper.X} Product key not found or already activated";
+                    }
+                    else
+                    {
+                        description = MessageHelper.GenericErrorMessage();
+                    }
+                    await ctx.CreateResponseAsync(embed: new DiscordEmbedBuilder
+                    {
+                        Description = description,
+                        Color = DiscordColor.Red
+                    }, true);
+                    return;
+                }
+
+                ProductKey productKey = _mapper.MapToProductKey(productKeyResponse.Data);
+                var noButton = new DiscordButtonComponent(ButtonStyle.Danger, "activatekey_no_btn", $"No {EmojisHelper.X}");
+                var yesButton = new DiscordButtonComponent(ButtonStyle.Success, "activatekey_yes_btn", $"Yes {EmojisHelper.WhiteCheckMark}");
+                var embed = EmbedHelper.ExtendSubscriptionEmbed(username, productKey);
+                var message = new DiscordMessageBuilder()
+                    .WithEmbed(embed)
+                    .AddComponents(noButton, yesButton);
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder(message).AsEphemeral(true));
+
+                var interactivity = ctx.Client.GetInteractivity();
+                var orginalMsg = await ctx.GetOriginalResponseAsync();
+                var answer = await interactivity.WaitForButtonAsync(orginalMsg, ctx.User, TimeSpan.FromMinutes(2));
+                if (answer.TimedOut)
+                {
+                    await ctx.EditResponseAsync(new DiscordWebhookBuilder().WithContent("You didn't respond in time! Operation cancelled."));
+                    return;
+                }
+                if (answer.Result.Id == "activatekey_yes_btn")
+                {
+                    var subscriptionRequest = new SubscriptionRequest
+                    {
+                        UserId = ctx.User.Id,
+                        Code = productKey.Code,
+                        ProductSettingRequest = new ProRaffleSettingRequest
+                        {
+                            Username = username
+                        }
+                    };
+                    var subscriptionResponse = await _subscriptionClient.ExtendSubscriptionAsync(subscriptionRequest);
+                    if (subscriptionResponse.Data == null)
+                    {
+                        if(subscriptionResponse.ServiceResult == ServiceResult.ProductKey400 || 
+                            subscriptionResponse.ServiceResult == ServiceResult.ProductKey404)
+                        {
+                            description = $"{EmojisHelper.X} Product key not found or already activated";
+                        }
+                        else if(subscriptionResponse.ServiceResult == ServiceResult.Subscription404)
+                        {
+                            description = $"{EmojisHelper.X} {subscriptionResponse.ErrorMessage}";
+                        }
+                        else
+                        {
+                            description = MessageHelper.GenericErrorMessage();
+                        }
+                        
+                        embed = new DiscordEmbedBuilder
+                        {
+                            Description = description,
+                            Color = DiscordColor.Red
+                        };                        
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(new DiscordMessageBuilder().WithEmbed(embed)));
+                    }
+                    else
+                    {
+                        Subscription subscription = _mapper.MapToSubscription(subscriptionResponse.Data);
+                        embed = EmbedHelper.CreateSubscriptionResultEmbed(subscription);
+                        await ctx.EditResponseAsync(new DiscordWebhookBuilder(new DiscordMessageBuilder().WithEmbed(embed)));
+                    }
+                }
+                else if (answer.Result.Id == "activatekey_no_btn")
+                {
+                    await ctx.DeleteResponseAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ExtendSubscriptionCommand] {ex.Message}");
+            }
+        }
+
+        
+        [SlashCommand("bot-status", "Displays your settings for subscription and indicates if Pro Raffle is running")]
+        public async Task BotStatusCommand(InteractionContext ctx)
+        {
+            var embed = new DiscordEmbedBuilder
+            {
+                Description = $"{EmojisHelper.Warning} It appears that you currently have no active Pro Raffle subscriptions. If you believe this is an error, please contact support.",
+                Color = DiscordColor.Orange
+            };
+            try
+            {
+                var subscriptionResponse = await _subscriptionClient.GetSubscriptionsAsync(ctx.User.Id, ProductName.ProRaffle);
+                if (subscriptionResponse.Data == null)
+                {
+                    embed.Description = MessageHelper.GenericErrorMessage();
+                    embed.Color = DiscordColor.Red;
+                }
+                else if(subscriptionResponse.Data.Any())
+                {
+                    var subscriptions = subscriptionResponse.Data.Select(s => _mapper.MapToSubscription(s));
+                    var description = new StringBuilder();
+                    foreach (var subscription in subscriptions)
+                    {
+                        var proRaffleSetting = (ProRaffleSetting) subscription.ProductSetting!;
+                        description.AppendLine();
+                        description.Append($"{EmojisHelper.User} | **{proRaffleSetting.Username}**");
+                        description.Append($"```{proRaffleSetting.Key}```");
+                        description.AppendLine($"{EmojisHelper.Calendar_Spiral} Start Date: <t:{((DateTimeOffset)subscription.StartDate).ToUnixTimeSeconds()}:D>");
+                        description.AppendLine($"{EmojisHelper.Calendar_Spiral} End Date: <t:{((DateTimeOffset)subscription.EndDate).ToUnixTimeSeconds()}:D>");
+                        description.AppendLine($"{EmojisHelper.Robot} Status: **{(proRaffleSetting.IsPaused ? "Paused" : "Running")}**");
+                        description.AppendLine();
+                    }
+                    embed.Description = description.ToString();
+                    embed.Color = DiscordColor.Green;
+                }
+
+                var message = new DiscordMessageBuilder().WithEmbed(embed);
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder(message).AsEphemeral(true));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BotStatusCommand] {ex.Message}");
+            }
+        }
+
+        
         [SlashCommand("update-alphabot-key", "Replace the current alphabot key with a new one")]
         public async Task UpdateAlphabotKeyCommand(InteractionContext ctx,
             [Option("old-alphabot-key", "Current Alphabot key")] string currentKey,
@@ -196,12 +362,12 @@ namespace Probot.Client.Commands
 
             try
             {
-                var updateProRaffleKeyRequest = new UpdateProRaffleKeyRequest
+                var updatePRSettingKeyRequest = new UpdatePRSettingKeyRequest
                 {
                     CurrentKey = currentKey,
                     NewKey = newKey
                 };
-                var apiResponse = await _proRaffleClient.UpdateProRaffleKeyAsync(ctx.User.Id, updateProRaffleKeyRequest);
+                var apiResponse = await _proRaffleSettingClient.UpdateProRaffleSettingKeyAsync(ctx.User.Id, updatePRSettingKeyRequest);
                 bool isModified = apiResponse.Data;
                 if (!isModified)
                 {              
@@ -229,48 +395,7 @@ namespace Probot.Client.Commands
         }
 
 
-        [SlashCommand("bot-status", "Displays your settings for each API key and indicates if Pro Raffle is running")]
-        public async Task BotStatusCommand(InteractionContext ctx)
-        {
-            var embed = new DiscordEmbedBuilder
-            {
-                Description = $"{EmojisHelper.Warning} It appears that you currently have no active Pro Raffle subscriptions. If you believe this is an error, please contact support.",
-                Color = DiscordColor.Orange
-            };
-            try
-            {
-                var subscriptionResponse = await _subscriptionClient.GetProRaffleSubscriptionsAsync(ctx.User.Id);
-                if (subscriptionResponse.Data == null)
-                {
-                    embed.Description = MessageHelper.GenericErrorMessage();
-                    embed.Color = DiscordColor.Red;
-                }
-                else if(subscriptionResponse.Data.Any())
-                {
-                    var subscriptions = subscriptionResponse.Data.Select(s => _mapper.MapToSubscription(s));
-                    var description = new StringBuilder();
-                    foreach (var subscription in subscriptions)
-                    {
-                        var proRaffle = (ProRaffle) subscription.UserSetting!;
-                        description.AppendLine();
-                        description.Append($"{EmojisHelper.Key} | Alphabot Key```{proRaffle.Key}```");
-                        description.AppendLine($"{EmojisHelper.Calendar_Spiral} Start Date: <t:{((DateTimeOffset)subscription.StartDate).ToUnixTimeSeconds()}:D>");
-                        description.AppendLine($"{EmojisHelper.Calendar_Spiral} End Date: <t:{((DateTimeOffset)subscription.EndDate).ToUnixTimeSeconds()}:D>");
-                        description.AppendLine($"{EmojisHelper.Robot} Status: **{(proRaffle.IsPaused ? "Paused" : "Running")}**");
-                        description.AppendLine();
-                    }
-                    embed.Description = description.ToString();
-                    embed.Color = DiscordColor.Green;
-                }
-
-                var message = new DiscordMessageBuilder().WithEmbed(embed);
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder(message).AsEphemeral(true));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[BotStatusCommand] {ex.Message}");
-            }
-        }
+        
     
     
          #region interaction example

@@ -20,5 +20,7 @@
         public const string WhiteCheckMark = "✅";
         public const string Key = "🔑";
         public const string Robot = "🤖";
+        public const string User = "👤";
+        public const string Ticket = "🎟️";
     }
 }

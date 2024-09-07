@@ -1,19 +1,19 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Probot.Shared.Dtos;
-using Probot.Shared.Dtos.ProRaffle.Request;
+using Probot.Shared.Dtos.ProRaffleSetting.Request;
 using System.Net.Http.Json;
 
 namespace Probot.Client.Clients.SubscriptionApi
 {
-    public class ProRaffleClient
+    public class ProRaffleSettingClient
     {
         private readonly HttpClient _httpClient;
-        public ProRaffleClient(HttpClient httpClient)
+        public ProRaffleSettingClient(HttpClient httpClient)
         {
             _httpClient = httpClient;
         }
         
-        public async Task<ApiResponse<bool>> UpdateProRaffleKeyAsync(ulong userId, UpdateProRaffleKeyRequest request)
+        public async Task<ApiResponse<bool>> UpdateProRaffleSettingKeyAsync(ulong userId, UpdatePRSettingKeyRequest request)
         {
             ApiResponse<bool> apiResponse = new();
             try
@@ -25,13 +25,13 @@ namespace Probot.Client.Clients.SubscriptionApi
                 }
                 else
                 {
-                    Console.WriteLine($"[UpdateProRaffleKeyAsync] {response.ReasonPhrase}");
+                    Console.WriteLine($"[UpdateProRaffleSettingKeyAsync] {response.ReasonPhrase}");
                     apiResponse.Data = false;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UpdateProRaffleKeyAsync] {ex.Message}");
+                Console.WriteLine($"[UpdateProRaffleSettingKeyAsync] {ex.Message}");
                 apiResponse.ErrorMessage = ex.Message;
                 apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
             }

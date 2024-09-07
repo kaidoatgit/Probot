@@ -3,10 +3,10 @@ using Probot.Shared.Dtos.Order.Response;
 using Probot.Shared.Dtos.Product.Request;
 using Probot.Shared.Dtos.Product.Response;
 using Probot.Shared.Dtos.ProductKey.Response;
-using Probot.Shared.Dtos.ProRaffle.Response;
+using Probot.Shared.Dtos.ProRaffleSetting.Response;
 using Probot.Shared.Dtos.Subscription.Response;
 using Probot.Shared.Dtos.User.Response;
-using Probot.Shared.Dtos.UserSetting.Response;
+using Probot.Shared.Dtos.ProductSetting.Response;
 using Riok.Mapperly.Abstractions;
 
 namespace Probot.Client.Mappers
@@ -24,7 +24,7 @@ namespace Probot.Client.Mappers
         public partial User MapToUser(UserResponse apiResponse);
         public partial ProductKey MapToProductKey(ProductKeyResponse apiResponse);
         
-        [MapDerivedType(typeof(ProRaffleResponse), typeof(ProRaffle))]
-        public partial UserSetting MapToProRaffle(UserSettingResponse apiResponse);
+        [MapDerivedType(typeof(ProRaffleSettingResponse), typeof(ProRaffleSetting))]
+        public partial ProductSetting MapToProRaffleSetting(ProductSettingResponse apiResponse);
     }
 }

@@ -11,7 +11,7 @@ namespace Probot.Client.Models
         public DateTime EndDate { get; set; }
         public string PeriodDescription { get; set; }
 
-        public UserSetting? UserSetting { get; set; }
+        public ProductSetting? ProductSetting { get; set; }
         public override string ToString()
         {
             return JsonConvert.SerializeObject(this, Formatting.None);

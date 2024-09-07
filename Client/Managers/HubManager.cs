@@ -173,14 +173,14 @@ namespace Probot.Client.Managers
 
                 foreach (var subReminder in subsReminders)
                 {
-                    // Skip subscriptions that ended more than 3 days ago
+                    // if somehow there are subscriptions that ended more than 3 days ago then just skip them
                     if (!subReminder.IsActive && DateTime.UtcNow.AddDays(-3) > subReminder.EndDate)
                     {
                         continue;
                     }
                     
                     description.AppendLine();
-                    description.Append($"{EmojisHelper.Key} Alphabot Key");
+                    description.Append($"{EmojisHelper.User} **{subReminder.Username}");
                     if (subReminder.IsActive)
                     {
                         description.Append($" | Expire on <t:{subReminder.EndDate.ToUnixTimeSeconds()}:D>");
@@ -200,12 +200,19 @@ namespace Probot.Client.Managers
                         Title = $"{EmojisHelper.Bell} Subscriptions Reminder",
                         Description = description.ToString(),
                         Color = DiscordColor.Orange,
-                        Footer = new() { Text = "Pro Payments" },
+                        Footer = new() { Text = "Subscriptions" },
                         Timestamp = DateTime.UtcNow
                     };
-                
-                    var dmChannel = await member.CreateDmChannelAsync();
-                    await dmChannel.SendMessageAsync(embed);
+
+                    try
+                    {
+                        var dmChannel = await member.CreateDmChannelAsync();
+                        await dmChannel.SendMessageAsync(embed);
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine($"Failed to send subscription reminder to user {userId}");
+                    }
                 }
 
                 #region example of general notification chat

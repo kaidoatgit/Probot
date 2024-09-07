@@ -5,7 +5,7 @@ using Probot.Client.Models;
 
 namespace Probot.Client.Extensions
 {
-    public static class GuildExtension
+    public static class GuildExtensions
     {
         private static readonly SemaphoreSlim _concurrentMemberUpdate = new(1, 1);
 

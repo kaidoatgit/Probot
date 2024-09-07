@@ -59,7 +59,7 @@ namespace Probot.Client
             _discordClient.Ready += OnClientReady;
             _discordClient.ClientErrored += OnClientErrored;
             _discordClient.ComponentInteractionCreated += OnClientComponentInteractionCreated;
-            _discordClient.ModalSubmitted += OnClientModalSubmitted;
+            // _discordClient.ModalSubmitted += OnClientModalSubmitted;
             _discordClient.GuildAvailable += OnGuildAvailable;
             _discordClient.GuildMemberUpdated += OnGuildMemberUpdated;
 
@@ -83,7 +83,7 @@ namespace Probot.Client
                 _discordClient.Ready -= OnClientReady;
                 _discordClient.ClientErrored -= OnClientErrored;
                 _discordClient.ComponentInteractionCreated -= OnClientComponentInteractionCreated;
-                _discordClient.ModalSubmitted -= OnClientModalSubmitted;
+                // _discordClient.ModalSubmitted -= OnClientModalSubmitted;
                 _discordClient.GuildAvailable -= OnGuildAvailable;
                 _discordClient.GuildMemberUpdated -= OnGuildMemberUpdated;
                 await _hubManager.StopAsync();
@@ -394,51 +394,53 @@ namespace Probot.Client
             }
         }
 
-        private async Task OnClientModalSubmitted(DiscordClient sender, ModalSubmitEventArgs args)
-        {   
-            var msg = await args.Interaction.GetOriginalResponseAsync();
-            if (args.Interaction.Type == InteractionType.ModalSubmit)
-            {
-                // switch (args.Interaction.Data.CustomId)
-                // {
-                //     case "solana_wallet_submission":
-                //     {
+        #region Modal events currently not used
+        // private async Task OnClientModalSubmitted(DiscordClient sender, ModalSubmitEventArgs args)
+        // {   
+        //     var msg = await args.Interaction.GetOriginalResponseAsync();
+        //     if (args.Interaction.Type == InteractionType.ModalSubmit)
+        //     {
+        //         switch (args.Interaction.Data.CustomId)
+        //         {
+        //             case "solana_wallet_submission":
+        //             {
                         
-                //         await args.Interaction.DeferAsync(true);
-                //         var userId = args.Interaction.User.Id;
-                //         var walletAddress = args.Values.Values.First().Trim();
+        //                 await args.Interaction.DeferAsync(true);
+        //                 var userId = args.Interaction.User.Id;
+        //                 var walletAddress = args.Values.Values.First().Trim();
 
-                //         var walletStatus = _userManager.GetWalletAddressStatus(userId, walletAddress);
-                //         switch (walletStatus.Result)
-                //         {
-                //             case Result.WalletExist:
-                //                 {
-                //                     await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(5));
-                //                     return;
-                //                 }
-                //             case Result.WalletFoundInOrder:
-                //                 {
-                //                     await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
-                //                     return;
-                //                 }
-                //         }
+        //                 var walletStatus = _userManager.GetWalletAddressStatus(userId, walletAddress);
+        //                 switch (walletStatus.Result)
+        //                 {
+        //                     case Result.WalletExist:
+        //                         {
+        //                             await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+        //                             return;
+        //                         }
+        //                     case Result.WalletFoundInOrder:
+        //                         {
+        //                             await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
+        //                             return;
+        //                         }
+        //                 }
 
-                //         var username = args.Interaction.User.Username;
-                //         var isResultSuccess = await _userManager.AddOrUpdateUserAsync(userId, username, walletAddress);
-                //         if (isResultSuccess)
-                //         {
-                //             await args.Interaction.NotifyWithMessage(MessageHelper.WalletSubmitSuccess(walletAddress), defer: true);
-                //         }
-                //         else
-                //         {
-                //             await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
-                //         }
-                //         break;
-                //     }
-                // }
-            }
-        }
-
+        //                 var username = args.Interaction.User.Username;
+        //                 var isResultSuccess = await _userManager.AddOrUpdateUserAsync(userId, username, walletAddress);
+        //                 if (isResultSuccess)
+        //                 {
+        //                     await args.Interaction.NotifyWithMessage(MessageHelper.WalletSubmitSuccess(walletAddress), defer: true);
+        //                 }
+        //                 else
+        //                 {
+        //                     await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
+        //                 }
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
+        #endregion
+        
         public void Stop()
         {
             try

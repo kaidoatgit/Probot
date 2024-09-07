@@ -2,7 +2,7 @@
 
 namespace Probot.Client.Extensions
 {
-    public static class DiscordMessageExtension
+    public static class DiscordComponentExtensions
     {
         public static IDiscordMessageBuilder ReplaceComponents(this DiscordMessage message, List<DiscordActionRowComponent> discordComponents)
         {
