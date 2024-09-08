@@ -13,12 +13,12 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
     public partial class SubscriptionCheckService : BackgroundService
     {
         #region Testing purpose
-        private static readonly TimeSpan _reminderPeriod = TimeSpan.FromSeconds(20);
+        // private static readonly TimeSpan _reminderPeriod = TimeSpan.FromSeconds(20);
         // // use now.AddHours(1) inside the method for simulating the time ticking
         // private DateTime now = DateTime.UtcNow; 
         #endregion
 
-        // private static readonly TimeSpan _reminderPeriod = TimeSpan.FromHours(1);
+        private static readonly TimeSpan _reminderPeriod = TimeSpan.FromHours(1);
         private static readonly List<TimeSpan> _notificationPeriods = new()
         {
             TimeSpan.Zero,
