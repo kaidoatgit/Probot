@@ -53,11 +53,11 @@ public class AlphabotController : ControllerBase
 
         if(string.Equals(request.Event, "raffle:active", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogInformation("<WEBHOOK> Active raffle found! <WEBHOOK>");
-            
             var raffle = request.Data?.Raffle;
             if(raffle == null) return Ok();
             
+            _logger.LogInformation("<WEBHOOK> Active raffle found [{0}] <WEBHOOK>", raffle.Slug);
+
             if (!_memoryCache.TryGetValue(_cacheKey, out List<ProRaffleSetting>? prSettings))
             {
                 prSettings = await _context.ProRaffleSettings
@@ -67,21 +67,18 @@ public class AlphabotController : ControllerBase
                 var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
                 _memoryCache.Set(_cacheKey, prSettings, cacheEntryOptions);
             }
-            else
+            foreach (var prSetting in prSettings!)
             {
-                foreach (var prSetting in prSettings!)
-                {
-                    // Directly calling the async method
-                    _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, raffle.Slug);
-                    // .ContinueWith(task =>
-                    // {
-                    //     if (task.IsFaulted)
-                    //     {
-                    //         _logger.LogError(task.Exception, "Error registering raffle for user with username {Username}", prSetting.Username);
-                    //     }
-                    // });
-                }
-            }            
+                // Directly calling the async method
+                _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, raffle.Slug);
+                // .ContinueWith(task =>
+                // {
+                //     if (task.IsFaulted)
+                //     {
+                //         _logger.LogError(task.Exception, "Error registering raffle for user with username {Username}", prSetting.Username);
+                //     }
+                // });
+            }   
         }
         return Ok();
     }
