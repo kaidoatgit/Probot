@@ -6,17 +6,17 @@ namespace Probot.ProRaffleTool.Clients.Helpers;
 
 public static class RaffleUrlBuilder
 {
-    private static readonly Dictionary<RaffleType, string> RaffleUrls = new()
+    private static readonly Dictionary<RaffleType, Func<int?, string>> RaffleUrlBuilders = new()
     {
-        { RaffleType.TWITTER_RAFFLES, BuildTwitterRafflesUrl() },
-        { RaffleType.COMMUNITY_RAFFLES, BuildCommunityRafflesUrl() }
+        { RaffleType.TWITTER_RAFFLES, _ => BuildTwitterRafflesUrl() },
+        { RaffleType.COMMUNITY_RAFFLES, pageNum => BuildCommunityRafflesUrl(pageNum) }
     };
 
-    public static string GetUrl(RaffleType raffleType)
+    public static string GetUrl(RaffleType raffleType, int? pageNum = null)
     {
-        if (RaffleUrls.TryGetValue(raffleType, out var url))
+        if (RaffleUrlBuilders.TryGetValue(raffleType, out var buildUrl))
         {
-            return url;
+            return buildUrl(pageNum);
         }
         throw new ArgumentException("Invalid raffle type", nameof(raffleType));
     }
@@ -30,13 +30,13 @@ public static class RaffleUrlBuilder
             { "sortDir", "1" },
             { "filter", "unregistered" },
             { "status", "active" },
-            { "pageSize", "45" }
+            { "pageSize", "30" }
         };
         string path = "raffles?req=f&req=l&req=t";
         return QueryHelpers.AddQueryString(path, baseParams);
     }
 
-    private static string BuildCommunityRafflesUrl()
+    private static string BuildCommunityRafflesUrl(int? pageNum)
     {
         var baseParams = new Dictionary<string, string?>
         {
@@ -45,8 +45,14 @@ public static class RaffleUrlBuilder
             { "sortDir", "1" },
             { "filter", "unregistered" },
             { "status", "active" },
-            { "pageSize", "45" }
+            { "pageSize", "40" }
         };
+
+        if (pageNum.HasValue)
+        {
+            baseParams["pageNum"] = pageNum.Value.ToString();
+        }
+
         string path = "raffles";
         return QueryHelpers.AddQueryString(path, baseParams);
     }

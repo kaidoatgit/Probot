@@ -2,6 +2,8 @@ using Probot.Data;
 using Probot.ProRaffleTool.Clients;
 using Probot.ProRaffleTool.Options;
 using Probot.ProRaffleTool.Services.BackgroundServices;
+using Probot.ProRaffleTool.Services.Services;
+using Probot.ProRaffleTool.Services.Services.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,7 @@ builder.Services.AddHttpClient<AlphabotClient>(httpClient =>
     httpClient.BaseAddress = new Uri("https://api.alphabot.app/v1/");
 });
 builder.Services.AddHostedService<RaffleRegistrationService>();
+builder.Services.AddSingleton<IRateLimiterService, RateLimiterService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

@@ -9,6 +9,7 @@ using Probot.Data.Entities;
 using Probot.ProRaffleTool.Clients;
 using Probot.ProRaffleTool.Dtos.Alphabot.Request;
 using Probot.ProRaffleTool.Options;
+using Probot.ProRaffleTool.Services.Services.Abstractions;
 
 namespace Probot.ProRaffleTool.Controllers;
 
@@ -22,8 +23,10 @@ public class AlphabotController : ControllerBase
     private readonly AlphabotClient _alphabotClient;
     private readonly IMemoryCache _memoryCache;
     private const string _cacheKey = "user_settings";
+    private readonly IRateLimiterService _rateLimiterService;
 
-    public AlphabotController(ILogger<AlphabotController> logger, IOptionsMonitor<ProRaffleSettings> proRaffleSettings, ProbotContext context, AlphabotClient alphabotClient, IMemoryCache memoryCache)
+    public AlphabotController(ILogger<AlphabotController> logger, IOptionsMonitor<ProRaffleSettings> proRaffleSettings, ProbotContext context, 
+        AlphabotClient alphabotClient, IMemoryCache memoryCache, IRateLimiterService rateLimiterService)
     {
         _logger = logger;
 
@@ -36,6 +39,7 @@ public class AlphabotController : ControllerBase
         _context = context;
         _alphabotClient = alphabotClient; 
         _memoryCache = memoryCache;
+        _rateLimiterService = rateLimiterService;
     }
 
     [HttpPost("raffles")]
@@ -54,7 +58,10 @@ public class AlphabotController : ControllerBase
         if(string.Equals(request.Event, "raffle:active", StringComparison.OrdinalIgnoreCase))
         {
             var raffle = request.Data?.Raffle;
-            if(raffle == null) return Ok();
+            if(raffle == null || string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok();
+            }
             
             _logger.LogInformation("<WEBHOOK> Active raffle found [{0}] <WEBHOOK>", raffle.Slug);
 
@@ -67,19 +74,35 @@ public class AlphabotController : ControllerBase
                 var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
                 _memoryCache.Set(_cacheKey, prSettings, cacheEntryOptions);
             }
-            foreach (var prSetting in prSettings!)
+
+            if(string.Equals(raffle.Type, "fcfs", StringComparison.OrdinalIgnoreCase))
             {
-                // Directly calling the async method
-                _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, raffle.Slug);
-                // .ContinueWith(task =>
-                // {
-                //     if (task.IsFaulted)
-                //     {
-                //         _logger.LogError(task.Exception, "Error registering raffle for user with username {Username}", prSetting.Username);
-                //     }
-                // });
-            }   
+                _ = RegisterRafflesFCFS(prSettings!, raffle.Slug);
+            }
+            else 
+            {
+                foreach (var prSetting in prSettings!)
+                {
+                    _ = RegisterRafflesWithDelay(prSetting, raffle.Slug);
+                }
+            }  
         }
         return Ok();
+    }
+
+    private Task RegisterRafflesFCFS(List<ProRaffleSetting> prSettings, string slug)
+    {
+        foreach (var prSetting in prSettings!)
+        {
+            _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, slug);
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task RegisterRafflesWithDelay(ProRaffleSetting prSetting, string slug)
+    {
+        var rateLimiter = _rateLimiterService.GetOrAdd(prSetting.Username);
+        await rateLimiter.WaitAsync(TimeSpan.FromSeconds(10));
+        _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, slug);
     }
 }

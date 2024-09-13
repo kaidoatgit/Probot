@@ -5,8 +5,10 @@ using Probot.Data;
 using Probot.Data.Entities;
 using Probot.ProRaffleTool.Clients;
 using Probot.ProRaffleTool.Clients.Dtos.Response;
+using Probot.ProRaffleTool.Models;
 using Probot.ProRaffleTool.Models.Enums;
 using Probot.ProRaffleTool.Services.BackgroundServices.Models;
+using Probot.ProRaffleTool.Services.Services.Abstractions;
 
 namespace Probot.ProRaffleTool.Services.BackgroundServices;
 
@@ -16,14 +18,15 @@ public class RaffleRegistrationService: BackgroundService
     private readonly ILogger<RaffleRegistrationService> _logger;
     private readonly AlphabotClient _alphabotClient;
     private Timer? _timer;
-    private readonly ConcurrentDictionary<string, RateLimiter> _rateLimiters = new();
+    private readonly IRateLimiterService _rateLimiterService;
     private readonly ConcurrentDictionary<string, RaffleMetrics> _raffleMetrics = new();
 
-    public RaffleRegistrationService(IServiceProvider serviceProvider, ILogger<RaffleRegistrationService> logger, AlphabotClient alphabotClient)
+    public RaffleRegistrationService(IServiceProvider serviceProvider, ILogger<RaffleRegistrationService> logger, AlphabotClient alphabotClient, IRateLimiterService rateLimiterService)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _alphabotClient = alphabotClient;
+        _rateLimiterService = rateLimiterService;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -68,28 +71,47 @@ public class RaffleRegistrationService: BackgroundService
         _logger.LogInformation("Metrics Result:\n{Metrics}", LogMetricsResult());
     }
 
-    public async Task RegisterRaffles(ProRaffleSetting prSetting)
+    private async Task RegisterRaffles(ProRaffleSetting prSetting)
     {
         try
-        {
-            var twitterRaffles = await _alphabotClient.GetRafflesAsync(prSetting.Key, RaffleType.TWITTER_RAFFLES);
-            twitterRaffles = twitterRaffles.Where(raffle => !string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase));
+        {   
+            var raffleMetrics = _raffleMetrics.GetOrAdd(prSetting.Username, _ => new RaffleMetrics());
+            raffleMetrics.TotalRegistered = 0;
 
-            var communityRaffles = await _alphabotClient.GetRafflesAsync(prSetting.Key, RaffleType.COMMUNITY_RAFFLES);
-            communityRaffles = communityRaffles.Where(raffle => !string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase));
-       
-            var raffles = twitterRaffles.Concat(communityRaffles)
-                .Where(raffle => !string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            List<RaffleDetail> raffles = new();
+            var twitterRafflesResponse = await _alphabotClient.GetRafflesAsync(prSetting.Key, RaffleType.TWITTER_RAFFLES);
+            if(twitterRafflesResponse.Success && twitterRafflesResponse.Data != null)
+            {
+                raffles.AddRange(twitterRafflesResponse.Data.Raffles
+                    .Where(raffle => !string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase)));
+            }
+            raffleMetrics.TwitterRafflesCount = raffles.Count;
+
+            for(int i=0; i<2; i++)
+            {
+                var communityRafflesResponse = await _alphabotClient.GetRafflesAsync(prSetting.Key, RaffleType.COMMUNITY_RAFFLES, i);
+                if (!communityRafflesResponse.Success || communityRafflesResponse.Data == null)
+                {
+                    break;
+                }
+                
+                raffles.AddRange(communityRafflesResponse.Data.Raffles
+                        .Where(raffle => !string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase)));
+
+                if(communityRafflesResponse.Data.FinalPage)
+                {
+                    break;
+                }
+                await Task.Delay(2000);
+            }
+            raffleMetrics.CommunityRafflesCount = raffles.Count - raffleMetrics.TwitterRafflesCount;
+            
             if (raffles.Count == 0)
             {
                 return;
             }
-            
-            var raffleMetrics = _raffleMetrics.GetOrAdd(prSetting.Username, _ => new RaffleMetrics());
-            raffleMetrics.UpdateCount(twitterRaffles.Count(), communityRaffles.Count());
                 
-            var rateLimiter = _rateLimiters.GetOrAdd(prSetting.Username, _ => new RateLimiter());
+            var rateLimiter = _rateLimiterService.GetOrAdd(prSetting.Username);
 
             var registrationTasks = raffles.Select(raffle => RegisterRaffleWithThrottle(raffle, prSetting, rateLimiter, raffleMetrics));
             await Task.WhenAll(registrationTasks);

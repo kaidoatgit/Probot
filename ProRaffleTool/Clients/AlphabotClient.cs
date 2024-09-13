@@ -93,23 +93,52 @@ public class AlphabotClient
         return clientResponse;
     }
 
-    public async Task<IEnumerable<RaffleDetail>> GetRafflesAsync(string apiKey, RaffleType raffleType)
+    // public async Task<IEnumerable<RaffleDetail>> GetRafflesAsync(string apiKey, RaffleType raffleType)
+    // {
+    //     HttpStatusCode? statusCode = HttpStatusCode.Accepted;
+    //     string messageResult = string.Empty;
+    //     try
+    //     {
+    //         using var request = new HttpRequestMessage(HttpMethod.Get, RaffleUrlBuilder.GetUrl(raffleType));
+    //         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+    //         HttpResponseMessage response = await _httpClient.SendAsync(request);
+    //         response.EnsureSuccessStatusCode();
+
+    //         RafflesResponse? result = await response.Content.ReadFromJsonAsync<RafflesResponse>();
+    //         if (result?.Success == true && result?.Data?.Raffles != null)
+    //         {
+    //             return result.Data.Raffles;
+    //         }
+    //     }
+    //     catch (HttpRequestException httpException)
+    //     {
+    //         statusCode = httpException.StatusCode;
+    //         messageResult = " <GetRafflesList> " + httpException.Message;
+    //     }
+    //     catch
+    //     {
+    //         statusCode = HttpStatusCode.InternalServerError;
+    //         messageResult = " <GetRafflesList> Internal error ";
+    //     }
+    //     return Enumerable.Empty<RaffleDetail>();
+    // }
+
+    public async Task<RafflesResponse> GetRafflesAsync(string apiKey, RaffleType raffleType, int pageNum = 0)
     {
+        RafflesResponse clientResponse = new();
         HttpStatusCode? statusCode = HttpStatusCode.Accepted;
         string messageResult = string.Empty;
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, RaffleUrlBuilder.GetUrl(raffleType));
+            using var request = new HttpRequestMessage(HttpMethod.Get, RaffleUrlBuilder.GetUrl(raffleType, pageNum));
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 
             HttpResponseMessage response = await _httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
-
-            RafflesResponse? result = await response.Content.ReadFromJsonAsync<RafflesResponse>();
-            if (result?.Success == true && result?.Data?.Raffles != null)
-            {
-                return result.Data.Raffles;
-            }
+            
+            string result = await response.Content.ReadAsStringAsync();
+            clientResponse = JsonSerializer.Deserialize<RafflesResponse>(result)!;
         }
         catch (HttpRequestException httpException)
         {
@@ -121,6 +150,6 @@ public class AlphabotClient
             statusCode = HttpStatusCode.InternalServerError;
             messageResult = " <GetRafflesList> Internal error ";
         }
-        return Enumerable.Empty<RaffleDetail>();
+        return clientResponse;
     }
 }
