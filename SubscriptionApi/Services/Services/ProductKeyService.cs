@@ -46,11 +46,16 @@ public class ProductKeyService : IProductKeyService
         return productKeys;
     }
 
-    public async Task<ProductKey> GetProductKeyByCodeAsync(string code, bool? isActivated, bool includeReferences=false)
+    public async Task<ProductKey> GetProductKeyByCodeAsync(string code, ulong? userId, bool? isActivated, bool includeReferences)
     {
         IQueryable<ProductKey> query = _context.ProductKeys
             .AsNoTracking()
             .Where(pk => pk.Code == code);
+
+        if(userId.HasValue)
+        {
+            query = query.Where(pk => pk.UserId == userId);
+        }
 
         if(isActivated.HasValue)
         {
@@ -67,7 +72,7 @@ public class ProductKeyService : IProductKeyService
         }
 
         return await query.SingleOrDefaultAsync()
-            ?? throw new ServiceException(StatusCodes.Status404NotFound, ServiceResult.ProductKey404, $"Product Key with code: {code} not found.");
+            ?? throw new SubscriptionException(ExceptionResult.ProductKeyNotFound404, $"Product Key with code: {code} not found.");
     }
 
     public async Task<IEnumerable<ProductKey>> GetProductKeysAsync(ulong? userId, bool? isActivated)

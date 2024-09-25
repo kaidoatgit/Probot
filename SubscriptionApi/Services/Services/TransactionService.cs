@@ -13,16 +13,16 @@ namespace Probot.SubscriptionApi.Services.Services
 {
     public class TransactionService : ITransactionService
     {
-        private readonly ServiceSettings _serviceConfiguration;
+        private readonly SubscriptionSettings _subscriptionSettings;
         private readonly ProbotContext _context;
         private readonly ICoingeckoClient _coingeckoClient;
         private readonly IMemoryCache _memoryCache;
         private const string _cacheKey = "solana_price";
 
-        public TransactionService(IOptions<ServiceSettings> serviceConfiguration, ProbotContext context, ICoingeckoClient coingeckoClient, IMemoryCache memoryCache)
+        public TransactionService(IOptions<SubscriptionSettings> subscriptionOptions, ProbotContext context, ICoingeckoClient coingeckoClient, IMemoryCache memoryCache)
         {
             _context = context;
-            _serviceConfiguration = serviceConfiguration.Value;
+            _subscriptionSettings = subscriptionOptions.Value;
             _coingeckoClient = coingeckoClient;
             _memoryCache = memoryCache;
         }
@@ -31,11 +31,10 @@ namespace Probot.SubscriptionApi.Services.Services
         {
             if (!_memoryCache.TryGetValue(_cacheKey, out decimal currentSolanaUsdPrice))
             {
-                // Cache is empty or expired, fetch the price
                 Solana? solanaPrice = (await _coingeckoClient.GetPriceTokenById("solana"))?.Solana;
                 if (solanaPrice == null || solanaPrice.Usd <= 0)
                 {
-                    throw new ServiceException(StatusCodes.Status500InternalServerError, "It was not possible to calculate the cryptocurrency price at this time.");
+                    throw new SubscriptionException(ExceptionResult.InternalServerError500, "It was not possible to calculate the cryptocurrency price at this time.");
                 }
 
                 currentSolanaUsdPrice = solanaPrice.Usd;
@@ -47,10 +46,10 @@ namespace Probot.SubscriptionApi.Services.Services
             Transaction transaction = new()
             {
                 TotalAmount = amountToPay,
-                Token = Token.SOL,
+                Coin = Coin.SOL,
                 OrderId = order.Id,
                 PaymentAddress = order.User.WalletAddress,
-                RecipientAddress = _serviceConfiguration.RecipientAddress
+                RecipientAddress = _subscriptionSettings.RecipientAddress
             };
 
             _context.Transactions.Add(transaction);

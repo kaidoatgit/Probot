@@ -35,7 +35,7 @@ namespace Probot.SubscriptionApi.Controllers
             return Ok(productsResponse);
         }
 
-        [HttpGet("with_options")]
+        [HttpGet("product_options")]
         public async Task<IActionResult> GetProductsWithOptionsAsync()
         {
             var products = await _productService.GetProductsWithOptionsAsync();
@@ -43,19 +43,19 @@ namespace Probot.SubscriptionApi.Controllers
             return Ok(productsResponse);
         }
         
+        [HttpPatch("roleId")]
+        public async Task<IActionResult> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> request)
+        {
+            var isModified = await _productService.UpdateProductsRoleIdAsync(request);
+            return isModified ? NoContent() : StatusCode(304); //304 = not modified
+        }
+    
         [HttpGet("options")]
         public async Task<IActionResult> GetProductOptionsAsync()
         {
             var productOptions = await _productService.GetProductOptionsAsync();
             List<ProductOptionResponse> productOptionsResponse = productOptions.Select(p => _mapper.MapToProductOptionResponse(p)).ToList();
             return Ok(productOptionsResponse);
-        }
-
-        [HttpPost("roleId")]
-        public async Task<IActionResult> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> request)
-        {
-            var isModified = await _productService.UpdateProductsRoleIdAsync(request);
-            return isModified ? NoContent() : StatusCode(304); //304 = not modified
         }
     }
 }

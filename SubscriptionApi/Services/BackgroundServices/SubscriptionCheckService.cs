@@ -3,10 +3,9 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Probot.Data;
 using Probot.Data.Entities;
-using Probot.SubscriptionApi.Services.Hubs;
-using Probot.SubscriptionApi.Services.Hubs.IClients;
 using Probot.SubscriptionApi.Services.Services.IServices;
 using Probot.Shared.Dtos.Subscription.Response;
+using Probot.SubscriptionApi.Services.Hubs;
 
 namespace Probot.SubscriptionApi.Services.BackgroundServices
 {

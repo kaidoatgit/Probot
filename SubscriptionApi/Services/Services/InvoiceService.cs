@@ -30,7 +30,7 @@ namespace Probot.SubscriptionApi.Services.Services
                 OrderExpiryTime = order.ExpiryTime,
                 TransactionId = order.Transaction.Id,
                 TotalAmount = order.Transaction.TotalAmount,
-                Token = order.Transaction.Token,
+                Coin = order.Transaction.Coin,
                 PaymentAddress = user.WalletAddress,
                 RecipientAddress = order.Transaction.RecipientAddress,
                 InvoiceItems = productOptions

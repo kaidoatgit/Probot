@@ -27,9 +27,7 @@ namespace Probot.SubscriptionApi.Mappers
         public partial UserMetricsResponse MapToUserMetricsResponse(User user);
         public partial ProductOptionResponse MapToProductOptionResponse(ProductOption productOption);
         public partial OrderResponse MapToOrderResponse(Order order);
-        public partial UserResponse MapToUserResponse(User user);
- 
-        
+        public partial UserResponse MapToUserResponse(User user);        
         public partial ProductResponse MapToProductResponse(Product product);
         public partial User MapToUserEntity(UserRequest request);
         public partial Product MapToProductEntity(UpdateProductRoleIdRequest request);

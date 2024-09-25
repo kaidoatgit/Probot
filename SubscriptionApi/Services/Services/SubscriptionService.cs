@@ -22,15 +22,9 @@ namespace Probot.SubscriptionApi.Services.Services
             _productKeyService = productKeyService;
         }
 
-
         public async Task<Subscription> CreateSubscriptionAsync(SubscriptionRequest request)
         {
-            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, isActivated: false, includeReferences: true);
-            if (productKey.UserId != request.UserId)
-            {
-                throw new ServiceException(StatusCodes.Status400BadRequest, ServiceResult.ProductKey400, 
-                    $"Product Key with {request.Code} does not belong to the user.");
-            }
+            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, request.UserId, isActivated: false, includeReferences: true);
 
             DateTime currentDate = DateTime.UtcNow;
             var subscription =  new Subscription
@@ -51,17 +45,17 @@ namespace Probot.SubscriptionApi.Services.Services
                     ProductSetting setting = request.ProductSettingRequest switch
                     {
                         ProRaffleSettingRequest proRaffleSettingRequest => await _proRaffleSettingService.CreateSettingsAsync(request.UserId, proRaffleSettingRequest),
-                        _ => throw new ServiceException(StatusCodes.Status400BadRequest, ServiceResult.ProductSetting400, "Unsupported product setting")
+                        _ => throw new SubscriptionException(ExceptionResult.ProductSettingBadRequest400, "Unsupported product setting")
                     };
                     subscription.ProductSettingId = setting.Id;
                 }
                 else
                 {
-                    bool isSubscriptionExists = await _context.Subscriptions
+                    bool subscriptionExists = await _context.Subscriptions
                         .AnyAsync(s => s.UserId == request.UserId && s.ProductId == productKey.ProductOption.ProductId);
-                    if(isSubscriptionExists)
+                    if(subscriptionExists)
                     {
-                        throw new ServiceException(StatusCodes.Status409Conflict, ServiceResult.Subscription409, "A subscription for this product already exists.");
+                        throw new SubscriptionException(ExceptionResult.SubscriptionConflict409, "A subscription for this product already exists.");
                     }
                 }
 
@@ -71,6 +65,7 @@ namespace Probot.SubscriptionApi.Services.Services
                 _context.Subscriptions.Add(subscription);
                 await _context.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
+                
                 return subscription;
             }
             catch (Exception)
@@ -82,17 +77,12 @@ namespace Probot.SubscriptionApi.Services.Services
 
         public async Task<Subscription> ExtendSubscriptionAsync(SubscriptionRequest request)
         {
-            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, isActivated: false, includeReferences: true);
-            if (productKey.UserId != request.UserId)
-            {
-                throw new ServiceException(StatusCodes.Status400BadRequest, ServiceResult.ProductKey400, 
-                    $"Product Key with code:{request.Code} does not belong to the user.");
-            }
+            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, request.UserId, isActivated: false, includeReferences: true);
             
             (Subscription? existingSubscription, ProductSetting? productSetting) = await GetExistingSubscriptionAsync(request, productKey);
             if(existingSubscription == null)
             {
-                throw new ServiceException(StatusCodes.Status404NotFound, ServiceResult.Subscription404, "Subscription not found or does not belong to you");
+                throw new SubscriptionException(ExceptionResult.SubscriptionNotFound404, "Subscription not found or does not belong to you");
             }
 
             DateTime currentDate = DateTime.UtcNow;
@@ -130,7 +120,7 @@ namespace Probot.SubscriptionApi.Services.Services
             {                
                 ProductSetting? setting = request.ProductSettingRequest switch
                 {
-                    ProRaffleSettingRequest proRaffleSettingRequest => await _proRaffleSettingService.GetSettingsAsync(request.UserId, proRaffleSettingRequest),
+                    ProRaffleSettingRequest proRaffleSettingRequest => await _proRaffleSettingService.GetSettingAsync(request.UserId, proRaffleSettingRequest),
                     _ => null
                 };
 

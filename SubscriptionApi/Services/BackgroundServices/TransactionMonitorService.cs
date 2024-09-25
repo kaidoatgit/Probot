@@ -12,11 +12,11 @@ namespace Probot.SubscriptionApi.Services.BackgroundServices
         private readonly ISolanaRpcClient _rpcClient;
         private readonly IMonitorService _monitorService;
         private static readonly TimeSpan _monitoringPeriod = TimeSpan.FromSeconds(10);
-        private readonly ServiceSettings _serviceConfiguration;
+        private readonly SubscriptionSettings _serviceConfiguration;
         private readonly ConcurrentDictionary<string, int> _failedTransactions = new();
         private readonly SemaphoreSlim _processTransactionsSemaphore = new(1);
 
-        public TransactionMonitorService(ISolanaRpcClient rpcClient, IMonitorService monitorService, IOptions<ServiceSettings> serviceConfiguration)
+        public TransactionMonitorService(ISolanaRpcClient rpcClient, IMonitorService monitorService, IOptions<SubscriptionSettings> serviceConfiguration)
         {
             _rpcClient = rpcClient;
             _monitorService = monitorService;

@@ -5,6 +5,7 @@ using Probot.SubscriptionApi.Exceptions;
 using Probot.SubscriptionApi.Mappers;
 using Probot.SubscriptionApi.Services.Services.IServices;
 using Probot.Shared.Dtos.User.Request;
+using Probot.Shared.Enums;
 
 namespace Probot.SubscriptionApi.Services.Services
 {
@@ -25,7 +26,7 @@ namespace Probot.SubscriptionApi.Services.Services
                 .AnyAsync(u => u.Id == request.Id);
             if (foundUser)
             {
-                throw new ServiceException(StatusCodes.Status409Conflict, "User already exists");
+                throw new SubscriptionException(ExceptionResult.UserConflict409, $"User:{request.Id} already exists.");
             }
 
             User user = _mapper.MapToUserEntity(request);
@@ -40,21 +41,19 @@ namespace Probot.SubscriptionApi.Services.Services
             return await _context.Users
                 .AsNoTracking()
                 .SingleOrDefaultAsync(u => u.Id == userId)
-                ?? throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
+                ?? throw new SubscriptionException(ExceptionResult.UserNotFound404, "User not found");
         }
         
         public async Task UpdateWalletAddressAsync(ulong userId, string walletAddress)
         {
             bool walletExists = await _context.Users
-                .AnyAsync(u => u.WalletAddress == walletAddress && u.Id != userId);
+                .AnyAsync(u => u.Id != userId && u.WalletAddress == walletAddress);
             if (walletExists)
             {
-                throw new ServiceException(StatusCodes.Status409Conflict, $"Wallet address:{walletAddress} already in use by another user");
+                throw new SubscriptionException(ExceptionResult.UserAddressConflict409, $"Wallet address:{walletAddress} already in use by another user");
             }
 
-            User? user = await _context.Users.FindAsync(userId)
-                ?? throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
-
+            User user = await GetUserByIdAsync(userId);
             user.WalletAddress = walletAddress;
             await _context.SaveChangesAsync();
         }
@@ -63,7 +62,7 @@ namespace Probot.SubscriptionApi.Services.Services
         {
             var users = await _context.Users
                 .AsNoTracking()
-                .AsSingleQuery()
+                .AsSplitQuery()
                 .Select(user => new
                 {
                     User = user,

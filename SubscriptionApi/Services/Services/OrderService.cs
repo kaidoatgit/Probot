@@ -6,7 +6,6 @@ using Probot.SubscriptionApi.Exceptions;
 using Probot.SubscriptionApi.Mappers;
 using Probot.SubscriptionApi.Services.BackgroundServices.IServices;
 using Probot.SubscriptionApi.Services.Hubs;
-using Probot.SubscriptionApi.Services.Hubs.IClients;
 using Probot.SubscriptionApi.Services.Services.IServices;
 using Probot.SubscriptionApi.Services.Shared.IShared;
 using Probot.Shared.Dtos.Order.Request;
@@ -43,7 +42,7 @@ namespace Probot.SubscriptionApi.Services.Services
         {
             var user = await _context.Users
                 .FindAsync(request.UserId)
-                ?? throw new ServiceException(StatusCodes.Status404NotFound, "User not found");
+                ?? throw new SubscriptionException(ExceptionResult.UserNotFound404, "User not found");
 
             var distinctProductOptions = await _context.ProductOptions
                 .Where(po => request.ProductOptionsId.Contains(po.Id))
@@ -51,12 +50,12 @@ namespace Probot.SubscriptionApi.Services.Services
                 .ToListAsync();
 
             if (distinctProductOptions.Count != request.ProductOptionsId.Distinct().Count())
-                throw new ServiceException(StatusCodes.Status404NotFound, "One or more Product options were not found");
+                throw new SubscriptionException(ExceptionResult.ProductOptionNotFound404, "One or more Product options were not found");
 
             if (!request.IsManual)
             {
                 var latestHash = _monitorService.LatestHash
-                    ?? throw new ServiceException(StatusCodes.Status502BadGateway, "Bad Gateway: The external service is unreachable or returned an error.");
+                    ?? throw new SubscriptionException(ExceptionResult.SolanaRpcBadGateway502, "Bad Gateway: The external service is unreachable or returned an error.");
             }
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
@@ -100,7 +99,7 @@ namespace Probot.SubscriptionApi.Services.Services
             var order = await _context.Orders
                 .AsNoTracking()
                 .SingleOrDefaultAsync(o => o.Id == orderId)
-                ?? throw new ServiceException(StatusCodes.Status404NotFound, "Order not found");
+                ?? throw new SubscriptionException(ExceptionResult.OrderNotFound404, "Order not found");
             return order;
         }
 
@@ -112,12 +111,12 @@ namespace Probot.SubscriptionApi.Services.Services
                     .ThenInclude(oi => oi.ProductOption) 
                 .Include(o => o.Invoice)
                 .Include(o => o.Transaction)
-                .FirstOrDefaultAsync() ?? throw new ServiceException(StatusCodes.Status404NotFound, "Order not found");
-            if (order.Status == OrderStatus.Completed) throw new ServiceException(StatusCodes.Status400BadRequest, $"Order {order.Id} already completed");
+                .FirstOrDefaultAsync() ?? throw new SubscriptionException(ExceptionResult.OrderNotFound404, "Order not found");
+            if (order.Status == OrderStatus.Completed) throw new SubscriptionException(ExceptionResult.OrderBadRequest400, $"Order {order.Id} already completed");
 
-            var invoice = order.Invoice ?? throw new ServiceException(StatusCodes.Status404NotFound, "Invoice not found");
+            var invoice = order.Invoice ?? throw new SubscriptionException(ExceptionResult.InvoiceNotFound404, "Invoice not found");
             if (invoice.Id != request.InvoiceId)
-                throw new ServiceException(StatusCodes.Status400BadRequest, $"Order:{order.Id} not matched with Invoice:{request.InvoiceId}");
+                throw new SubscriptionException(ExceptionResult.InvoiceBadRequest400, $"Order:{order.Id} not matched with Invoice:{request.InvoiceId}");
 
             using var dbTransaction = await _context.Database.BeginTransactionAsync();
             try

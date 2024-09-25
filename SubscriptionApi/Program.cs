@@ -26,7 +26,7 @@ var builder = WebApplication.CreateBuilder(args);
 // builder.Logging.AddConsole(); // Adds Console logging
 // builder.Logging.AddDebug(); // Adds Debug logging
 
-builder.Services.Configure<ServiceSettings>(builder.Configuration.GetSection("ServiceSettings"));
+builder.Services.Configure<SubscriptionSettings>(builder.Configuration.GetSection("SubscriptionSettings"));
 builder.Services.AddProbotContext(builder.Configuration);
 builder.Services.AddSignalR().AddJsonProtocol(options =>
 {
@@ -37,6 +37,18 @@ builder.Services.AddSignalR().AddJsonProtocol(options =>
     };
 });
 builder.Services.AddMemoryCache();
+
+#region subscriptions service
+builder.Services.AddSingleton<Mapper>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IProductKeyService, ProductKeyService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IProRaffleSettingService, ProRaffleSettingService>();
+#endregion
 
 #region external services
 builder.Services.AddHttpClient<ICoingeckoClient, CoingeckoClient>(opt =>
@@ -56,18 +68,6 @@ builder.Services.AddSingleton<IOrderQueueService, OrderQueueService>();
 builder.Services.AddSingleton<IMonitorService, MonitorService>();
 builder.Services.AddHostedService<OrderMonitorService>();
 builder.Services.AddHostedService<TransactionMonitorService>();
-#endregion
-
-#region subscriptions service
-builder.Services.AddSingleton<Mapper>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IInvoiceService, InvoiceService>();
-builder.Services.AddScoped<ITransactionService, TransactionService>();
-builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
-builder.Services.AddScoped<IProductKeyService, ProductKeyService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IProRaffleSettingService, ProRaffleSettingService>();
 #endregion
 
 builder.Services.AddControllers(options =>
@@ -95,7 +95,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "SubscriptionService", Version = "v1" });
 });
 
-
+builder.Services.AddAuthorization();
 var app = builder.Build();
 await app.SeedDatabaseAsync();
 if (app.Environment.IsDevelopment())
@@ -105,7 +105,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SubscriptionService v1"));
 }
 app.UseHttpsRedirection();
-app.UseAuthorization();
+// app.UseAuthentication();
+// app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationhub");
 app.UseMiddleware<ExceptionHandlingMiddleware>();

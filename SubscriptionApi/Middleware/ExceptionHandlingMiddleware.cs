@@ -1,6 +1,8 @@
 ﻿using Probot.SubscriptionApi.Exceptions;
 using Probot.Shared.Dtos;
 using System.Text.Json;
+using Probot.Shared.Enums;
+using Probot.Shared.Helpers;
 
 namespace Probot.SubscriptionApi.Middleware
 {
@@ -31,22 +33,29 @@ namespace Probot.SubscriptionApi.Middleware
         {
             context.Response.ContentType = "application/json";
 
-            var response = new Metadata();
+            var response = new ErrorResponse();
             switch (exception)
             {
-                case ServiceException ex:
+                case SubscriptionException ex:
+                {
                     _logger.LogInformation(exception.Message);
-                    context.Response.StatusCode = ex.StatusCode;
-                    response.StatusCode = ex.StatusCode;
-                    response.ServiceResult = ex.ServiceResult;
+
+                    response.ExceptionResult = ex.ExceptionResult;
                     response.ErrorMessage = ex.Message;
+
+                    context.Response.StatusCode = ex.ExceptionResult.MapToStatusCode();
                     break;
+                }
                 default:
+                {
                     _logger.LogError(exception, exception.Message);
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    response.StatusCode = StatusCodes.Status500InternalServerError;
+                    
+                    response.ExceptionResult = ExceptionResult.InternalServerError500;
                     response.ErrorMessage = "Internal Server Error";
+                    
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     break;
+                }
             }
 
             return context.Response.WriteAsync(JsonSerializer.Serialize(response));

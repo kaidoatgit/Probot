@@ -5,6 +5,7 @@ using Probot.SubscriptionApi.Exceptions;
 using Probot.SubscriptionApi.Mappers;
 using Probot.SubscriptionApi.Services.Services.IServices;
 using Probot.Shared.Dtos.Product.Request;
+using Probot.Shared.Enums;
 
 namespace Probot.SubscriptionApi.Services.Services
 {
@@ -24,7 +25,7 @@ namespace Probot.SubscriptionApi.Services.Services
             var product = await _context.Products
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == productId)
-                ?? throw new ServiceException(StatusCodes.Status404NotFound, $"Product {productId} not found");
+                ?? throw new SubscriptionException(ExceptionResult.ProductNotFound404, $"Product {productId} not found");
             return product;
         }
 
@@ -41,12 +42,7 @@ namespace Probot.SubscriptionApi.Services.Services
                 .ToListAsync();
             return products;
         }
-
-        public async Task<IEnumerable<ProductOption>> GetProductOptionsAsync()
-        {
-            return await _context.ProductOptions.AsNoTracking().ToListAsync();
-        }
-
+      
         public async Task<bool> UpdateProductsRoleIdAsync(IEnumerable<UpdateProductRoleIdRequest> request)
         {
             bool isModified = false;
@@ -57,7 +53,7 @@ namespace Probot.SubscriptionApi.Services.Services
             foreach (var dbProduct in dbProducts)
             {
                 // Find the corresponding update request for the current product type
-                var productRequest = products.FirstOrDefault(p => p.Name == dbProduct.Name);
+                var productRequest = products.FirstOrDefault(p => p.Id == dbProduct.Id);
 
                 // If there's a matching update request
                 if (productRequest != null)
@@ -77,5 +73,11 @@ namespace Probot.SubscriptionApi.Services.Services
             }
             return isModified;
         }
+    
+        public async Task<IEnumerable<ProductOption>> GetProductOptionsAsync()
+        {
+            return await _context.ProductOptions.AsNoTracking().ToListAsync();
+        }
+
     }
 }

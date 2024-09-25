@@ -16,20 +16,6 @@ public class ProRaffleSettingService : IProRaffleSettingService
         _context = context;
     }
 
-    public async Task UpdateProRaffleSettingKeyAsync(ulong userId, UpdatePRSettingKeyRequest request)
-    {
-        bool isKeyInUse = await _context.ProRaffleSettings
-            .AnyAsync(pr => pr.Key == request.NewKey);
-        if (isKeyInUse) throw new ServiceException(StatusCodes.Status409Conflict, $"New Key: {request.NewKey} already in use.");
-
-        var proRaffleSetting = await _context.ProRaffleSettings
-            .SingleOrDefaultAsync(pr => pr.UserId == userId && pr.Key == request.CurrentKey)
-            ?? throw new ServiceException(StatusCodes.Status404NotFound, $"The current key: {request.CurrentKey} not found or does not belong to the user: {userId}");
-
-        proRaffleSetting.Key = request.NewKey;
-        await _context.SaveChangesAsync();
-    }
-
     public async Task<ProRaffleSetting> CreateSettingsAsync(ulong userId, ProRaffleSettingRequest request)
     {
         string errorMessage = "Alphabot key or Username already in use by another user."; 
@@ -37,7 +23,7 @@ public class ProRaffleSettingService : IProRaffleSettingService
             .AnyAsync(prs => prs.Key == request.AlphabotKey || prs.Username == request.Username);
         if (isKeyOrUsernameInUse)
         {
-           throw new ServiceException(StatusCodes.Status409Conflict, ServiceResult.ProductSetting409, errorMessage);
+           throw new SubscriptionException(ExceptionResult.ProductSettingConflict409, errorMessage);
         }
 
         var proRaffleSetting = new ProRaffleSetting
@@ -53,12 +39,12 @@ public class ProRaffleSettingService : IProRaffleSettingService
         }
         catch (Exception)
         {
-            throw new ServiceException(StatusCodes.Status409Conflict, ServiceResult.ProductSetting409, errorMessage);
+            throw new SubscriptionException(ExceptionResult.ProductSettingConflict409, errorMessage);
         }
         return proRaffleSetting;
     }
 
-    public async Task<ProRaffleSetting?> GetSettingsAsync(ulong userId, ProRaffleSettingRequest request)
+    public async Task<ProRaffleSetting?> GetSettingAsync(ulong userId, ProRaffleSettingRequest request)
     {  
         var proRaffleSetting = await _context.ProRaffleSettings
             .Include(pr => pr.Subscriptions)
@@ -72,5 +58,5 @@ public class ProRaffleSettingService : IProRaffleSettingService
         }
 
         return proRaffleSetting;
-    }
+    } 
 }

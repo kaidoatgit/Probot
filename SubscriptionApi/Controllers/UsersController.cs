@@ -35,14 +35,14 @@ namespace Probot.SubscriptionApi.Controllers
             return Ok(userResponse);
         }
 
-        [HttpPut("{id}/wallet")]
-        public async Task<IActionResult> UpdateWalletAddressAsync(ulong id, [FromBody] UpdateWalletRequest request)
+        [HttpPatch("{userId}/wallet_address")]
+        public async Task<IActionResult> UpdateWalletAddressAsync(ulong userId, [FromBody] UpdateWalletRequest request)
         {
-            await _userService.UpdateWalletAddressAsync(id, request.WalletAddress);
+            await _userService.UpdateWalletAddressAsync(userId, request.WalletAddress);
             return NoContent();
         }
 
-        [HttpGet("with-metrics")]
+        [HttpGet("metrics")]
         public async Task<IActionResult> GetUsersWithMetricsAsync()
         {
             var users = await _userService.GetUsersWithMetricsAsync(CancellationToken.None);
