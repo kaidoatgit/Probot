@@ -15,7 +15,7 @@ public class InvoiceResponse
     public string PaymentAddress { get; set; }
     public DateTimeOffset OrderExpiryTime { get; set; }
     public decimal TotalAmount { get; set; }
-    public Token Token { get; set; }
+    public Coin Coin { get; set; }
     public string RecipientAddress { get; set; }
     public List<InvoiceItemResponse> InvoiceItems { get; set; }
 }

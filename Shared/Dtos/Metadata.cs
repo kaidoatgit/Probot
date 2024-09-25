@@ -2,9 +2,8 @@
 
 namespace Probot.Shared.Dtos;
 
-public class Metadata
+public class ErrorResponse
 {
-    public int StatusCode { get; set; }
-    public ServiceResult ServiceResult { get; set; }
+    public ExceptionResult ExceptionResult { get; set; }
     public string ErrorMessage { get; set; } = string.Empty;
 }

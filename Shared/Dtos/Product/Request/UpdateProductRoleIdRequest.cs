@@ -1,9 +1,7 @@
-﻿using Probot.Shared.Enums;
-
-namespace Probot.Shared.Dtos.Product.Request;
+﻿namespace Probot.Shared.Dtos.Product.Request;
 public class UpdateProductRoleIdRequest
 {
+    public int Id { get; set; }
     public ulong? RoleId { get; set; }
-    public ProductName Name { get; set; }
 }
 
