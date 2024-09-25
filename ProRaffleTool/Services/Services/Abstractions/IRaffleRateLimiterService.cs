@@ -2,7 +2,7 @@ using Probot.ProRaffleTool.Models;
 
 namespace Probot.ProRaffleTool.Services.Services.Abstractions;
 
-public interface IRateLimiterService
+public interface IRaffleRateLimiterService
 {
-    RateLimiter GetOrAdd(string username);
+    RaffleRateLimiter GetOrAdd(string username);
 }

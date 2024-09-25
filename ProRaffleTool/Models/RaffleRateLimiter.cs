@@ -1,8 +1,7 @@
-using System;
 
 namespace Probot.ProRaffleTool.Models;
 
-public class RateLimiter
+public class RaffleRateLimiter
 {
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly TimeSpan _defaultDelay  = TimeSpan.FromSeconds(15);

@@ -1,5 +1,5 @@
 
-namespace Probot.ProRaffleTool.Clients.Dtos.Request;
+namespace Probot.ProRaffleTool.Clients.Dtos.Alphabot.Request;
 
 public class RegisterInRaffleRequest
 {

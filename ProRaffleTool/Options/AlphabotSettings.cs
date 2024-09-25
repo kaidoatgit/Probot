@@ -1,7 +1,7 @@
 
 namespace Probot.ProRaffleTool.Options;
 
-public class ProRaffleSettings
+public class AlphabotSettings
 {
     public string AlphabotWebhookKey { get; set; } = string.Empty;
 }

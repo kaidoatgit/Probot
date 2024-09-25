@@ -1,6 +1,5 @@
-using System;
 
-namespace Probot.ProRaffleTool.Services.BackgroundServices.Models;
+namespace Probot.ProRaffleTool.Models;
 
 public class RaffleMetrics
 {

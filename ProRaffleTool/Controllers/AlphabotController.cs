@@ -1,10 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Probot.Data;
 using Probot.Data.Entities;
 using Probot.ProRaffleTool.Clients;
 using Probot.ProRaffleTool.Dtos.Alphabot.Request;
@@ -18,25 +16,25 @@ namespace Probot.ProRaffleTool.Controllers;
 public class AlphabotController : ControllerBase
 {
     private readonly ILogger<AlphabotController> _logger;
-    private ProRaffleSettings _proRaffleSettings;
-    private readonly ProbotContext _context;
+    private AlphabotSettings _alphabotSettings;
+    private readonly IProRaffleSettingService _proRaffleSettingService;
     private readonly AlphabotClient _alphabotClient;
     private readonly IMemoryCache _memoryCache;
-    private const string _cacheKey = "user_settings";
-    private readonly IRateLimiterService _rateLimiterService;
+    private const string _cacheKey = "pro_raffle_settings";
+    private readonly IRaffleRateLimiterService _rateLimiterService;
 
-    public AlphabotController(ILogger<AlphabotController> logger, IOptionsMonitor<ProRaffleSettings> proRaffleSettings, ProbotContext context, 
-        AlphabotClient alphabotClient, IMemoryCache memoryCache, IRateLimiterService rateLimiterService)
+    public AlphabotController(ILogger<AlphabotController> logger, IOptionsMonitor<AlphabotSettings> alphabotOptions, IProRaffleSettingService proRaffleSettingService, 
+        AlphabotClient alphabotClient, IMemoryCache memoryCache, IRaffleRateLimiterService rateLimiterService)
     {
         _logger = logger;
 
-        proRaffleSettings.OnChange(updatedSettings =>
+        alphabotOptions.OnChange(updatedSettings =>
         {
-            _proRaffleSettings = updatedSettings;
+            _alphabotSettings = updatedSettings;
         });
-        _proRaffleSettings = proRaffleSettings.CurrentValue;
+        _alphabotSettings = alphabotOptions.CurrentValue;
 
-        _context = context;
+        _proRaffleSettingService = proRaffleSettingService;
         _alphabotClient = alphabotClient; 
         _memoryCache = memoryCache;
         _rateLimiterService = rateLimiterService;
@@ -45,7 +43,7 @@ public class AlphabotController : ControllerBase
     [HttpPost("raffles")]
     public async Task<IActionResult> Register([FromBody] RaffleRequest request)
     {
-        var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_proRaffleSettings.AlphabotWebhookKey));
+        var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_alphabotSettings.AlphabotWebhookKey));
         var data = $"{request.Event}\n{request.Timestamp}";
         var hashToCheck = BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(data))).Replace("-", "").ToLower();
 
@@ -65,12 +63,9 @@ public class AlphabotController : ControllerBase
             
             _logger.LogInformation("<WEBHOOK> Active raffle found [{0}] <WEBHOOK>", raffle.Slug);
 
-            if (!_memoryCache.TryGetValue(_cacheKey, out List<ProRaffleSetting>? prSettings))
+            if (!_memoryCache.TryGetValue(_cacheKey, out IEnumerable<ProRaffleSetting>? prSettings))
             {
-                prSettings = await _context.ProRaffleSettings
-                    .Where(pr => !pr.IsPaused)
-                    .ToListAsync();
-
+                prSettings = await _proRaffleSettingService.GetSettingsAsync(isPaused: false);
                 var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(10));
                 _memoryCache.Set(_cacheKey, prSettings, cacheEntryOptions);
             }
@@ -90,11 +85,11 @@ public class AlphabotController : ControllerBase
         return Ok();
     }
 
-    private Task RegisterRafflesFCFS(List<ProRaffleSetting> prSettings, string slug)
+    private Task RegisterRafflesFCFS(IEnumerable<ProRaffleSetting> prSettings, string slug)
     {
-        foreach (var prSetting in prSettings!)
+        foreach (var prSetting in prSettings)
         {
-            _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, slug);
+            _ = _alphabotClient.RegisterInRaffleAsync(prSetting, slug);
         }
         return Task.CompletedTask;
     }
@@ -103,6 +98,6 @@ public class AlphabotController : ControllerBase
     {
         var rateLimiter = _rateLimiterService.GetOrAdd(prSetting.Username);
         await rateLimiter.WaitAsync(TimeSpan.FromSeconds(10));
-        _ = _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, slug);
+        _ = _alphabotClient.RegisterInRaffleAsync(prSetting, slug);
     }
 }

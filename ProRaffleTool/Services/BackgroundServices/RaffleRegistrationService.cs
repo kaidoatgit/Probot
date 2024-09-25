@@ -1,13 +1,12 @@
 using System.Collections.Concurrent;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
-using Probot.Data;
+using Microsoft.Extensions.Options;
 using Probot.Data.Entities;
 using Probot.ProRaffleTool.Clients;
-using Probot.ProRaffleTool.Clients.Dtos.Response;
+using Probot.ProRaffleTool.Clients.Dtos.Alphabot.Response;
 using Probot.ProRaffleTool.Models;
 using Probot.ProRaffleTool.Models.Enums;
-using Probot.ProRaffleTool.Services.BackgroundServices.Models;
+using Probot.ProRaffleTool.Options;
 using Probot.ProRaffleTool.Services.Services.Abstractions;
 
 namespace Probot.ProRaffleTool.Services.BackgroundServices;
@@ -18,15 +17,24 @@ public class RaffleRegistrationService: BackgroundService
     private readonly ILogger<RaffleRegistrationService> _logger;
     private readonly AlphabotClient _alphabotClient;
     private Timer? _timer;
-    private readonly IRateLimiterService _rateLimiterService;
+    private readonly IRaffleRateLimiterService _raffleRateLimiterService;
     private readonly ConcurrentDictionary<string, RaffleMetrics> _raffleMetrics = new();
+    private BackgroundServicesSettings _settings;
 
-    public RaffleRegistrationService(IServiceProvider serviceProvider, ILogger<RaffleRegistrationService> logger, AlphabotClient alphabotClient, IRateLimiterService rateLimiterService)
+    public RaffleRegistrationService(IServiceProvider serviceProvider, ILogger<RaffleRegistrationService> logger, AlphabotClient alphabotClient, 
+        IRaffleRateLimiterService raffleRateLimiterService, IOptionsMonitor<BackgroundServicesSettings> servicesOptions)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _alphabotClient = alphabotClient;
-        _rateLimiterService = rateLimiterService;
+        _raffleRateLimiterService = raffleRateLimiterService;
+
+        servicesOptions.OnChange(updatedSettings => 
+        {
+            _settings = updatedSettings;
+            Console.WriteLine($"Is service activated?: {_settings.RunRafflesRegistrations}");
+        });
+        _settings = servicesOptions.CurrentValue;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -37,7 +45,6 @@ public class RaffleRegistrationService: BackgroundService
                 null,
                 TimeSpan.FromSeconds(30),
                 TimeSpan.FromHours(3));
-        
         return Task.CompletedTask;
     }
 
@@ -50,14 +57,16 @@ public class RaffleRegistrationService: BackgroundService
 
     private async Task RegisterOldRafflesAsync()
     {
-        using var scope = _serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ProbotContext>();
-        
+        if(!_settings.RunRafflesRegistrations)
+        {
+            Console.WriteLine("Service is not active");
+            return;
+        }
         _logger.LogInformation($"<RAFFLES BACKGROUND SERVICE> Registering old raffles <RAFFLES BACKGROUND SERVICE>");
-        var currentTime = DateTime.Now;
-        var prSettings = await dbContext.ProRaffleSettings
-                .Where(pr => !pr.IsPaused)
-                .ToListAsync();
+
+        using var scope = _serviceProvider.CreateScope();
+        var proRaffleSettingService = scope.ServiceProvider.GetRequiredService<IProRaffleSettingService>();
+        var prSettings = await proRaffleSettingService.GetSettingsAsync(isPaused: false);
         
         var tasks = new List<Task>();
         foreach (var prSetting in prSettings)
@@ -83,11 +92,11 @@ public class RaffleRegistrationService: BackgroundService
             if(twitterRafflesResponse.Success && twitterRafflesResponse.Data != null)
             {
                 raffles.AddRange(twitterRafflesResponse.Data.Raffles
-                    .Where(raffle => !string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase)));
+                        .Where(raffle => !string.Equals(raffle.Type, "application", StringComparison.OrdinalIgnoreCase)));
             }
             raffleMetrics.TwitterRafflesCount = raffles.Count;
 
-            for(int i=0; i<2; i++)
+            for(int i=0; i<1; i++)
             {
                 var communityRafflesResponse = await _alphabotClient.GetRafflesAsync(prSetting.Key, RaffleType.COMMUNITY_RAFFLES, i);
                 if (!communityRafflesResponse.Success || communityRafflesResponse.Data == null)
@@ -111,9 +120,9 @@ public class RaffleRegistrationService: BackgroundService
                 return;
             }
                 
-            var rateLimiter = _rateLimiterService.GetOrAdd(prSetting.Username);
+            var raffleRateLimiter = _raffleRateLimiterService.GetOrAdd(prSetting.Username);
 
-            var registrationTasks = raffles.Select(raffle => RegisterRaffleWithThrottle(raffle, prSetting, rateLimiter, raffleMetrics));
+            var registrationTasks = raffles.Select(raffle => RegisterRaffleWithThrottle(raffle, prSetting, raffleRateLimiter, raffleMetrics));
             await Task.WhenAll(registrationTasks);
         }
         catch
@@ -121,13 +130,13 @@ public class RaffleRegistrationService: BackgroundService
         }
     }
 
-    private async Task<RegisterInRaffleResponse> RegisterRaffleWithThrottle(RaffleDetail raffle, ProRaffleSetting prSetting, RateLimiter rateLimiter, RaffleMetrics raffleMetrics)
+    private async Task<RegisterInRaffleResponse> RegisterRaffleWithThrottle(RaffleDetail raffle, ProRaffleSetting prSetting, RaffleRateLimiter rateLimiter, RaffleMetrics raffleMetrics)
     {
         await rateLimiter.WaitAsync();
         RegisterInRaffleResponse clientResponse = new();
         try
         {
-            clientResponse = await _alphabotClient.RegisterInRaffleAsync(prSetting.Key, prSetting.Username, raffle.Slug!);
+            clientResponse = await _alphabotClient.RegisterInRaffleAsync(prSetting, raffle.Slug!);
             if(clientResponse.Success)
             {
                 raffleMetrics.TotalRegistered++;

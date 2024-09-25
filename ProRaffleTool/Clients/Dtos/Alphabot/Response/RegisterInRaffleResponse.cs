@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Probot.ProRaffleTool.Clients.Dtos.Response;
+namespace Probot.ProRaffleTool.Clients.Dtos.Alphabot.Response;
 
 public class RegisterInRaffleResponse
 {
