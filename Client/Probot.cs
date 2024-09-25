@@ -317,7 +317,7 @@ namespace Probot.Client
                             order!.Interaction = new(discordMessage.Id, args.Interaction);
                             _orderManager.AddOrder(order);
 
-                            await args.Interaction.NotifyUserToSendPayment(order);
+                            await args.Interaction.NotifyWithInvoicePayment(order);
                         }
                         catch (Exception)
                         {

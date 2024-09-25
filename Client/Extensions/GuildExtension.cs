@@ -158,7 +158,7 @@ namespace Probot.Client.Extensions
                 var subscribeButton = new DiscordButtonComponent(ButtonStyle.Primary, "subscribe_btn", $"Subscribe {EmojisHelper.Pencil}");
                 var productDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "product_details_btn", $"Product Details {EmojisHelper.Clipboard}");
                 
-                var embed = EmbedHelper.CreateSubscriptionEmbed();
+                var embed = EmbedHelper.CreateSubscriptionProcessEmbed();
                 var message = new DiscordMessageBuilder()
                     .WithEmbed(embed)
                     .AddComponents(subscribeButton, walletSubmissionButton, productDetailsButton);

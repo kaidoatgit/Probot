@@ -227,7 +227,7 @@ public class ProRaffleCommands : ApplicationCommandModule
             ProductKey productKey = _mapper.MapToProductKey(productKeyResponse.Data);
             var noButton = new DiscordButtonComponent(ButtonStyle.Danger, "activatekey_no_btn", $"No {EmojisHelper.X}");
             var yesButton = new DiscordButtonComponent(ButtonStyle.Success, "activatekey_yes_btn", $"Yes {EmojisHelper.WhiteCheckMark}");
-            var embed = EmbedHelper.ExtendSubscriptionEmbed(username, productKey);
+            var embed = EmbedHelper.CreateExtendSubscriptionEmbed(username, productKey);
             var message = new DiscordMessageBuilder()
                 .WithEmbed(embed)
                 .AddComponents(noButton, yesButton);
