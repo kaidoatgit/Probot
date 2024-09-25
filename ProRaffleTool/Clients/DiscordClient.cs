@@ -66,20 +66,6 @@ internal class DiscordClient : IDiscordClient
         await _httpClient.PatchAsync(requestUri, JsonContent.Create(new { content = content }));
     }
 
-    private async Task GetUserGuilds()
-    {
-        _httpClient.SetBearerToken("<place here the access token received from the oauth>");
-        var response = await _httpClient.GetAsync("users/@me/guilds");
-        var responseString = await response.Content.ReadAsStringAsync();
-    }
-
-    private async Task AddGuildMember(string guildId, ulong userId)
-    {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot", "<place here the access token from the bot");
-        var response = await _httpClient.PostAsJsonAsync($"guilds/{guildId}/members/{userId}", new { access_token = "<place here the access token received from the oauth>" });
-        var responseString = await response.Content.ReadAsStringAsync();
-    }
-
     public async Task ExecuteWebhookAsync(string webhookId, string webhookToken, NotificationMessage message)
     {
         var embed = new
@@ -102,15 +88,25 @@ internal class DiscordClient : IDiscordClient
         var endpoint = $"webhooks/{webhookId}/{webhookToken}";
         var response = await _httpClient.PostAsJsonAsync(endpoint, payload);
 
-        if (response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine("Message sent successfully!");
-        }
-        else
-        {
-            Console.WriteLine($"Error sending message: {response.StatusCode}");
+            Console.WriteLine($"Error sending webhook message: {response.StatusCode} - {response.ReasonPhrase}");
         }
     }
+
+    // private async Task GetUserGuilds()
+    // {
+    //     _httpClient.SetBearerToken("<place here the access token received from the oauth>");
+    //     var response = await _httpClient.GetAsync("users/@me/guilds");
+    //     var responseString = await response.Content.ReadAsStringAsync();
+    // }
+
+    // private async Task AddGuildMember(string guildId, ulong userId)
+    // {
+    //     _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot", "<place here the access token from the bot");
+    //     var response = await _httpClient.PostAsJsonAsync($"guilds/{guildId}/members/{userId}", new { access_token = "<place here the access token received from the oauth>" });
+    //     var responseString = await response.Content.ReadAsStringAsync();
+    // }
 
     // public async Task ExecuteWebhookAsync(string webhookId, string webhookToken, string description)
     // {
