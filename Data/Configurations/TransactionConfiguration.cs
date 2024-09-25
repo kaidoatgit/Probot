@@ -9,10 +9,10 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 {
     public void Configure(EntityTypeBuilder<Transaction> builder)
     {
-        builder.Property(t => t.Token)
+        builder.Property(t => t.Coin)
         .HasConversion(
             t => t.ToString(),
-            t => (Token)Enum.Parse(typeof(Token), t));
+            t => (Coin)Enum.Parse(typeof(Coin), t));
 
     }
 }

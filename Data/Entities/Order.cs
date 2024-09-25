@@ -33,11 +33,6 @@ public class Order
         Invoice.UpdateTransactionData(context, Transaction);
     }
 
-    public bool IsOrderExpirable()
-    {
-        return Status == OrderStatus.Pending && DateTime.UtcNow > ExpiryTime;
-    }
-
     // internal async Task Complete(SubscriptionContext context, CancellationToken stoppingToken)
     // {
     //     await context.Orders

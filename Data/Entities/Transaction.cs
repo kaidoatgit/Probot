@@ -13,7 +13,7 @@ public class Transaction
     [Column(Order = 3)]
     public decimal TotalAmount { get; set; }
     [Column(Order = 4)]
-    public Token Token { get; set; }
+    public Coin Coin { get; set; }
     [Column(Order = 5)]
     public DateTime? PaymentDate { get; set; }
     [Column(Order = 6)]

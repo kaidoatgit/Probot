@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Probot.Data;
 
@@ -10,9 +11,11 @@ using Probot.Data;
 namespace Probot.Data.Migrations
 {
     [DbContext(typeof(ProbotContext))]
-    partial class ProbotContextModelSnapshot : ModelSnapshot
+    [Migration("20240922235425_RenameColumnRegisterTableProRaffleSettings")]
+    partial class RenameColumnRegisterTableProRaffleSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.2");

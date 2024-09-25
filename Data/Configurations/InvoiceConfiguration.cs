@@ -14,10 +14,10 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
                 os => os.ToString(),
                 os => (OrderStatus)Enum.Parse(typeof(OrderStatus), os));
 
-        builder.Property(i => i.Token)
+        builder.Property(i => i.Coin)
             .HasConversion(
                 t => t.ToString(),
-                t => (Token)Enum.Parse(typeof(Token), t));
+                t => (Coin)Enum.Parse(typeof(Coin), t));
 
     }
 }

@@ -32,7 +32,7 @@ public class Invoice
     public decimal TotalAmount { get; set; }
 
     [Column(Order = 9)]
-    public Token Token { get; set; }
+    public Coin Coin { get; set; }
     [Column(Order = 10)]
     public string? TransactionHash { get; set; }
     [Column(Order = 11)]
@@ -72,7 +72,7 @@ public class Invoice
         context.Entry(this).Property(i => i.PaymentDate).IsModified = true;
     }
 
-    // internal async Task UpdateData(ProbotContext context, Transaction transaction, IEnumerable<ProductKey> productKeys, CancellationToken stoppingToken)
+    // internal async Task UpdateData(ProbotContext context, Transaction transaction, IEnumerable<ProductKey> productKeys, CancellationCoin stoppingCoin)
     // {
     //     await context.Invoices
     //         .Where(i => i.Id == Id)
@@ -80,14 +80,14 @@ public class Invoice
     //             .SetProperty(i => i.OrderStatus, OrderStatus.Completed)
     //             .SetProperty(i => i.TransactionHash, transaction.Hash)
     //             .SetProperty(i => i.PaymentDate, transaction.PaymentDate),
-    //         stoppingToken);
+    //         stoppingCoin);
         
     //     foreach (var productKey in productKeys)
     //     {
     //         await context.InvoiceItems
     //             .Where(ii => ii.Id == productKey.OrderItemId && ii.ProductOptionId == productKey.ProductOptionId)
     //             .ExecuteUpdateAsync(u => u.SetProperty(i => i.ProductKeyCode, productKey.Code),
-    //             stoppingToken);
+    //             stoppingCoin);
     //     }
     // }
 }

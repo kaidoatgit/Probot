@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Probot.Data;
 
@@ -10,9 +11,11 @@ using Probot.Data;
 namespace Probot.Data.Migrations
 {
     [DbContext(typeof(ProbotContext))]
-    partial class ProbotContextModelSnapshot : ModelSnapshot
+    [Migration("20240919010946_ProRaffleNotificationFields")]
+    partial class ProRaffleNotificationFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.2");
@@ -23,11 +26,6 @@ namespace Probot.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(0);
-
-                    b.Property<string>("Coin")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(9);
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT")
@@ -57,6 +55,11 @@ namespace Probot.Data.Migrations
                     b.Property<string>("RecipientAddress")
                         .HasColumnType("TEXT")
                         .HasColumnOrder(13);
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(9);
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("TEXT")
@@ -341,7 +344,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 9, 22, 23, 54, 25, 256, DateTimeKind.Utc).AddTicks(612),
+                            CreatedAt = new DateTime(2024, 9, 19, 1, 9, 46, 242, DateTimeKind.Utc).AddTicks(9111),
                             Period = 1,
                             PeriodDescription = "1 Month",
                             Price = 12m,
@@ -350,7 +353,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 9, 22, 23, 54, 25, 256, DateTimeKind.Utc).AddTicks(620),
+                            CreatedAt = new DateTime(2024, 9, 19, 1, 9, 46, 242, DateTimeKind.Utc).AddTicks(9119),
                             Period = 2,
                             PeriodDescription = "2 Months",
                             Price = 20m,
@@ -359,7 +362,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2024, 9, 22, 23, 54, 25, 256, DateTimeKind.Utc).AddTicks(622),
+                            CreatedAt = new DateTime(2024, 9, 19, 1, 9, 46, 242, DateTimeKind.Utc).AddTicks(9121),
                             Period = 3,
                             PeriodDescription = "3 Months",
                             Price = 30m,
@@ -472,11 +475,6 @@ namespace Probot.Data.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(0);
 
-                    b.Property<string>("Coin")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(4);
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT")
                         .HasColumnOrder(1);
@@ -501,6 +499,11 @@ namespace Probot.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnOrder(7);
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnOrder(4);
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("TEXT")
@@ -549,32 +552,32 @@ namespace Probot.Data.Migrations
                 {
                     b.HasBaseType("Probot.Data.Entities.ProductSetting");
 
-                    b.Property<string>("ErrorAlertId")
+                    b.Property<string>("FailedRafflesId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ErrorAlertToken")
+                    b.Property<string>("FailedRafflesToken")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsErrorAlertEnabled")
+                    b.Property<bool>("IsFailedRafflesNotificationEnabled")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsPaused")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsRegisteredAlertEnabled")
+                    b.Property<bool>("IsRegisteredRafflesNotificationEnabled")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("RegisterAlertId")
+                    b.Property<string>("RegisteredRafflesId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("RegisterAlertToken")
+                    b.Property<string>("RegisteredRafflesToken")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

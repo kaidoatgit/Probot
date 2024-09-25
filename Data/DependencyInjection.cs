@@ -23,17 +23,14 @@ public static class DependencyInjection
     public static async Task SeedDatabaseAsync(this IApplicationBuilder app)
     {
         using var scope = app.ApplicationServices.CreateScope();
-        var services = scope.ServiceProvider;
-        var context = services.GetRequiredService<ProbotContext>();
-        context.Database.Migrate();
-        await context.EnsureSeedData();        
+        var dbContext = scope.ServiceProvider.GetRequiredService<ProbotContext>();
+        dbContext.Database.Migrate();
+        dbContext.Database.EnsureCreated();
+        await dbContext.FilterData();        
     }
 
-    private static async Task EnsureSeedData(this ProbotContext context)
+    private static async Task FilterData(this ProbotContext context)
     {
-
-        context.Database.EnsureCreated();
-
         /***
             * Example of removing the free product from the existing options
             * I can manipulate data here and the migrations could be responsible only for adding/removing fields

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Probot.Data;
 
@@ -10,9 +11,11 @@ using Probot.Data;
 namespace Probot.Data.Migrations
 {
     [DbContext(typeof(ProbotContext))]
-    partial class ProbotContextModelSnapshot : ModelSnapshot
+    [Migration("20240920162223_RenamingColumnsProRaffleSettings")]
+    partial class RenamingColumnsProRaffleSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.2");
@@ -341,7 +344,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 9, 22, 23, 54, 25, 256, DateTimeKind.Utc).AddTicks(612),
+                            CreatedAt = new DateTime(2024, 9, 20, 16, 22, 22, 632, DateTimeKind.Utc).AddTicks(2970),
                             Period = 1,
                             PeriodDescription = "1 Month",
                             Price = 12m,
@@ -350,7 +353,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 9, 22, 23, 54, 25, 256, DateTimeKind.Utc).AddTicks(620),
+                            CreatedAt = new DateTime(2024, 9, 20, 16, 22, 22, 632, DateTimeKind.Utc).AddTicks(2980),
                             Period = 2,
                             PeriodDescription = "2 Months",
                             Price = 20m,
@@ -359,7 +362,7 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2024, 9, 22, 23, 54, 25, 256, DateTimeKind.Utc).AddTicks(622),
+                            CreatedAt = new DateTime(2024, 9, 20, 16, 22, 22, 632, DateTimeKind.Utc).AddTicks(2983),
                             Period = 3,
                             PeriodDescription = "3 Months",
                             Price = 30m,
@@ -570,11 +573,11 @@ namespace Probot.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("RegisterAlertId")
+                    b.Property<string>("RegistrationAlertId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("RegisterAlertToken")
+                    b.Property<string>("RegistrationAlertToken")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
