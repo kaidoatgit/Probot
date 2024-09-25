@@ -1,5 +1,4 @@
 ﻿using Probot.Client.Clients.SubscriptionApi;
-using Probot.Client.Helpers;
 using Probot.Client.Mappers;
 using Probot.Client.Models;
 using Probot.Shared.Dtos.User.Request;
@@ -33,10 +32,10 @@ namespace Probot.Client.Managers
                 return false;
             }
 
-            var usersWithsubscriptions = apiResponse.Data;
-            foreach (var userWithMetrics in usersWithsubscriptions)
+            var usersWithMetrics = apiResponse.Data;
+            foreach (var u in usersWithMetrics)
             {
-                var user = _mapper.MapToUser(userWithMetrics);
+                var user = _mapper.MapToUser(u);
                 Console.WriteLine(user.ToString());
                 _users[user.Id] = user;
             }
@@ -51,37 +50,6 @@ namespace Probot.Client.Managers
                 return _mapper.MapToUser(apiResponse.Data);
             }
             return null;
-        }
-
-        private async Task<bool> CreateUserAsync(ulong userId, string username, string walletAddress)
-        {
-            var userRequest = new UserRequest
-            {
-                Id = userId,
-                Username = username,
-                WalletAddress = walletAddress
-            };
-            var apiResponse = await _userClient.RegisterUserAsync(userRequest);
-
-            if (apiResponse.Data == null)
-            {
-                return false;
-            }
-            var user = _mapper.MapToUser(apiResponse.Data);
-            AddUserToMemory(new(user));
-            return true;
-        }
-
-        private async Task<bool> UpdateWalletAsync(ulong userId, string walletAddress)
-        {
-            var apiResponse = await _userClient.UpdateWalletAsync(userId, walletAddress);
-            var walletUpdatedSuccessfully = apiResponse.Data;
-            if (walletUpdatedSuccessfully)
-            {
-                UpdateUserInMemory(userId, walletAddress);
-                return true;
-            }
-            return false;
         }
 
         public async Task<bool> AddOrUpdateUserAsync(ulong userId, string username, string walletAddress)
@@ -99,19 +67,50 @@ namespace Probot.Client.Managers
             return result;
         }
 
+        private async Task<bool> CreateUserAsync(ulong userId, string username, string walletAddress)
+        {
+            var userRequest = new UserRequest
+            {
+                Id = userId,
+                Username = username,
+                WalletAddress = walletAddress
+            };
+            var apiResponse = await _userClient.RegisterUserAsync(userRequest);
+            if (apiResponse.Data == null)
+            {
+                return false;
+            }
+
+            User user = _mapper.MapToUser(apiResponse.Data);
+            AddUserToMemory(new(user));
+            return true;
+        }
+
+        private async Task<bool> UpdateWalletAsync(ulong userId, string walletAddress)
+        {
+            var apiResponse = await _userClient.UpdateWalletAsync(userId, walletAddress);
+            var isWalletSuccessfullyUpdated = apiResponse.Data;
+            if (isWalletSuccessfullyUpdated)
+            {
+                UpdateUserInMemory(userId, walletAddress);
+                return true;
+            }
+            return false;
+        }
+
+
         public WalletResult GetWalletAddressStatus(ulong userId, string walletAddress)
         {
             var result = WalletResult.Default;
             var user = _users
-                .FirstOrDefault(users => string.Equals(users.Value.WalletAddress, walletAddress, StringComparison.InvariantCultureIgnoreCase))
+                .FirstOrDefault(user => string.Equals(user.Value.WalletAddress, walletAddress, StringComparison.InvariantCultureIgnoreCase))
                 .Value;
             if (user != null)
             {
                 result = WalletResult.WalletExist;
             }
 
-            var isWalletFoundInOrder = _orderManager
-                .Orders
+            var isWalletFoundInOrder = _orderManager.Orders
                 .Any(o => string.Equals(o.User?.WalletAddress, walletAddress, StringComparison.InvariantCultureIgnoreCase) && o.User?.Id != userId);
             if (isWalletFoundInOrder)
             {
@@ -120,7 +119,7 @@ namespace Probot.Client.Managers
             return result;
         }
 
-        public void UpdateUserInMemory(ulong userId, string walletAddress)
+        private void UpdateUserInMemory(ulong userId, string walletAddress)
         {
             var existingUser = GetUserFromMemory(userId);
             if(existingUser != null)
@@ -133,12 +132,12 @@ namespace Probot.Client.Managers
             }
         }
 
-        public void AddUserToMemory(User user)
+        private void AddUserToMemory(User user)
         {
             _users.TryAdd(user.Id, user);
         }
 
-        public void RemoveUserFromMemory(ulong userId)
+        private void RemoveUserFromMemory(ulong userId)
         {
             _users.TryRemove(userId, out _);
         }

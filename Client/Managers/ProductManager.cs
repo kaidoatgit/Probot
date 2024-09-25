@@ -24,13 +24,7 @@ namespace Probot.Client.Managers
         {
             _products.Clear();
             var apiResponse = await _productClient.GetProductsWithOptionsAsync();
-            if(apiResponse.Data == null)
-            {
-                return false;
-            }
-
-            //for the moment is a must to have products, but maybe in future could be an options for admins to add products
-            if (!apiResponse.Data.Any())
+            if(apiResponse.Data == null || !apiResponse.Data.Any())
             {
                 return false;
             }
@@ -55,6 +49,7 @@ namespace Probot.Client.Managers
             {
                 return false;
             }
+            
             return await UpdateProductsRoleIdAsync(productsToUpdate);
         }
 

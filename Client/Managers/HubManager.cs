@@ -4,40 +4,40 @@ using DSharpPlus.Entities;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Probot.Client.Configs;
 using Probot.Client.Extensions;
-using Probot.Client.Helpers;
 using Probot.Client.Models;
+using Probot.Client.Options;
 using Probot.Shared.Dtos.Order.Response;
 using Probot.Shared.Dtos.Subscription.Response;
 using Probot.Shared.Enums;
+using Probot.Shared.Helpers;
 
 namespace Probot.Client.Managers
 {
-    public partial class HubManager
+    internal partial class HubManager
     {
-        private AppSettings _appSettings;
+        private readonly ProbotSettings _probotSettings;
         private readonly HubConnection _hubConnection;
         private readonly OrderManager _orderManager;
         private readonly ProductManager _productManager;
         private readonly UserManager _userManager;
-        public HubManager(IOptionsMonitor<AppSettings> appSettings, OrderManager orderManager, ProductManager productManager, UserManager userManager)
+        public HubManager(IOptions<ProbotSettings> probotOptions, OrderManager orderManager, ProductManager productManager, UserManager userManager)
         {
             _hubConnection = new HubConnectionBuilder()
-                       .WithUrl("https://localhost:7240/notificationhub")
-                       .WithAutomaticReconnect()
-                       .AddJsonProtocol(options => 
-                            options.PayloadSerializerOptions = new()
-                            {
-                                ReferenceHandler = ReferenceHandler.IgnoreCycles,
-                                PropertyNameCaseInsensitive = true,
-                            })
-                        // .ConfigureLogging(logging =>
-                        // {
-                        //     logging.AddConsole();
-                        //     logging.AddDebug();
-                        // })
-                       .Build();
+                .WithUrl("https://localhost:7240/notificationhub")
+                .WithAutomaticReconnect()
+                .AddJsonProtocol(options => 
+                    options.PayloadSerializerOptions = new()
+                    {
+                        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+                        PropertyNameCaseInsensitive = true,
+                    })
+                // .ConfigureLogging(logging =>
+                // {
+                //     logging.AddConsole();
+                //     logging.AddDebug();
+                // })
+                .Build();
             _hubConnection.Reconnecting += error =>
             {
                 Console.WriteLine($"Reconnecting due to: {error?.Message}");
@@ -55,14 +55,16 @@ namespace Probot.Client.Managers
                 Console.WriteLine($"Connection closed due to: {error?.Message}.");
                 return Task.CompletedTask;
             };
-
-            appSettings.OnChange(updatedSettings =>
-            {
-                _appSettings = updatedSettings;
-                Console.WriteLine("AppSettings changed!");
-            });
-            _appSettings = appSettings.CurrentValue;
-
+            
+            #region if IOptionsMonitor is used
+            // probotSettings.OnChange(updatedSettings =>
+            // {
+            //     _probotSettings = updatedSettings;
+            //     Console.WriteLine("ProbotSettings changed!");
+            // });
+            // _probotSettings = probotSettings.CurrentValue;
+            #endregion
+            _probotSettings = probotOptions.Value;
             _orderManager = orderManager;
             _productManager = productManager;
             _userManager = userManager;
@@ -135,8 +137,8 @@ namespace Probot.Client.Managers
                             List<ulong> productRoles = orderResult.PurchasedKeysCountPerProduct.Keys.ToList();
                             DiscordMember member = (DiscordMember)discordInteraction.User;
 
-                            await discordInteraction.NotifyWithPaidSubscription(orderInteraction.MessageId, _appSettings.ProRaffleChannelId, totalKeysCount);
-                            await guild.NotifyOnSubscriptionAlertChannel(_appSettings.NotificationChannelId, orderUserId, totalKeysCount);
+                            await discordInteraction.NotifyWithPaidSubscription(orderInteraction.MessageId, _probotSettings.ProRaffleChannelId, totalKeysCount);
+                            await guild.NotifyOnSubscriptionAlertChannel(_probotSettings.NotificationChannelId, orderUserId, totalKeysCount);
                             await member.AddRolesAsync(guild.Roles, productRoles);
                             Console.WriteLine($"[Completed] Order: {order.Id}");
 
@@ -180,7 +182,7 @@ namespace Probot.Client.Managers
                     }
                     
                     description.AppendLine();
-                    description.Append($"{EmojisHelper.User} **{subReminder.Username}");
+                    description.Append($"{EmojisHelper.User} {subReminder.Username}");
                     if (subReminder.IsActive)
                     {
                         description.Append($" | Expire on <t:{subReminder.EndDate.ToUnixTimeSeconds()}:D>");
@@ -218,7 +220,7 @@ namespace Probot.Client.Managers
                 #region example of general notification chat
                 // try
                 // {
-                    // var channel = guild.GetChannel(_appSettings.NotificationChannelId);
+                    // var channel = guild.GetChannel(_probotSettings.NotificationChannelId);
                     // ...
                     // var mention = new UserMention(member);
                     // ...
@@ -275,7 +277,6 @@ namespace Probot.Client.Managers
                 
                 Metrics? metrics = user.Metrics;
                 _userManager.ReplaceMetricsForUser(user.Id, metrics);
-                var userMemory = _userManager.GetUserFromMemory(user.Id);
                 if(metrics == null) { continue; }       
 
                 var inactiveKeysPerProduct = metrics.InactiveKeysPerProduct;

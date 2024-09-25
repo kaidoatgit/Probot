@@ -1,5 +1,7 @@
 ﻿using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using Probot.Client.Models;
+using Probot.Shared.Helpers;
 using System.Text;
 
 namespace Probot.Client.Helpers
@@ -8,7 +10,8 @@ namespace Probot.Client.Helpers
     {
         private const string _emptySpace = "ㅤ";
         private const string successImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1259290567586611321/order_success.webp?ex=668b253b&is=6689d3bb&hm=e28adeb3921b55b82a540207b43f9d7044cd6fb7be7fd36fae1c8c8b9229e450&";
-
+        private const string webhookImageUrl = "https://cdn.discordapp.com/attachments/1280815012037918741/1288605324663853087/WebhookOAuth.png?ex=66f5caba&is=66f4793a&hm=96cf9afea4817c4e15bace9207fcf45dbc619856e3add5a907ec7f69c016460f&";
+        
         public static DiscordEmbed CreateProductDetailsEmbed(List<Product> Products)
         {
             var embed = new DiscordEmbedBuilder
@@ -162,7 +165,7 @@ namespace Probot.Client.Helpers
             details.AppendLine($"```{invoice.PaymentAddress}```");
             details.AppendLine("📬\u2000|\u2000Send to:");
             details.AppendLine($"```{invoice.RecipientAddress}```");
-            details.AppendLine($"💸\u2000|\u2000Total amount ({invoice.Token}):");
+            details.AppendLine($"💸\u2000|\u2000Total amount ({invoice.Coin}):");
             details.AppendLine($"```{invoice.TotalAmount.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)}```");
             details.AppendLine($"Tx expires <t:{invoice.OrderExpiryTime.ToUnixTimeSeconds()}:R>");
 
@@ -271,7 +274,7 @@ namespace Probot.Client.Helpers
             return embed.Build();
         }
 
-        public static DiscordEmbed CreateAlphabotCommandsInfoEmbed()
+        public static DiscordEmbed CreateProRaffleCommandsInfoEmbed()
         {
             StringBuilder description = new();
             description.AppendLine();
@@ -390,22 +393,20 @@ namespace Probot.Client.Helpers
             return embed.Build();
         }
 
-        //public static DiscordEmbed CreateOrderFailureEmbed(string reason, string imageUrl)
-        //{
-        //    DateTimeOffset tryLater = DateTimeOffset.UtcNow.AddMinutes(5);
-        //    var embed = new DiscordEmbedBuilder
-        //    {
-        //        Title = "❌ Order Failed",
-        //        Description = $"Your order could not be completed. Reason: {reason}",
-        //        Color = DiscordColor.Red,
-        //        Timestamp = DateTime.UtcNow,
-        //        Footer = new() { Text = "Need help? Contact our support team anytime." }
-        //    };
+        public static DiscordEmbed CreateOAuthWebhookEmbed()
+        {
+            var description = new StringBuilder();
+            description.AppendLine($"{EmojisHelper.Stopwatch} You have 1 minute to authorize before it expires.");
+            description.AppendLine();
+            description.AppendLine($"{EmojisHelper.Warning} When authorizing confirm always the oficial link: __**probot.topsecret.ngrok.app**__");
+            var embed = new DiscordEmbedBuilder
+            {
+                Description = description.ToString(),
+                Color = DiscordColor.Orange
+            };
 
-        //    embed.WithImageUrl(imageUrl);
-        //    embed.WithFooter("Please try again.");
-
-        //    return embed.Build();
-        //}
+            embed.WithImageUrl(webhookImageUrl);
+            return embed.Build();
+        }
     }
 }

@@ -2,6 +2,7 @@
 using Probot.Shared.Dtos;
 using Probot.Shared.Dtos.Order.Request;
 using Probot.Shared.Dtos.Order.Response;
+using Probot.Shared.Enums;
 using System.Net.Http.Json;
 
 namespace Probot.Client.Clients.SubscriptionApi
@@ -26,25 +27,17 @@ namespace Probot.Client.Clients.SubscriptionApi
                 }
                 else
                 {
-                    var metadata = await response.Content.ReadFromJsonAsync<Metadata>();
-                    if (metadata != null && metadata.StatusCode != 0)
-                    {
-                        apiResponse.StatusCode = metadata.StatusCode;
-                        apiResponse.ErrorMessage = metadata.ErrorMessage;
-                    }
-                    else
-                    {
-                        apiResponse.StatusCode = (int)response.StatusCode;
-                        apiResponse.ErrorMessage = response.ReasonPhrase;
-                    }
-                    Console.WriteLine($"[CreateOrderAsync] {apiResponse.ErrorMessage}");
+                    var errorResponse = (await response.Content.ReadFromJsonAsync<ErrorResponse>())!;
+                    apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                    apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                    Console.WriteLine($"[CreateOrderAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CreateOrderAsync] {ex.Message}");
+                apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
                 apiResponse.ErrorMessage = ex.Message;
-                apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                Console.WriteLine($"[CreateOrderAsync] {ex.Message}");
             }
             return apiResponse;
         }

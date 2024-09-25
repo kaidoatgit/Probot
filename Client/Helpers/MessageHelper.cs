@@ -1,15 +1,18 @@
 ﻿using System.Text;
 using Probot.Client.Models;
+using Probot.Shared.Helpers;
 
 namespace Probot.Client.Helpers
 {
     public static class MessageHelper
     {
-        public static readonly string PaymentWalletNotFoundMessage = "Payment wallet not found.";
+        public static readonly string PaymentWalletNotFound = "Payment wallet not found.";
         public static readonly string MissingProductOrDuration = "You need to select a product and a duration before subscribing.";
         public static readonly string MaxItemsPerCart = $"The maximum number of items per cart is {Cart.MaxItemsPerCart}.";
         public static readonly string CartIsEmpty = "The cart is empty. To confirm your order, you must have at least 1 item.";
-
+        public static readonly string SettingsNotFound = "Active subscriptions not found. Only active subscriptions can set up notifications";
+        public static readonly string MissingUsername = "You need to select a username to enable/disable the alerts.";
+        public static readonly string AlertAlreadyDisabled = $"{EmojisHelper.Information} Alert is up to date. No action needed.";
 
         public static string GenericErrorMessage()
         {
@@ -21,22 +24,6 @@ namespace Probot.Client.Helpers
             errorMessage.AppendLine("If the problem persists, contact our support team for assistance. We apologize for the inconvenience.");
 
             return errorMessage.ToString();
-        }
-
-        public static string WelcomeMessage()
-        {
-            StringBuilder welcomeMessage = new();
-
-            welcomeMessage.AppendLine($"{EmojisHelper.Rocket} **Welcome to Our Service!**");
-            welcomeMessage.AppendLine();
-            welcomeMessage.AppendLine("We are excited to have you on board. Please let us know if you need any assistance.");
-            welcomeMessage.AppendLine();
-            welcomeMessage.AppendLine("Here are some tips to get started:");
-            welcomeMessage.AppendLine("1. Explore the features available on your dashboard.");
-            welcomeMessage.AppendLine("2. Set up your profile to personalize your experience.");
-            welcomeMessage.AppendLine("3. Contact support if you have any questions or need help.");
-
-            return welcomeMessage.ToString();
         }
 
         public static string WalletSubmitSuccess(string walletAddress)

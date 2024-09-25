@@ -2,6 +2,7 @@
 using Probot.Shared.Dtos;
 using Probot.Shared.Dtos.Product.Request;
 using Probot.Shared.Dtos.Product.Response;
+using Probot.Shared.Enums;
 using System.Net.Http.Json;
 
 namespace Probot.Client.Clients.SubscriptionApi
@@ -19,32 +20,24 @@ namespace Probot.Client.Clients.SubscriptionApi
             ApiResponse<IEnumerable<ProductResponse>> apiResponse = new();
             try
             {
-                var response = await _httpClient.GetAsync("with_options");
+                var response = await _httpClient.GetAsync("product_options");
                 if (response.IsSuccessStatusCode)
                 {
                     apiResponse.Data = await response.Content.ReadFromJsonAsync<IEnumerable<ProductResponse>>();
                 }
                 else
                 {
-                    var metadata = await response.Content.ReadFromJsonAsync<Metadata>();
-                    if (metadata != null && metadata.StatusCode != 0)
-                    {
-                        apiResponse.StatusCode = metadata.StatusCode;
-                        apiResponse.ErrorMessage = metadata.ErrorMessage;
-                    }
-                    else
-                    {
-                        apiResponse.StatusCode = (int)response.StatusCode;
-                        apiResponse.ErrorMessage = response.ReasonPhrase;
-                    }
-                    Console.WriteLine($"[GetProductsWithOptionsAsync] {apiResponse.ErrorMessage}");
+                    var errorResponse = (await response.Content.ReadFromJsonAsync<ErrorResponse>())!;
+                    apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                    apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                    Console.WriteLine($"[GetProductsWithOptionsAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetProductsWithOptionsAsync] {ex.Message}");
+                apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
                 apiResponse.ErrorMessage = ex.Message;
-                apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+                Console.WriteLine($"[GetProductsWithOptionsAsync] {ex.Message}");
             }
             return apiResponse;
         }
@@ -54,7 +47,7 @@ namespace Probot.Client.Clients.SubscriptionApi
             bool apiResponse;
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("roleId", updateRequest);
+                var response = await _httpClient.PatchAsync("roleId", JsonContent.Create(updateRequest));
                 if (response.IsSuccessStatusCode)
                 {
                     apiResponse = true;

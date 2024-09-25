@@ -9,7 +9,7 @@ namespace Probot.Client.Models
         public string PaymentAddress { get; set; } = string.Empty;
         public DateTimeOffset OrderExpiryTime { get; set; }
         public decimal TotalAmount { get; set; }
-        public Token Token { get; set; }
+        public Coin Coin { get; set; }
         public string RecipientAddress { get; set; } = string.Empty;
         public List<InvoiceItem> InvoiceItems { get; set; } = new();
     }

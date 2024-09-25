@@ -3,6 +3,7 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using Probot.Client.Helpers;
 using Probot.Client.Models;
+using Probot.Shared.Helpers;
 
 namespace Probot.Client.Extensions
 {
@@ -167,5 +168,44 @@ namespace Probot.Client.Extensions
             await interaction.EditFollowupMessageAsync(messageId, new DiscordWebhookBuilder(builder));
         }
 
+        public static async Task NotifyWithRaffleNotifications(this DiscordInteraction interaction, IEnumerable<ProRaffleSetting> settings, string content)
+        {
+            var usernames = settings
+                .Select(s => new DiscordSelectComponentOption(s.Username, s.Id.ToString()))
+                .AsEnumerable();
+
+            var usernamesDropdown = new DiscordSelectComponent("usernames_selection_menu", "Select a Username", usernames);
+
+            var successRaffleBtn = new DiscordButtonComponent(ButtonStyle.Success, "enable_registered_raffle_btn", $"Register Alerts {EmojisHelper.Bell}");
+            var revokeSuccessRaffleBtn = new DiscordButtonComponent(ButtonStyle.Danger, "disable_registered_raffle_btn", $"Register Alerts {EmojisHelper.X}");
+
+            var errorRaffleBtn = new DiscordButtonComponent(ButtonStyle.Success, "enable_error_raffle_btn", $"Error Alerts {EmojisHelper.Bell} ");
+            var revokeErrorRaffleBtn = new DiscordButtonComponent(ButtonStyle.Danger, "disable_error_raffle_btn", $"Error Alerts {EmojisHelper.X}");
+
+            var description = new StringBuilder();
+            description.AppendLine("\u200B");
+            description.AppendLine("Receive real-time notifications and stay informed about your raffle updates.");
+            description.AppendLine("\u200B");
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Raffles Notifications",
+                Description = description.ToString(),
+                Color = DiscordColor.Gold,
+            };
+
+            // embed.AddField($"{EmojisHelper.Bell} Registration Alerts", "Get notified when your raffle entries are successfully registered.");
+            // embed.AddField($"{EmojisHelper.X} Registration Alerts", "Turn off notifications for successful raffle registrations.");
+            // embed.AddField($"{EmojisHelper.Bell} Error Alerts", "Receive alerts when there are issues or failures with your raffle entries.");
+            // embed.AddField($"{EmojisHelper.X} Error Alerts", "Turn off notifications for raffle entry errors or failures.");
+
+            var msg = new DiscordMessageBuilder()
+                .AddEmbed(embed)
+                .AddComponents(usernamesDropdown)
+                .AddComponents(successRaffleBtn, revokeSuccessRaffleBtn)
+                .AddComponents(errorRaffleBtn, revokeErrorRaffleBtn);
+
+            await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                new DiscordInteractionResponseBuilder(msg).AsEphemeral(true).WithContent(content.ToString()));
+        }
     }
 }

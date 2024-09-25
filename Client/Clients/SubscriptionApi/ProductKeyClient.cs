@@ -2,18 +2,19 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Http;
 using Probot.Shared.Dtos;
 using Probot.Shared.Dtos.ProductKey.Response;
+using Probot.Shared.Enums;
 
 namespace Probot.Client.Clients.SubscriptionApi;
 
 public class ProductKeyClient
 {
-     private readonly HttpClient _httpClient;
+    private readonly HttpClient _httpClient;
     public ProductKeyClient(HttpClient client)
     {
         _httpClient = client;
     }
     
-    public async Task<ApiResponse<ProductKeyResponse>> GetProductKeyAsync(ulong userId, string code, bool isActivated)
+    public async Task<ApiResponse<ProductKeyResponse>> GetProductKeyAsync(string code, ulong userId, bool isActivated)
     {
         ApiResponse<ProductKeyResponse> apiResponse = new();
         try
@@ -25,25 +26,17 @@ public class ProductKeyClient
             }
             else
             {
-                var metadata = await response.Content.ReadFromJsonAsync<Metadata>();
-                if (metadata != null && metadata.StatusCode != 0)
-                {
-                    apiResponse.StatusCode = metadata.StatusCode;
-                    apiResponse.ErrorMessage = metadata.ErrorMessage;
-                }
-                else
-                {
-                    apiResponse.StatusCode = (int)response.StatusCode;
-                    apiResponse.ErrorMessage = response.ReasonPhrase;
-                }
-                Console.WriteLine($"[GetProductKeyAsync] {apiResponse.ErrorMessage}");
+                var errorResponse = (await response.Content.ReadFromJsonAsync<ErrorResponse>())!;
+                apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                Console.WriteLine($"[GetProductKeyAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetProductKeyAsync] {ex.Message}");
+            apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
             apiResponse.ErrorMessage = ex.Message;
-            apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+            Console.WriteLine($"[GetProductKeyAsync] {ex.Message}");
         }
         return apiResponse;
     }
@@ -60,25 +53,17 @@ public class ProductKeyClient
             }
             else
             {
-                var metadata = await response.Content.ReadFromJsonAsync<Metadata>();
-                if (metadata != null && metadata.StatusCode != 0)
-                {
-                    apiResponse.StatusCode = metadata.StatusCode;
-                    apiResponse.ErrorMessage = metadata.ErrorMessage;
-                }
-                else
-                {
-                    apiResponse.StatusCode = (int)response.StatusCode;
-                    apiResponse.ErrorMessage = response.ReasonPhrase;
-                }
-                Console.WriteLine($"[GetProductKeysAsync] {apiResponse.ErrorMessage}");
+                var errorResponse = (await response.Content.ReadFromJsonAsync<ErrorResponse>())!;
+                apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                Console.WriteLine($"[GetProductKeysAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetProductKeysAsync] {ex.Message}");
+            apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
             apiResponse.ErrorMessage = ex.Message;
-            apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+            Console.WriteLine($"[GetProductKeysAsync] {ex.Message}");
         }
         return apiResponse;
     } 

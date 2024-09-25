@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Probot.Client.Clients.SubscriptionApi;
-using Probot.Client.Configs;
 using Probot.Client.Mappers;
 using Probot.Client.Managers;
 using Newtonsoft.Json;
@@ -10,6 +9,9 @@ using Probot.Shared.Dtos.ProductSetting.Request;
 using Probot.Shared.Dtos.ProRaffleSetting.Request;
 using Probot.Shared.Dtos.ProductSetting.Response;
 using Probot.Shared.Dtos.ProRaffleSetting.Response;
+using Probot.Client.Clients.ProRaffleApi;
+using Probot.Client.Options;
+using Microsoft.Extensions.Options;
 
 namespace Probot.Client
 {
@@ -36,7 +38,6 @@ namespace Probot.Client
 
         private static IServiceProvider ConfigureServices()
         {
-
             var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -44,18 +45,30 @@ namespace Probot.Client
             .Build();
 
             var services = new ServiceCollection();
-            services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
+            services.Configure<ProbotSettings>(configuration.GetSection("ProbotSettings"));
             services.AddHttpClient<UserClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/users/"); });
             services.AddHttpClient<ProductClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/products/"); });
             services.AddHttpClient<OrderClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/orders/"); });
-            services.AddHttpClient<ProRaffleSettingClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/pro_raffle_settings/"); });
-            services.AddHttpClient<SubscriptionClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/subscriptions/"); });
             services.AddHttpClient<ProductKeyClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/product_keys/"); });
+            services.AddHttpClient<SubscriptionClient>(opt => { opt.BaseAddress = new Uri("https://localhost:7240/api/subscriptions/"); });
+            services.AddHttpClient<ProRaffleSettingClient>((serviceProvider, opt) =>
+            {
+                var settings = serviceProvider.GetRequiredService<IOptions<ProbotSettings>>().Value;
+                opt.BaseAddress = new Uri("https://localhost:7091/api/pro_raffle_settings/");
+                opt.DefaultRequestHeaders.Add("X-API-KEY", settings.ProRaffleApiKey);
+            });
+            services.AddHttpClient<OAuthClient>((serviceProvider, opt) => 
+            {                 
+                var settings = serviceProvider.GetRequiredService<IOptions<ProbotSettings>>().Value;
+                opt.BaseAddress = new Uri("https://localhost:7091/api/oauth2/discord/");
+                opt.DefaultRequestHeaders.Add("X-API-KEY", settings.ProRaffleApiKey);
+            });
             services.AddSingleton<CancelationTokenManager>();
             services.AddSingleton<OrderManager>();
             services.AddSingleton<ProductManager>();
             services.AddSingleton<UserManager>();
             services.AddSingleton<CartManager>();
+            services.AddSingleton<ProRaffleSettingManager>();
             services.AddSingleton<Mapper>();
             services.AddSingleton<HubManager>();
             services.AddSingleton(provider =>

@@ -25,6 +25,7 @@ namespace Probot.Client.Mappers
         public partial ProductKey MapToProductKey(ProductKeyResponse apiResponse);
         
         [MapDerivedType(typeof(ProRaffleSettingResponse), typeof(ProRaffleSetting))]
-        public partial ProductSetting MapToProRaffleSetting(ProductSettingResponse apiResponse);
+        public partial ProductSetting MapToProductSetting(ProductSettingResponse apiResponse);
+        public partial ProRaffleSetting MapToProRaffleSetting(ProRaffleSettingResponse apiResponse);
     }
 }

@@ -2,6 +2,7 @@
 using DSharpPlus.Entities;
 using Probot.Client.Helpers;
 using Probot.Client.Models;
+using Probot.Shared.Helpers;
 
 namespace Probot.Client.Extensions
 {
@@ -153,9 +154,9 @@ namespace Probot.Client.Extensions
         {
             try
             {
-                var walletSubmissionButton = new DiscordButtonComponent(ButtonStyle.Success, "payment_wallets_btn", "Payment Wallets 💳");
-                var subscribeButton = new DiscordButtonComponent(ButtonStyle.Primary, "subscribe_btn", "Subscribe 📝");
-                var productDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "product_details_btn", "Product Details 📋");
+                var walletSubmissionButton = new DiscordButtonComponent(ButtonStyle.Success, "payment_wallets_btn", $"Payment Wallets {EmojisHelper.Credit_Card}");
+                var subscribeButton = new DiscordButtonComponent(ButtonStyle.Primary, "subscribe_btn", $"Subscribe {EmojisHelper.Pencil}");
+                var productDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "product_details_btn", $"Product Details {EmojisHelper.Clipboard}");
                 
                 var embed = EmbedHelper.CreateSubscriptionEmbed();
                 var message = new DiscordMessageBuilder()
@@ -182,13 +183,15 @@ namespace Probot.Client.Extensions
             return false;
         }
 
-        public static async Task<bool> AddAlphabotCommandsInfo(this DiscordGuild guild, ulong channelId)
+        public static async Task<bool> AddProRaffleCommandsInfo(this DiscordGuild guild, ulong channelId)
         {
             try
             {
-                var embed = EmbedHelper.CreateAlphabotCommandsInfoEmbed();
+                var setupNotificationsBtn = new DiscordButtonComponent(ButtonStyle.Primary, "setup_notifications_btn", $"Setup Notifications {EmojisHelper.Bell}");
+                var embed = EmbedHelper.CreateProRaffleCommandsInfoEmbed();
                 var message = new DiscordMessageBuilder()
-                    .WithEmbed(embed);
+                    .WithEmbed(embed)
+                    .AddComponents(setupNotificationsBtn);
 
                 var channel = guild.GetChannel(channelId);
                 var firstMessage = (await channel.GetMessagesAsync()).LastOrDefault();
@@ -200,13 +203,13 @@ namespace Probot.Client.Extensions
                 else
                 {
                     var existingMessage = await channel.GetMessageAsync(firstMessage.Id);
-                    await existingMessage.ModifyAsync(embed);
+                    await existingMessage.ModifyAsync(message);
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Error][AddAlphabotCommandsInfo] {ex.Message}");
+                Console.WriteLine($"[Error][AddProRaffleCommandsInfo] {ex.Message}");
             }
             return false;
         }

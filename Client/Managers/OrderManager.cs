@@ -1,5 +1,4 @@
 ﻿using Probot.Client.Clients.SubscriptionApi;
-using Probot.Client.Exceptions;
 using Probot.Client.Mappers;
 using Probot.Client.Models;
 using Probot.Shared.Dtos.Order.Request;
@@ -21,7 +20,7 @@ namespace Probot.Client.Managers
             Console.WriteLine("Order Manager created");
         }
 
-        public async Task<Order> CreateOrderAsync(ulong userId, Cart? cart)
+        public async Task<Order?> CreateOrderAsync(ulong userId, Cart? cart)
         {
             var orderRequest = new OrderRequest
             {
@@ -29,14 +28,11 @@ namespace Probot.Client.Managers
                 ProductOptionsId = cart!.CartItems.Select(ci => ci.ProductOptionId).ToList()
             };
             var apiResponse = await _orderClient.CreateOrderAsync(orderRequest);
-            if (apiResponse.Data == null || apiResponse.Data.Invoice == null)
-            {
-                throw new OrderException(apiResponse.StatusCode, string.Empty);
-            }
-            else
+            if (apiResponse.Data != null && apiResponse.Data.Invoice != null)
             {
                 return _mapper.MapToOrder(apiResponse.Data);
             }
+            return null;
         }
 
         public void AddOrder(Order order)

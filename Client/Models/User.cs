@@ -11,13 +11,6 @@ namespace Probot.Client.Models
         public Metrics? Metrics { get; set; }
 
         public User() {}
-        
-        public User(ulong id, string username, string walletAddress)
-        {
-            Id = id;
-            Username = username;
-            WalletAddress = walletAddress;
-        }
 
         public User(User user)
         {

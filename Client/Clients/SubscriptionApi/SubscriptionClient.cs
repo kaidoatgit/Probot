@@ -1,10 +1,9 @@
-using Microsoft.AspNetCore.Http;
 using Probot.Shared.Dtos;
 using Probot.Shared.Dtos.Subscription.Request;
 using Probot.Shared.Dtos.Subscription.Response;
 using Newtonsoft.Json;
-using System.Text;
 using Probot.Shared.Enums;
+using System.Text;
 
 namespace Probot.Client.Clients.SubscriptionApi;
 
@@ -26,7 +25,6 @@ public class SubscriptionClient
             var jsonContent = JsonConvert.SerializeObject(request);
             var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(string.Empty, httpContent);
-
             if (response.IsSuccessStatusCode)
             {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -34,28 +32,23 @@ public class SubscriptionClient
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                var metadata = JsonConvert.DeserializeObject<Metadata>(errorContent);
-                
-                if (metadata != null)
-                {
-                    apiResponse.ErrorMessage = metadata.ErrorMessage;
-                    apiResponse.ServiceResult = metadata.ServiceResult;
-                }
-                else
-                {
-                    apiResponse.StatusCode = (int)response.StatusCode;
-                    apiResponse.ErrorMessage = response.ReasonPhrase;
-                }
+                apiResponse.ErrorMessage = response.ReasonPhrase;
 
-                Console.WriteLine($"[CreateSubscriptionAsync] {apiResponse.ErrorMessage}");
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(errorContent);
+                if (errorResponse != null)
+                {
+                    apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                    apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                }
+                Console.WriteLine($"[CreateSubscriptionAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CreateSubscriptionAsync] {ex.Message}");
+            apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
             apiResponse.ErrorMessage = ex.Message;
-            apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+            Console.WriteLine($"[CreateSubscriptionAsync] {ex.Message}");
         }
 
         return apiResponse;
@@ -77,28 +70,23 @@ public class SubscriptionClient
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                var metadata = JsonConvert.DeserializeObject<Metadata>(errorContent);
-                
-                if (metadata != null)
-                {
-                    apiResponse.ErrorMessage = metadata.ErrorMessage;
-                    apiResponse.ServiceResult = metadata.ServiceResult;
-                }
-                else
-                {
-                    apiResponse.StatusCode = (int)response.StatusCode;
-                    apiResponse.ErrorMessage = response.ReasonPhrase;
-                }
+                apiResponse.ErrorMessage = response.ReasonPhrase;
 
-                Console.WriteLine($"[ExtendSubscriptionAsync] {apiResponse.ErrorMessage}");
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(errorContent);
+                if (errorResponse != null)
+                {
+                    apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                    apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                }
+                Console.WriteLine($"[ExtendSubscriptionAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ExtendSubscriptionAsync] {ex.Message}");
+            apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
             apiResponse.ErrorMessage = ex.Message;
-            apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+            Console.WriteLine($"[ExtendSubscriptionAsync] {ex.Message}");
         }
 
         return apiResponse;
@@ -117,30 +105,26 @@ public class SubscriptionClient
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                var metadata = JsonConvert.DeserializeObject<Metadata>(errorContent);
-                
-                if (metadata != null)
-                {
-                    apiResponse.ErrorMessage = metadata.ErrorMessage;
-                    apiResponse.ServiceResult = metadata.ServiceResult;
-                }
-                else
-                {
-                    apiResponse.StatusCode = (int)response.StatusCode;
-                    apiResponse.ErrorMessage = response.ReasonPhrase;
-                }
+                apiResponse.ErrorMessage = response.ReasonPhrase;
 
-                Console.WriteLine($"[GetSubscriptionsAsync] {apiResponse.ErrorMessage}");
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(errorContent);
+                if (errorResponse != null)
+                {
+                    apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                    apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                }
+                Console.WriteLine($"[GetSubscriptionsAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetSubscriptionsAsync] {ex.Message}");
+            apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
             apiResponse.ErrorMessage = ex.Message;
-            apiResponse.StatusCode = StatusCodes.Status500InternalServerError;
+            Console.WriteLine($"[GetSubscriptionsAsync] {ex.Message}");
         }
 
         return apiResponse;
     } 
+
 }

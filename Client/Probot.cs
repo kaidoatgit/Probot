@@ -7,33 +7,38 @@ using DSharpPlus.SlashCommands;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Probot.Client.Commands;
-using Probot.Client.Configs;
 using Probot.Client.Extensions;
 using Probot.Client.Helpers;
 using Probot.Client.Models;
 using Probot.Client.Managers;
+using Probot.Shared.Enums;
+using Probot.Shared.Helpers;
+using Probot.Shared.Dtos.OAuth.Request;
+using Probot.Client.Clients.ProRaffleApi;
+using Probot.Client.Options;
 
 namespace Probot.Client
 {
-    public class Probot
+    internal class Probot
     {
         private readonly DiscordClient _discordClient;
+        private readonly ProbotSettings _probotSettings;
         private readonly ProductManager _productManager;
         private readonly UserManager _userManager;
         private readonly OrderManager _orderManager;
         private readonly HubManager _hubManager;
         private readonly CancelationTokenManager _tokenManager;
-        private readonly AppSettings _appSettings;
         private readonly CartManager _cartManager;
+        private readonly ProRaffleSettingManager _proRaffleSettingManager;
+        private readonly OAuthClient _oauthClient;
 
-        public SlashCommandsExtension? SlashCommands { get; private set; }
-
-        public Probot(IOptions<AppSettings> appSettings, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager, CancelationTokenManager tokenManager, CartManager cartManager)
+        public Probot(IOptions<ProbotSettings> probotOptions, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager,
+            CancelationTokenManager tokenManager, CartManager cartManager, ProRaffleSettingManager proRaffleSettingManager, OAuthClient oauthClient)
         {
-            _appSettings = appSettings.Value;
+            _probotSettings = probotOptions.Value;
             _discordClient = new DiscordClient(new DiscordConfiguration
             {
-                Token = _appSettings.Token,
+                Token = _probotSettings.BotToken,
                 TokenType = TokenType.Bot,
                 Intents = DiscordIntents.All,
                 MinimumLogLevel = LogLevel.Error,
@@ -46,6 +51,8 @@ namespace Probot.Client
             _hubManager = hubManager;
             _tokenManager = tokenManager;
             _cartManager = cartManager;
+            _proRaffleSettingManager = proRaffleSettingManager;
+            _oauthClient = oauthClient;
 
             Console.WriteLine("Probot created");
         }
@@ -67,7 +74,7 @@ namespace Probot.Client
             {
                 Services = services
             });
-            slash.RegisterCommands<UserCommands>();
+            slash.RegisterCommands<ProRaffleCommands>();
             await _discordClient.ConnectAsync();
 
             try
@@ -122,14 +129,14 @@ namespace Probot.Client
             }
             Console.WriteLine($"Total users: {_userManager.Users.Count}");
 
-            bool subscriptionProcessAddedSuccessfully = await args.Guild.AddSubscriptionProcess(_appSettings.SubscriptionChannelId);
+            bool subscriptionProcessAddedSuccessfully = await args.Guild.AddSubscriptionProcess(_probotSettings.SubscriptionChannelId);
             if (!subscriptionProcessAddedSuccessfully)
             {
                 _tokenManager.Cancel();
                 return;
             }
 
-            bool commandsAddedSuccessfully = await args.Guild.AddAlphabotCommandsInfo(_appSettings.ProRaffleChannelId);
+            bool commandsAddedSuccessfully = await args.Guild.AddProRaffleCommandsInfo(_probotSettings.ProRaffleChannelId);
             if (!commandsAddedSuccessfully)
             {
                 _tokenManager.Cancel();
@@ -175,12 +182,13 @@ namespace Probot.Client
             DiscordUser discordUser = args.User;
             switch (args.Id)
             {
+                #region subscription process
                 case "subscribe_btn":
                     {
                         var user = _userManager.GetUserFromMemory(discordUser.Id);
                         if (user == null || string.IsNullOrWhiteSpace(user.WalletAddress))
                         {
-                            await args.Interaction.NotifyWithMessage(MessageHelper.PaymentWalletNotFoundMessage, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                            await args.Interaction.NotifyWithMessage(MessageHelper.PaymentWalletNotFound, deleteMsg: true, after: TimeSpan.FromSeconds(5));
                         }
                         else
                         {
@@ -192,14 +200,144 @@ namespace Probot.Client
                         }
                         break;
                     }
+                case "product_selection_menu":
+                    {
+                        var selectedProductId = args.Values.First();
 
+                        var durationDropdown = GetDurationsPricesBasedOnProductSelected(selectedProductId);
+                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedProductId, durationDropdown);
+                        var productMessageBuilder = discordMessage.ReplaceComponents(components);
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                            new DiscordInteractionResponseBuilder(productMessageBuilder));
+                        break;
+                    }
+                case "duration_selection_menu":
+                    {
+                        var selectedDurationPrice = args.Values.First();
+
+                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedDurationPrice);
+                        var durationMessageBuilder = discordMessage.ReplaceComponents(components);
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                            new DiscordInteractionResponseBuilder(durationMessageBuilder));
+                        break;
+                    }
+                case "add_item_cart_btn":
+                {
+                    var (productSelect, durationSelect) = discordMessage.ParseComponentSelections();
+                    var selectedProduct = productSelect?.Options.FirstOrDefault(o => o.Default);
+                    var selectedDuration = durationSelect?.Options.FirstOrDefault(o => o.Default);
+
+                    if (selectedProduct == null || selectedDuration == null)
+                    {
+                        await args.Interaction.NotifyWithMessage(MessageHelper.MissingProductOrDuration, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                    }
+                    else
+                    {
+                        var cartItems = _cartManager.GetItemsFromCart(discordMessage.Id)!;
+                        if(cartItems.Count >= Cart.MaxItemsPerCart) 
+                        {
+                            await args.Interaction.NotifyWithMessage(MessageHelper.MaxItemsPerCart, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                            return;
+                        }
+
+
+                        Product product = _productManager.GetProductByRoleId(selectedProduct.Value)!;
+                        int selectedPeriod = int.Parse(selectedDuration.Value);
+                        CartItem cartItem = new()
+                        { 
+                            ItemId = _cartManager.GetMaxCartItemId(discordMessage.Id) + 1,
+                            SelectedProduct = selectedProduct.Label,
+                            SelectedDuration = selectedDuration.Label,
+                            Price = product.GetPrice(selectedPeriod),
+                            ProductOptionId = product.GetProductOptionId(selectedPeriod)
+                        };
+                        _cartManager.AddItemToCart(discordMessage.Id, cartItem);
+
+                        var originalComponents = discordMessage.Components;
+                        var embed = EmbedHelper.CreateShoppingCartEmbed(cartItems);
+                        Console.WriteLine($"{selectedProduct.Label}|{selectedDuration.Label}|Total item:{cartItems.Count}");
+
+                        await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
+                            .AddEmbed(embed)
+                            .AddComponents(originalComponents));
+                    }
+                    break;
+                }
+                case "remove_item_cart_btn":
+                {
+                    try
+                    {
+                        var modalCustomId = await args.Interaction.NotifyWithItemRemovalModal(args.Interaction.Id);
+                        var interactivity = _discordClient.GetInteractivity();
+                        var modal = await interactivity.WaitForModalAsync(modalCustomId, discordUser);
+                        if(modal.TimedOut)
+                        {
+                            return;
+                        }
+
+                        await modal.Result.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
+
+                        var inputValue = modal.Result.Values.Values.First().Trim();
+                        if (int.TryParse(inputValue, out int itemId))
+                        {
+                            var successfullyRemoved = _cartManager.RemoveItemFromCart(discordMessage.Id, itemId);
+                            if(successfullyRemoved)
+                            {
+                                var originalComponents = discordMessage.Components;
+                                var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(discordMessage.Id)!);
+
+                                await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
+                                    .AddEmbed(embed)
+                                    .AddComponents(originalComponents));
+                                
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message + ex.StackTrace + ex.InnerException);
+                    } 
+                    break;
+                }
+                case "confirm_cart_btn":
+                    {
+                        Cart? cart = _cartManager.GetCart(discordMessage.Id);
+                        if(cart == null || !cart.CartItems.Any())
+                        {
+                            await args.Interaction.NotifyWithMessage(MessageHelper.CartIsEmpty, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                            return;
+                        }
+                        try
+                        {
+                            await args.Interaction.DeferAsync(true);
+
+                            var order = await _orderManager.CreateOrderAsync(discordUser.Id, cart);
+                            order!.Interaction = new(discordMessage.Id, args.Interaction);
+                            _orderManager.AddOrder(order);
+
+                            await args.Interaction.NotifyUserToSendPayment(order);
+                        }
+                        catch (Exception)
+                        {
+                            await args.Interaction.NotifyWithServerError(discordMessage.Id);
+                        }
+                        finally
+                        {
+                            _cartManager.RemoveCart(discordMessage.Id);
+                        }
+                        break;
+                    }
+                #endregion
+
+                #region payment wallets setup
                 case "payment_wallets_btn":
                     {
                         var user = await _userManager.GetUserAsync(discordUser.Id);
                         await args.Interaction.NotifyWithPaymentWallets(user?.WalletAddress);
                         break;
-                    }
-                
+                    }              
                 case "solana_wallet_btn":
                     {
                         try
@@ -251,146 +389,130 @@ namespace Probot.Client
                         } 
                         break;
                     }
-                
+                #endregion
+
+                #region product information
                 case "product_details_btn":
                     {
                         await args.Interaction.NotifyWithProductDetails(_productManager.Products);
                         break;
                     }
-
-                case "product_selection_menu":
-                    {
-                        var selectedProductId = args.Values.First();
-
-                        var durationDropdown = GetDurationsPricesBasedOnProductSelected(selectedProductId);
-                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedProductId, durationDropdown);
-                        var productMessageBuilder = discordMessage.ReplaceComponents(components);
-
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
-                            new DiscordInteractionResponseBuilder(productMessageBuilder));
-                        break;
-                    }
-
-                case "duration_selection_menu":
-                    {
-                        var selectedDurationPrice = args.Values.First();
-
-                        var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedDurationPrice);
-                        var durationMessageBuilder = discordMessage.ReplaceComponents(components);
-
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
-                            new DiscordInteractionResponseBuilder(durationMessageBuilder));
-                        break;
-                    }
-
-                case "add_item_cart_btn":
+                #endregion
+     
+                #region raffle notifications
+                case "setup_notifications_btn":
                 {
-                    var (productSelect, durationSelect) = discordMessage.ParseComponentSelections();
-                    var selectedProduct = productSelect?.Options.FirstOrDefault(o => o.Default);
-                    var selectedDuration = durationSelect?.Options.FirstOrDefault(o => o.Default);
-
-                    if (selectedProduct == null || selectedDuration == null)
+                    var (content, settings) = await _proRaffleSettingManager.GetUserSettingsAsync(discordUser.Id);
+                    if(!settings.Any()) 
                     {
-                        await args.Interaction.NotifyWithMessage(MessageHelper.MissingProductOrDuration, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                        await args.Interaction.NotifyWithMessage(MessageHelper.SettingsNotFound, deleteMsg: true, after: TimeSpan.FromSeconds(10));
+                        return;
+                    }
+                    await args.Interaction.NotifyWithRaffleNotifications(settings, content);
+                    break;
+                }
+                case "usernames_selection_menu": 
+                {
+                    var selectedUsername = args.Values.First();
+
+                    var components = discordMessage.SetDropdownDefaultValue(args.Id, selectedUsername);
+                    var builder = discordMessage.ReplaceComponents(components);
+
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                        new DiscordInteractionResponseBuilder(builder));
+                    break;
+                }
+                case "enable_registered_raffle_btn":                
+                case "enable_error_raffle_btn":
+                {
+                    var usenameSelect = discordMessage.Components
+                        .OfType<DiscordActionRowComponent>()
+                        .SelectMany(row => row.Components)
+                        .OfType<DiscordSelectComponent>()
+                        .FirstOrDefault(c => c.CustomId.StartsWith("usernames_selection_menu"));
+                    var selectedUsername = usenameSelect?.Options.FirstOrDefault(o => o.Default);
+                    if (selectedUsername == null)
+                    {
+                        await args.Interaction.NotifyWithMessage(MessageHelper.MissingUsername, deleteMsg: true, after: TimeSpan.FromSeconds(5));
+                        return;
+                    } 
+
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
+                    var request = new OAuthRequest 
+                    {
+                        SettingId = ulong.Parse(selectedUsername.Value),
+                        InteractionToken = args.Interaction.Token,
+                        MessageId = discordMessage.Id,
+                        RaffleAlertType = args.Id == "enable_registered_raffle_btn" ? RaffleAlertType.Registered : RaffleAlertType.Error
+                    };
+                    var oauthResponse = await _oauthClient.CreateOAuthUrlAsync(request);
+                    if(oauthResponse.Data == null)
+                    {
+                        if(oauthResponse.ExceptionResult == ExceptionResult.ProductSettingNotFound404)
+                        {
+                            await args.Interaction.NotifyWithMessage($"{EmojisHelper.Warning} ProRaffle settings for username: {selectedUsername.Label} not found.",
+                                defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
+                        }
+                        else
+                        {
+                            await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
+                        }
+                        return;
+                    }
+                    var oauthUri = oauthResponse.Data;
+
+                    var oauthButton = new DiscordLinkButtonComponent(oauthUri, "Authorize");
+                    var builder = new DiscordFollowupMessageBuilder()
+                        .AddEmbed(EmbedHelper.CreateOAuthWebhookEmbed())
+                        .AddComponents(oauthButton)
+                        .AsEphemeral(true);
+
+                    var message = await args.Interaction.CreateFollowupMessageAsync(builder);
+                    var interactivity = _discordClient.GetInteractivity();
+                    var answer = await interactivity.WaitForButtonAsync(message, discordUser, TimeSpan.FromMinutes(1));
+                    if (answer.TimedOut)
+                    {
+                        await args.Interaction.DeleteFollowupMessageAsync(message.Id);
+                    }
+                    break;
+                }
+                case "disable_registered_raffle_btn":
+                case "disable_error_raffle_btn":
+                {
+                    var usenameSelect = discordMessage.Components
+                        .OfType<DiscordActionRowComponent>()
+                        .SelectMany(row => row.Components)
+                        .OfType<DiscordSelectComponent>()
+                        .FirstOrDefault(c => c.CustomId.StartsWith("usernames_selection_menu"));
+                    var selectedUsername = usenameSelect?.Options.FirstOrDefault(o => o.Default);
+                    if (selectedUsername == null)
+                    {
+                        await args.Interaction.NotifyWithMessage(MessageHelper.MissingUsername, deleteMsg: true, after: TimeSpan.FromSeconds(10));
+                        return;
+                    }
+
+                    await args.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
+                    RaffleAlertType raffleAlertType = args.Id == "disable_registered_raffle_btn" ? RaffleAlertType.Registered : RaffleAlertType.Error;
+                    var (isModified, message) = await _proRaffleSettingManager.DisableAlertAsync(ulong.Parse(selectedUsername.Value), raffleAlertType, discordUser.Id);
+                    if(isModified)
+                    {
+                        var builder = new DiscordWebhookBuilder(new DiscordMessageBuilder(discordMessage)).WithContent(message);
+                        await args.Interaction.EditOriginalResponseAsync(builder);
                     }
                     else
                     {
-                        var cartItems = _cartManager.GetItemsFromCart(discordMessage.Id)!;
-                        if(cartItems.Count >= Cart.MaxItemsPerCart) 
-                        {
-                            await args.Interaction.NotifyWithMessage(MessageHelper.MaxItemsPerCart, deleteMsg: true, after: TimeSpan.FromSeconds(5));
-                            return;
-                        }
-
-
-                        Product product = _productManager.GetProductByRoleId(selectedProduct.Value)!;
-                        int selectedPeriod = int.Parse(selectedDuration.Value);
-                        CartItem cartItem = new()
-                        { 
-                            ItemId = _cartManager.GetMaxCartItemId(discordMessage.Id) + 1,
-                            SelectedProduct = selectedProduct.Label,
-                            SelectedDuration = selectedDuration.Label,
-                            Price = product.GetPrice(selectedPeriod),
-                            ProductOptionId = product.GetProductOptionId(selectedPeriod)
-                        };
-                        _cartManager.AddItemToCart(discordMessage.Id, cartItem);
-
-                        var originalComponents = discordMessage.Components;
-                        var embed = EmbedHelper.CreateShoppingCartEmbed(cartItems);
-                        Console.WriteLine($"{selectedProduct.Label}|{selectedDuration.Label}|Total item:{cartItems.Count}");
-
-                        await args.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, new DiscordInteractionResponseBuilder()
-                            .AddEmbed(embed)
-                            .AddComponents(originalComponents));
-                    }
-                    break;
-                }
-
-                case "remove_item_cart_btn":
-                {
-                    try
-                    {
-                        var modalCustomId = await args.Interaction.NotifyWithItemRemovalModal(args.Interaction.Id);
-                        var interactivity = _discordClient.GetInteractivity();
-                        var modal = await interactivity.WaitForModalAsync(modalCustomId, discordUser);
-                        if(modal.TimedOut)
-                        {
-                            return;
-                        }
-
-                        await modal.Result.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
-
-                        var inputValue = modal.Result.Values.Values.First().Trim();
-                        if (int.TryParse(inputValue, out int itemId))
-                        {
-                            var successfullyRemoved = _cartManager.RemoveItemFromCart(discordMessage.Id, itemId);
-                            if(successfullyRemoved)
+                        await args.Interaction
+                            .CreateFollowupMessageAsync(new DiscordFollowupMessageBuilder().WithContent(message).AsEphemeral(true))
+                            .ContinueWith(async taskResult => 
                             {
-                                var originalComponents = discordMessage.Components;
-                                var embed = EmbedHelper.CreateShoppingCartEmbed(_cartManager.GetItemsFromCart(discordMessage.Id)!);
-
-                                await args.Interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder()
-                                    .AddEmbed(embed)
-                                    .AddComponents(originalComponents));
-                                
-                            }
-                        }
+                                var message = taskResult.Result;
+                                await Task.Delay(TimeSpan.FromSeconds(5));
+                                await args.Interaction.DeleteFollowupMessageAsync(message.Id);
+                            });
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message + ex.StackTrace + ex.InnerException);
-                    } 
                     break;
                 }
-
-                case "confirm_cart_btn":
-                    {
-                        Cart? cart = _cartManager.GetCart(discordMessage.Id);
-                        if(cart == null || !cart.CartItems.Any())
-                        {
-                            await args.Interaction.NotifyWithMessage(MessageHelper.CartIsEmpty, deleteMsg: true, after: TimeSpan.FromSeconds(5));
-                            return;
-                        }
-                        try
-                        {
-                            await args.Interaction.DeferAsync(true);
-
-                            var order = await _orderManager.CreateOrderAsync(discordUser.Id, cart);
-                            order.Interaction = new(discordMessage.Id, args.Interaction);
-                            _orderManager.AddOrder(order);
-
-                            await args.Interaction.NotifyUserToSendPayment(order);
-                        }
-                        catch (Exception)
-                        {
-                            await args.Interaction.NotifyWithServerError(discordMessage.Id);
-                        }
-                        finally
-                        {
-                            _cartManager.RemoveCart(discordMessage.Id);
-                        }
-                        break;
-                    }
+                #endregion
             }
         }
 
