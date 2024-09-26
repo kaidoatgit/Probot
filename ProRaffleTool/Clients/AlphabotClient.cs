@@ -68,7 +68,7 @@ public class AlphabotClient
         }
         
         var description = new StringBuilder();
-        if(clientResponse.Success)
+        if(clientResponse.Success && setting.IsRegisteredAlertEnabled)
         {
             description.AppendLine($"{EmojisHelper.WhiteCheckMark} **Raffle**");
             description.AppendLine($"```{slug}```");
@@ -80,7 +80,7 @@ public class AlphabotClient
             };
             _ = _discordClient.ExecuteWebhookAsync(setting.RegisterAlertId, setting.RegisterAlertToken, message);
         }
-        else
+        else if(setting.IsErrorAlertEnabled)
         {
             description.AppendLine($"{EmojisHelper.X} **Raffle**");
             description.AppendLine($"```{slug}```");
