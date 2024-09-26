@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
 using Probot.Shared.Dtos;
 using Probot.Shared.Dtos.ProRaffleSetting.Request;
 using Probot.Shared.Dtos.ProRaffleSetting.Response;
 using Probot.Shared.Enums;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Probot.Client.Clients.ProRaffleApi;
 public class ProRaffleSettingClient
@@ -86,7 +86,7 @@ public class ProRaffleSettingClient
                 var result = await response.Content.ReadAsStringAsync();
                 if(!string.IsNullOrEmpty(result))
                 {
-                    var errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(result)!;
+                    var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(result)!;
                     apiResponse.ExceptionResult = errorResponse.ExceptionResult;
                     apiResponse.ErrorMessage = errorResponse.ErrorMessage;
                 }
