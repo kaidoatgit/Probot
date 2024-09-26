@@ -26,7 +26,7 @@ internal class DiscordClient : IDiscordClient
         {
             Address = "oauth2/token",
             Code = code,
-            RedirectUri = _oauthSettings.OAuthRedirectUri,
+            RedirectUri = _oauthSettings.RedirectUri,
             ClientId = _oauthSettings.ClientId,
             ClientSecret = _oauthSettings.ClientSecret
         });

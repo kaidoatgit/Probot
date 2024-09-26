@@ -61,7 +61,7 @@ public class OAuthDiscordController : ControllerBase
             { "client_id", _oauthSettings.ClientId },
             { "scope", "webhook.incoming" },
             { "state", $"{token}" },
-            { "redirect_uri", _oauthSettings.OAuthRedirectUri }
+            { "redirect_uri", _oauthSettings.RedirectUri }
         };
         string oauthUri = QueryHelpers.AddQueryString(baseUri, @params);
         
