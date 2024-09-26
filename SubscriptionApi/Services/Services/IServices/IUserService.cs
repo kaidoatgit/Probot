@@ -6,7 +6,7 @@ namespace Probot.SubscriptionApi.Services.Services.IServices
     public interface IUserService
     {
         Task<User> CreateUserAsync(UserRequest request);
-        Task<User> GetUserByIdAsync(ulong userId);
+        Task<User> GetUserByIdAsync(ulong userId, bool? dbTracking = null);
         Task UpdateWalletAddressAsync(ulong userId, string walletAddress);
         Task<IEnumerable<User>> GetUsersWithMetricsAsync(CancellationToken cancellationToken);
     }

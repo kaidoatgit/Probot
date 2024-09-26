@@ -36,11 +36,15 @@ namespace Probot.SubscriptionApi.Services.Services
             return user;
         }
 
-        public async Task<User> GetUserByIdAsync(ulong userId)
+        public async Task<User> GetUserByIdAsync(ulong userId, bool? dbTracking)
         {
-            return await _context.Users
-                .AsNoTracking()
-                .SingleOrDefaultAsync(u => u.Id == userId)
+            IQueryable<User> query = _context.Users.AsNoTracking();
+            if(dbTracking.HasValue)
+            {
+                query = query.AsTracking();
+            }
+
+            return await query.SingleOrDefaultAsync(u => u.Id == userId)
                 ?? throw new SubscriptionException(ExceptionResult.UserNotFound404, "User not found");
         }
         
@@ -53,7 +57,7 @@ namespace Probot.SubscriptionApi.Services.Services
                 throw new SubscriptionException(ExceptionResult.UserAddressConflict409, $"Wallet address:{walletAddress} already in use by another user");
             }
 
-            User user = await GetUserByIdAsync(userId);
+            User user = await GetUserByIdAsync(userId, dbTracking: true);
             user.WalletAddress = walletAddress;
             await _context.SaveChangesAsync();
         }
