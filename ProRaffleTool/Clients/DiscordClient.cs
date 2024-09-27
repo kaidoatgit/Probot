@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using IdentityModel.Client;
 using Microsoft.Extensions.Options;
 using Probot.ProRaffleTool.Clients.Abstractions;

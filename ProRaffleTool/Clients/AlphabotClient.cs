@@ -85,7 +85,9 @@ public class AlphabotClient
             description.AppendLine($"{EmojisHelper.X} **Raffle**");
             description.AppendLine($"```{slug}```");
             description.AppendLine($"**Reason**:");
-            string resultMd = clientResponse.Data?.ResultMd ?? "It was not possible to enter in the raffle.";
+            string resultMd = clientResponse.Data?.ResultMd 
+                ?? clientResponse.Errors?.FirstOrDefault()?.Message 
+                ?? "It was not possible to enter in the raffle.";
             description.AppendLine($"```{resultMd}```");
             
             bool isToReconnectX = reconnectX.All(phrase => resultMd.Contains(phrase, StringComparison.OrdinalIgnoreCase));
