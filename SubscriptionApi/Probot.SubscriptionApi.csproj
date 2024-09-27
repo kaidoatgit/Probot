@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>AnyCPU;x64;x86</Platforms>
+    <UserSecretsId>fc68b581-53d2-4b15-9605-e75e6aad37dc</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
