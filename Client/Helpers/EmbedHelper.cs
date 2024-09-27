@@ -8,7 +8,7 @@ public static class EmbedHelper
 {
     private const string _emptySpace = "ㅤ";
     private const string successImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1259290567586611321/order_success.webp?ex=668b253b&is=6689d3bb&hm=e28adeb3921b55b82a540207b43f9d7044cd6fb7be7fd36fae1c8c8b9229e450&";
-    private const string webhookImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1288622412652478574/WebhookOAuth.png?ex=66f5daa4&is=66f48924&hm=07c0088cd4a229e849f7545b3990f9cc70310a992b6224b0949380bf3ff2de56&";
+    private const string webhookImageUrl = "https://cdn.discordapp.com/attachments/1259290186148483214/1289047089929781278/att.PNG?ex=66f76627&is=66f614a7&hm=681af1d5c0063b206b9c22a55eea0c5e6d1084944ddd36b3429a24b4db21453f&";
     
     public static DiscordEmbed CreateProductDetailsEmbed(List<Product> Products)
     {

@@ -55,13 +55,13 @@ namespace Probot.Client
             services.AddHttpClient<ProRaffleSettingClient>((serviceProvider, opt) =>
             {
                 var settings = serviceProvider.GetRequiredService<IOptions<ProbotSettings>>().Value;
-                opt.BaseAddress = new Uri("https://localhost:7091/api/pro_raffle_settings/");
+                opt.BaseAddress = new Uri("http://localhost:7091/api/pro_raffle_settings/");
                 opt.DefaultRequestHeaders.Add("X-API-KEY", settings.ProRaffleApiKey);
             });
             services.AddHttpClient<OAuthClient>((serviceProvider, opt) => 
             {                 
                 var settings = serviceProvider.GetRequiredService<IOptions<ProbotSettings>>().Value;
-                opt.BaseAddress = new Uri("https://localhost:7091/api/oauth2/discord/");
+                opt.BaseAddress = new Uri("http://localhost:7091/api/oauth2/discord/");
                 opt.DefaultRequestHeaders.Add("X-API-KEY", settings.ProRaffleApiKey);
             });
             services.AddSingleton<CancelationTokenManager>();
