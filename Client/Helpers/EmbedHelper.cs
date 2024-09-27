@@ -300,7 +300,7 @@ public static class EmbedHelper
         var description = new StringBuilder();
         description.AppendLine($"{EmojisHelper.Stopwatch} You have 1 minute to authorize before it expires.");
         description.AppendLine();
-        description.AppendLine($"{EmojisHelper.Warning} When authorizing confirm always the oficial link: __**probot.topsecret.ngrok.app**__");
+        description.AppendLine($"{EmojisHelper.Warning} When authorizing, always confirm the oficial link: \n__**probot.ngrok.io**__");
         var embed = new DiscordEmbedBuilder
         {
             Description = description.ToString(),
