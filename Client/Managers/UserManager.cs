@@ -67,7 +67,7 @@ namespace Probot.Client.Managers
             return result;
         }
 
-        private async Task<bool> CreateUserAsync(ulong userId, string username, string walletAddress)
+        public async Task<bool> CreateUserAsync(ulong userId, string username, string walletAddress)
         {
             var userRequest = new UserRequest
             {
