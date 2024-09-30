@@ -20,7 +20,7 @@ public class ProductKeysController : ControllerBase
     [HttpGet("{code}")]
     public async Task<IActionResult> GetProductKeyAsync(string code, [FromQuery] ulong? userId, [FromQuery] bool? isActivated)
     {
-        var productKey = await _productKeyService.GetProductKeyByCodeAsync(code, userId, isActivated);
+        var productKey = await _productKeyService.GetProductKeyByCodeAsync(code, userId: userId, isActivated: isActivated);
         ProductKeyResponse productKeyResponse = _mapper.MapToProductKeyResponse(productKey);
         return Ok(productKeyResponse);
     }
@@ -31,6 +31,26 @@ public class ProductKeysController : ControllerBase
         var productKeys = await _productKeyService.GetProductKeysAsync(userId, isActivated);
         IEnumerable<ProductKeyResponse> productKeysResponse = productKeys.Select(pk => _mapper.MapToProductKeyResponse(pk));
         return Ok(productKeysResponse);
+    }
+
+    [HttpPatch("{code}/claim")]
+    public async Task<IActionResult> ClaimProductKeyAsync(string code, [FromBody] ulong userId)
+    {
+        var productKey = await _productKeyService.ClaimProductKeyAsync(code, userId);
+        ProductKeyResponse productKeyResponse = _mapper.MapToProductKeyResponse(productKey);
+        return Ok(productKeyResponse);
+    }
+
+    [HttpPost("test/7days")]
+    public async Task<IActionResult> CreateTestingKeys7DaysAsync([FromBody] int amount)
+    {
+        return Ok(await _productKeyService.GenerateProductKeysAsync(amount, 7));
+    }
+
+    [HttpPost("test/15days")]
+    public async Task<IActionResult> CreateTestingKeys15DaysAsync([FromBody] int amount)
+    {
+        return Ok(await _productKeyService.GenerateProductKeysAsync(amount, 15));
     }
 
 }

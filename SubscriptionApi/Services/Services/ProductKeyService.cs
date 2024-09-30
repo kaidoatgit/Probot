@@ -10,12 +10,14 @@ namespace Probot.SubscriptionApi.Services.Services;
 public class ProductKeyService : IProductKeyService
 {
     private readonly ProbotContext _context;
-    public ProductKeyService(ProbotContext context)
+    private readonly IProductService _productService;
+    public ProductKeyService(ProbotContext context, IProductService productService)
     {
         _context = context;
+        _productService = productService;
     }
 
-    public async Task<IEnumerable<ProductKey>> GenerateProductKeys(Order order, CancellationToken cancellationToken)
+    public async Task<IEnumerable<ProductKey>> GenerateProductKeysAsync(Order order, CancellationToken cancellationToken)
     {
         List<ProductKey> productKeys = new();
         List<OrderItem> orderItems = order.OrderItems.ToList();
@@ -46,11 +48,31 @@ public class ProductKeyService : IProductKeyService
         return productKeys;
     }
 
-    public async Task<ProductKey> GetProductKeyByCodeAsync(string code, ulong? userId, bool? isActivated, bool includeReferences)
+    public async Task<IEnumerable<ProductKey>> GenerateProductKeysAsync(int amount, int period)
+    {
+        var productOptions = await _productService.GetProductOptionsAsync();
+        var productOption = productOptions.Where(po => po.Period == period).First();
+        List<ProductKey> productKeys = new();
+        for(int i=0; i<amount; i++)
+        {
+            var productKey = new ProductKey
+            {
+                Period = productOption.Period,
+                ProductOptionId = productOption.Id
+            };
+            productKeys.Add(productKey);
+        }
+        _context.ProductKeys.AddRange(productKeys);
+        await _context.SaveChangesAsync();
+        return productKeys;
+    }
+
+    public async Task<ProductKey> GetProductKeyByCodeAsync(string code, bool includeReferences = false, ulong? userId = null, bool? isActivated = null)
     {
         IQueryable<ProductKey> query = _context.ProductKeys
             .AsNoTracking()
-            .Where(pk => pk.Code == code);
+            .Where(pk => pk.Code == code)
+            .Include(pk => pk.ProductOption);
 
         if(userId.HasValue)
         {
@@ -78,7 +100,8 @@ public class ProductKeyService : IProductKeyService
     public async Task<IEnumerable<ProductKey>> GetProductKeysAsync(ulong? userId, bool? isActivated)
     {
         IQueryable<ProductKey> query = _context.ProductKeys
-            .AsNoTracking();
+            .AsNoTracking()
+            .Include(po => po.ProductOption);
 
         if(userId.HasValue)
         {
@@ -92,21 +115,16 @@ public class ProductKeyService : IProductKeyService
         return await query.ToListAsync();
     }
 
-    public async Task<Dictionary<ulong, int>> GetNonActivatedProductKeysPerUserAsync(CancellationToken cancellationToken)
+    public async Task<ProductKey> ClaimProductKeyAsync(string code, ulong userId)
     {
-        var nonActivatedKeys = await _context.ProductKeys
-            .AsNoTracking()
-            .Where(pk => !pk.IsActivated)
-                .Include(s => s.ProductOption)
-                    .ThenInclude(po => po!.Product)
-            .GroupBy(pk => pk.UserId)
-            .Select(g => new
-            {
-                UserId = g.Key,
-                NonActivatedKeyCount = g.Count()
-            })
-            .ToDictionaryAsync(g => g.UserId, g => g.NonActivatedKeyCount, cancellationToken);
-
-        return nonActivatedKeys;
+        var productKey = await GetProductKeyByCodeAsync(code);
+        if(productKey.UserId.HasValue)
+        {
+            throw new SubscriptionException(ExceptionResult.ProductKeyConflict409, $"Product Key with code: {code} already claimed.");
+        }
+        _context.Attach(productKey);
+        productKey.UserId = userId;
+        await _context.SaveChangesAsync();
+        return productKey;
     }
 }

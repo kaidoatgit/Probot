@@ -38,7 +38,7 @@ namespace Probot.SubscriptionApi.Services.Services
         {
             var products = await _context.Products
                 .AsNoTracking()
-                .Include(p => p.ProductOptions)
+                .Include(p => p.ProductOptions.Where(po => po.IsActive))
                 .ToListAsync();
             return products;
         }

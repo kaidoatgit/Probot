@@ -128,7 +128,7 @@ namespace Probot.SubscriptionApi.Services.Services
                 * Solution: ensure the Order entity initially is not tracked, and manually set property to modified = true
                 */
                 _context.Entry(order).State = EntityState.Unchanged;
-                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeys(order, CancellationToken.None);
+                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeysAsync(order, CancellationToken.None);
                 order.Complete(_context, productKeys);
 
                 await _context.SaveChangesAsync();
@@ -186,7 +186,7 @@ namespace Probot.SubscriptionApi.Services.Services
                 * Solution: ensure the Order entity initially is not tracked, and manually set property to modified = true
                 */
                 _context.Entry(order).State = EntityState.Unchanged;
-                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeys(order, stoppingToken);
+                IEnumerable<ProductKey> productKeys = await _productKeyService.GenerateProductKeysAsync(order, stoppingToken);
                 order.Complete(_context, productKeys);
                 
                 orderResult.OrderStatus = OrderStatus.Completed;

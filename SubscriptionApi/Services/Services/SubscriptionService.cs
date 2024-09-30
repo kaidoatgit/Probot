@@ -24,15 +24,17 @@ namespace Probot.SubscriptionApi.Services.Services
 
         public async Task<Subscription> CreateSubscriptionAsync(SubscriptionRequest request)
         {
-            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, request.UserId, isActivated: false, includeReferences: true);
+            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, includeReferences: true, request.UserId, isActivated: false);
 
             DateTime currentDate = DateTime.UtcNow;
             var subscription =  new Subscription
             {
                 StartDate = currentDate,
-                EndDate = currentDate.AddMonths(productKey.Period),
-                UserId = productKey.UserId,
-                Username = productKey.User.Username,
+                EndDate = productKey.ProductOption.PeriodType == PeriodType.Day 
+                    ? currentDate.AddDays(productKey.Period) 
+                    : currentDate.AddMonths(productKey.Period),
+                UserId = productKey.UserId!.Value,
+                Username = productKey.User!.Username,
                 ProductId = productKey.ProductOption.ProductId,
                 Code = productKey.Code
             };
@@ -77,7 +79,7 @@ namespace Probot.SubscriptionApi.Services.Services
 
         public async Task<Subscription> ExtendSubscriptionAsync(SubscriptionRequest request)
         {
-            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, request.UserId, isActivated: false, includeReferences: true);
+            ProductKey productKey = await _productKeyService.GetProductKeyByCodeAsync(request.Code, includeReferences: true, request.UserId, isActivated: false);
             
             (Subscription? existingSubscription, ProductSetting? productSetting) = await GetExistingSubscriptionAsync(request, productKey);
             if(existingSubscription == null)
@@ -86,11 +88,25 @@ namespace Probot.SubscriptionApi.Services.Services
             }
 
             DateTime currentDate = DateTime.UtcNow;
+            DateTime endDate;
+            if (productKey.ProductOption.PeriodType == PeriodType.Day)
+            {
+                endDate = existingSubscription.IsActive
+                    ? existingSubscription.EndDate.AddDays(productKey.Period)
+                    : currentDate.AddDays(productKey.Period);
+            }
+            else
+            {
+                endDate = existingSubscription.IsActive
+                    ? existingSubscription.EndDate.AddMonths(productKey.Period)
+                    : currentDate.AddMonths(productKey.Period);
+            }
+
             var subscription = new Subscription
             {
                 Version = existingSubscription.Version + 1,
                 StartDate = existingSubscription.IsActive ? existingSubscription.StartDate : currentDate,
-                EndDate = existingSubscription.IsActive ? existingSubscription.EndDate.AddMonths(productKey.Period) : currentDate.AddMonths(productKey.Period),
+                EndDate = endDate,
                 UserId = existingSubscription.UserId,
                 Username = existingSubscription.Username,
                 ProductId = existingSubscription.ProductId,
