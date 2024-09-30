@@ -19,7 +19,7 @@ public class ProductOption
 
     [Column(Order = 6)]
     public int ProductId { get; set; }
-    public Product Product { get; set; } = null!; //Navigation purpose
+    public Product? Product { get; set; } //Navigation purpose
 
     [Column(Order = 7)]
     public bool IsActive { get; set; } = true;
