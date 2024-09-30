@@ -125,6 +125,11 @@ public class ProductKeyService : IProductKeyService
         _context.Attach(productKey);
         productKey.UserId = userId;
         await _context.SaveChangesAsync();
+        
+        await _context.Entry(productKey.ProductOption)
+            .Reference(po => po.Product)
+            .LoadAsync();
+
         return productKey;
     }
 }

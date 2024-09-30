@@ -191,8 +191,8 @@ namespace Probot.SubscriptionApi.Services.Services
                 
                 orderResult.OrderStatus = OrderStatus.Completed;
                 orderResult.PurchasedKeysCountPerProduct = productKeys
-                    .Where(p => p.ProductOption.Product.RoleId.HasValue)
-                    .GroupBy(p => p.ProductOption.Product.RoleId!.Value)
+                    .Where(p => p.ProductOption.Product!.RoleId.HasValue)
+                    .GroupBy(p => p.ProductOption.Product!.RoleId!.Value)
                     .ToDictionary(g => g.Key, g => g.Count());
 
                 await _context.SaveChangesAsync(stoppingToken);

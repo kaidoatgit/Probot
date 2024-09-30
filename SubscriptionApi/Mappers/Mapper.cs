@@ -33,6 +33,8 @@ namespace Probot.SubscriptionApi.Mappers
         public partial Product MapToProductEntity(UpdateProductRoleIdRequest request);
         public partial Order MapToOrderEntity(OrderRequest request);
         public partial GetOrderResponse MapToGetOrderResponse(Order request);
+        
+        [MapProperty(nameof(@ProductKey.ProductOption.Product.RoleId), nameof(ProductKeyResponse.ProductRoleId))]
         public partial ProductKeyResponse MapToProductKeyResponse(ProductKey productKey);
     }
 }

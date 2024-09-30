@@ -78,10 +78,10 @@ namespace Probot.SubscriptionApi.Services.Services
                         })
                         .ToList(),
                     InactiveProductKeys = user.ProductKeys
-                        .Where(pk => !pk.IsActivated && pk.ProductOption != null && pk.ProductOption.Product.RoleId.HasValue)
+                        .Where(pk => !pk.IsActivated && pk.ProductOption != null && pk.ProductOption.Product!.RoleId.HasValue)
                         .Select(pk => new
                         {
-                            ProductRoleId = (ulong)pk.ProductOption.Product.RoleId!
+                            ProductRoleId = (ulong)pk.ProductOption.Product!.RoleId!
                         })
                         .ToList()
                 })
