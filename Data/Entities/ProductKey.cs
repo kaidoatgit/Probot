@@ -19,12 +19,12 @@ public class ProductKey
     public ProductOption ProductOption { get; set; } = null!; // Navigation purpose
 
     [Column(Order = 5)]
-    public ulong UserId { get; set; }
-    public User User { get; set; } = null!; // Navigation purpose
+    public ulong? UserId { get; set; }
+    public User? User { get; set; } // Navigation purpose
 
     [Column(Order = 6)]
-    public ulong OrderItemId { get; set; }
-    public OrderItem OrderItem { get; set; } = null!; // Navigation purpose
+    public ulong? OrderItemId { get; set; }
+    public OrderItem? OrderItem { get; set; } // Navigation purpose
 
     [Column(Order = 7)]
     [ConcurrencyCheck]

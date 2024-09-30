@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Probot.Data;
 
@@ -10,9 +11,11 @@ using Probot.Data;
 namespace Probot.Data.Migrations
 {
     [DbContext(typeof(ProbotContext))]
-    partial class ProbotContextModelSnapshot : ModelSnapshot
+    [Migration("20240930065908_AddColumnIsActiveTableProductOptions")]
+    partial class AddColumnIsActiveTableProductOptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.2");
@@ -316,18 +319,13 @@ namespace Probot.Data.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(7);
+                        .HasColumnOrder(6);
 
                     b.Property<int>("Period")
                         .HasColumnType("INTEGER")
                         .HasColumnOrder(3);
 
                     b.Property<string>("PeriodDescription")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnOrder(5);
-
-                    b.Property<string>("PeriodType")
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnOrder(4);
@@ -338,7 +336,7 @@ namespace Probot.Data.Migrations
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER")
-                        .HasColumnOrder(6);
+                        .HasColumnOrder(5);
 
                     b.HasKey("Id");
 
@@ -350,55 +348,50 @@ namespace Probot.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 9, 30, 9, 36, 54, 328, DateTimeKind.Utc).AddTicks(8772),
+                            CreatedAt = new DateTime(2024, 9, 30, 6, 59, 8, 496, DateTimeKind.Utc).AddTicks(3583),
                             IsActive = true,
                             Period = 1,
                             PeriodDescription = "1 Month",
-                            PeriodType = "Month",
-                            Price = 10m,
+                            Price = 12m,
                             ProductId = 1
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 9, 30, 9, 36, 54, 328, DateTimeKind.Utc).AddTicks(8780),
+                            CreatedAt = new DateTime(2024, 9, 30, 6, 59, 8, 496, DateTimeKind.Utc).AddTicks(3592),
                             IsActive = true,
                             Period = 2,
                             PeriodDescription = "2 Months",
-                            PeriodType = "Month",
-                            Price = 19m,
+                            Price = 20m,
                             ProductId = 1
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2024, 9, 30, 9, 36, 54, 328, DateTimeKind.Utc).AddTicks(8781),
+                            CreatedAt = new DateTime(2024, 9, 30, 6, 59, 8, 496, DateTimeKind.Utc).AddTicks(3593),
                             IsActive = true,
                             Period = 3,
                             PeriodDescription = "3 Months",
-                            PeriodType = "Month",
-                            Price = 28m,
+                            Price = 30m,
                             ProductId = 1
                         },
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2024, 9, 30, 9, 36, 54, 328, DateTimeKind.Utc).AddTicks(8783),
+                            CreatedAt = new DateTime(2024, 9, 30, 6, 59, 8, 496, DateTimeKind.Utc).AddTicks(3594),
                             IsActive = false,
                             Period = 7,
                             PeriodDescription = "7 Days",
-                            PeriodType = "Day",
                             Price = 0m,
                             ProductId = 1
                         },
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2024, 9, 30, 9, 36, 54, 328, DateTimeKind.Utc).AddTicks(8785),
+                            CreatedAt = new DateTime(2024, 9, 30, 6, 59, 8, 496, DateTimeKind.Utc).AddTicks(3596),
                             IsActive = false,
                             Period = 15,
                             PeriodDescription = "15 Days",
-                            PeriodType = "Day",
                             Price = 0m,
                             ProductId = 1
                         });
