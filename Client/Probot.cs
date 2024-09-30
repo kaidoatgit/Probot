@@ -16,6 +16,8 @@ using Probot.Shared.Helpers;
 using Probot.Shared.Dtos.OAuth.Request;
 using Probot.Client.Clients.ProRaffleApi;
 using Probot.Client.Options;
+using Probot.Client.Clients.SubscriptionApi;
+using Probot.Client.Mappers;
 
 namespace Probot.Client
 {
@@ -31,9 +33,12 @@ namespace Probot.Client
         private readonly CartManager _cartManager;
         private readonly ProRaffleSettingManager _proRaffleSettingManager;
         private readonly OAuthClient _oauthClient;
+        private readonly ProductKeyClient _productKeyClient;
+        private readonly Mapper _mapper;
 
         public Probot(IOptions<ProbotSettings> probotOptions, ProductManager productManager, UserManager userManager, OrderManager orderManager, HubManager hubManager,
-            CancelationTokenManager tokenManager, CartManager cartManager, ProRaffleSettingManager proRaffleSettingManager, OAuthClient oauthClient)
+            CancelationTokenManager tokenManager, CartManager cartManager, ProRaffleSettingManager proRaffleSettingManager, OAuthClient oauthClient, 
+            ProductKeyClient productKeyClient, Mapper mapper)
         {
             _probotSettings = probotOptions.Value;
             _discordClient = new DiscordClient(new DiscordConfiguration
@@ -53,6 +58,8 @@ namespace Probot.Client
             _cartManager = cartManager;
             _proRaffleSettingManager = proRaffleSettingManager;
             _oauthClient = oauthClient;
+            _productKeyClient = productKeyClient;
+            _mapper = mapper;
 
             Console.WriteLine("Probot created");
         }
@@ -66,7 +73,7 @@ namespace Probot.Client
             _discordClient.Ready += OnClientReady;
             _discordClient.ClientErrored += OnClientErrored;
             _discordClient.ComponentInteractionCreated += OnClientComponentInteractionCreated;
-            // _discordClient.ModalSubmitted += OnClientModalSubmitted;
+            _discordClient.ModalSubmitted += OnClientModalSubmitted;
             _discordClient.GuildAvailable += OnGuildAvailable;
             _discordClient.GuildMemberUpdated += OnGuildMemberUpdated;
 
@@ -90,7 +97,7 @@ namespace Probot.Client
                 _discordClient.Ready -= OnClientReady;
                 _discordClient.ClientErrored -= OnClientErrored;
                 _discordClient.ComponentInteractionCreated -= OnClientComponentInteractionCreated;
-                // _discordClient.ModalSubmitted -= OnClientModalSubmitted;
+                _discordClient.ModalSubmitted -= OnClientModalSubmitted;
                 _discordClient.GuildAvailable -= OnGuildAvailable;
                 _discordClient.GuildMemberUpdated -= OnGuildMemberUpdated;
                 await _hubManager.StopAsync();
@@ -398,7 +405,15 @@ namespace Probot.Client
                         break;
                     }
                 #endregion
-     
+                
+                #region claim code
+                case "claim_code_btn":
+                {
+                    await args.Interaction.NotifyWithClaimCodeModal();
+                    break;
+                }
+                #endregion
+
                 #region raffle notifications
                 case "setup_notifications_btn":
                 {
@@ -516,52 +531,50 @@ namespace Probot.Client
             }
         }
 
-        #region Modal events currently not used
-        // private async Task OnClientModalSubmitted(DiscordClient sender, ModalSubmitEventArgs args)
-        // {   
-        //     var msg = await args.Interaction.GetOriginalResponseAsync();
-        //     if (args.Interaction.Type == InteractionType.ModalSubmit)
-        //     {
-        //         switch (args.Interaction.Data.CustomId)
-        //         {
-        //             case "solana_wallet_submission":
-        //             {
+        private async Task OnClientModalSubmitted(DiscordClient sender, ModalSubmitEventArgs args)
+        {   
+            if (args.Interaction.Type == InteractionType.ModalSubmit)
+            {
+                switch (args.Interaction.Data.CustomId)
+                {
+                    case "claim_code_submission":
+                    {
+                        await args.Interaction.DeferAsync(true);
+                        var userId = args.Interaction.User.Id;
+                        var user = _userManager.GetUserAsync(userId);
+                        if(user == null)
+                        {
+                            var username = args.Interaction.User.Username;
+                            await _userManager.CreateUserAsync(userId, username, string.Empty);
+                        }
                         
-        //                 await args.Interaction.DeferAsync(true);
-        //                 var userId = args.Interaction.User.Id;
-        //                 var walletAddress = args.Values.Values.First().Trim();
-
-        //                 var walletStatus = _userManager.GetWalletAddressStatus(userId, walletAddress);
-        //                 switch (walletStatus.Result)
-        //                 {
-        //                     case Result.WalletExist:
-        //                         {
-        //                             await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(5));
-        //                             return;
-        //                         }
-        //                     case Result.WalletFoundInOrder:
-        //                         {
-        //                             await args.Interaction.NotifyWithMessage(walletStatus.Message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(10));
-        //                             return;
-        //                         }
-        //                 }
-
-        //                 var username = args.Interaction.User.Username;
-        //                 var isResultSuccess = await _userManager.AddOrUpdateUserAsync(userId, username, walletAddress);
-        //                 if (isResultSuccess)
-        //                 {
-        //                     await args.Interaction.NotifyWithMessage(MessageHelper.WalletSubmitSuccess(walletAddress), defer: true);
-        //                 }
-        //                 else
-        //                 {
-        //                     await args.Interaction.NotifyWithMessage(MessageHelper.GenericErrorMessage(), defer: true);
-        //                 }
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
-        #endregion
+                        var code = args.Values.Values.First().Trim();
+                        var productKeyResponse = await _productKeyClient.ClaimProductKeyAsync(code, userId);
+                        if (productKeyResponse.Data == null)
+                        {
+                            string message;
+                            if (productKeyResponse.ExceptionResult == ExceptionResult.ProductKeyNotFound404 
+                            || productKeyResponse.ExceptionResult == ExceptionResult.ProductKeyConflict409)
+                            {
+                                message = $"{EmojisHelper.X} Product key not found or already claimed";
+                            }
+                            else
+                            {
+                                message = MessageHelper.GenericErrorMessage();
+                            }
+                            await args.Interaction.NotifyWithMessage(message, defer: true, deleteMsg: true, after: TimeSpan.FromSeconds(7));
+                            return;
+                        }
+                        else
+                        {
+                            var productKey = _mapper.MapToProductKey(productKeyResponse.Data);
+                            await args.Interaction.NotifyWithProductKeyDetails(productKey, _probotSettings.ProRaffleChannelId);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
         
         public void Stop()
         {

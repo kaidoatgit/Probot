@@ -157,11 +157,13 @@ namespace Probot.Client.Extensions
                 var walletSubmissionButton = new DiscordButtonComponent(ButtonStyle.Success, "payment_wallets_btn", $"Payment Wallets {EmojisHelper.Credit_Card}");
                 var subscribeButton = new DiscordButtonComponent(ButtonStyle.Primary, "subscribe_btn", $"Subscribe {EmojisHelper.Pencil}");
                 var productDetailsButton = new DiscordButtonComponent(ButtonStyle.Secondary, "product_details_btn", $"Product Details {EmojisHelper.Clipboard}");
-                
+                var claimCodeButton = new DiscordButtonComponent(ButtonStyle.Secondary, "claim_code_btn", $"Claim Code {EmojisHelper.Ticket}");
+
                 var embed = EmbedHelper.CreateSubscriptionProcessEmbed();
                 var message = new DiscordMessageBuilder()
                     .WithEmbed(embed)
-                    .AddComponents(subscribeButton, walletSubmissionButton, productDetailsButton);
+                    .AddComponents(subscribeButton, walletSubmissionButton, productDetailsButton)
+                    .AddComponents(claimCodeButton);
 
                 var channel = guild.GetChannel(channelId);
                 var existingMessage = (await channel.GetMessagesAsync()).LastOrDefault();

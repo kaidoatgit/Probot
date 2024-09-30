@@ -232,7 +232,7 @@ public static class EmbedHelper
         var description = new StringBuilder();
         description.Append($"{EmojisHelper.User} Username");
         description.AppendLine($"```{username}```");
-        description.Append($"{EmojisHelper.Ticket} Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
+        description.Append($"{EmojisHelper.Ticket} Code | Duration: {productKey.ProductOption.PeriodDescription}");
         description.AppendLine($"```{productKey.Code}```");
         description.Append($"{EmojisHelper.Key} Key");
         description.AppendLine($"```{alphabotKey}```");
@@ -249,12 +249,28 @@ public static class EmbedHelper
         return embed.Build();
     }
 
+    public static DiscordEmbed CreateProductKeyDetailsEmbed(ProductKey productKey, string channelMention)
+    {
+        var description = new StringBuilder();
+        description.Append($"{EmojisHelper.Ticket} Code | Duration: {productKey.ProductOption.PeriodDescription}");
+        description.AppendLine($"```{productKey.Code}```");
+        description.AppendLine($"Use command: `/pro-raffle new-subscription`  in {channelMention} to create a subscription for your alphabot account.");
+
+        var embed = new DiscordEmbedBuilder
+        {
+            Description = description.ToString(),
+            Color = DiscordColor.Gold
+        };
+
+        return embed.Build();
+    }
+
     public static DiscordEmbed CreateExtendSubscriptionEmbed(string username, ProductKey productKey)
     {
         var description = new StringBuilder();
         description.Append($"{EmojisHelper.User} Username");
         description.AppendLine($"```{username}```");
-        description.Append($"{EmojisHelper.Ticket} Code | Duration: {productKey.Period} Month{(productKey.Period > 1 ? "s":"")}");
+        description.Append($"{EmojisHelper.Ticket} Code | Duration: {productKey.ProductOption.PeriodDescription}");
         description.AppendLine($"```{productKey.Code}```");
         description.AppendLine($"Are you sure you want to __extend__ your subscription by using this product code{EmojisHelper.QuestionMark}");
         description.AppendLine($"\u200B");

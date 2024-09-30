@@ -115,7 +115,28 @@ public static class InteractionHelper
         await interaction.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
             new DiscordInteractionResponseBuilder(productMessageBuilder).AsEphemeral(true));
     }
- 
+
+    public static async Task<string> NotifyWithClaimCodeModal(this DiscordInteraction interaction)
+    {
+        var walletInput = new TextInputComponent("Product code", "code_input", "Enter the code to be claimed");
+
+        var modal = new DiscordInteractionResponseBuilder()
+            .WithTitle("Claim code")
+            .WithCustomId($"claim_code_submission")
+            .AddComponents(walletInput);
+
+        await interaction.CreateResponseAsync(InteractionResponseType.Modal, modal);
+        return modal.CustomId;
+    }
+    
+    public static async Task NotifyWithProductKeyDetails(this DiscordInteraction interaction, ProductKey productKey, ulong channelId)
+    {
+        var channel = interaction.Guild.GetChannel(channelId);
+        var embed = EmbedHelper.CreateProductKeyDetailsEmbed(productKey, channel.Mention);
+        var builder = new DiscordMessageBuilder().WithEmbed(embed);
+        await interaction.EditOriginalResponseAsync(new DiscordWebhookBuilder(builder));
+    }
+
     public static async Task NotifyWithServerError(this DiscordInteraction interaction, ulong messageId)
     {
         try

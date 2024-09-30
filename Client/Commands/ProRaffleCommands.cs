@@ -56,7 +56,7 @@ public class ProRaffleCommands : ApplicationCommandModule
                 var description = new StringBuilder();
                 foreach (var pk in inactivatedKeys)
                 {
-                    description.Append($"🎟️ Code | Duration: {pk.Period} Month{(pk.Period > 1 ? "s":"")}");
+                    description.Append($"🎟️ Code | Duration: {pk.ProductOption.PeriodDescription}");
                     description.AppendLine($"```{pk.Code}```");
                 }
                 embed.Description = description.ToString();

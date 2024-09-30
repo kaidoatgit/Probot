@@ -66,5 +66,33 @@ public class ProductKeyClient
             Console.WriteLine($"[GetProductKeysAsync] {ex.Message}");
         }
         return apiResponse;
-    } 
+    }
+
+    internal async Task<ApiResponse<ProductKeyResponse>> ClaimProductKeyAsync(string code, ulong userId)
+    {
+        ApiResponse<ProductKeyResponse> apiResponse = new();
+        try
+        {
+            var response = await _httpClient.PatchAsync($"{code}/claim", JsonContent.Create(userId));
+            if (response.IsSuccessStatusCode)
+            {
+                apiResponse.Data = await response.Content.ReadFromJsonAsync<ProductKeyResponse>();
+            }
+            else
+            {
+                Console.WriteLine($"{await response.Content.ReadAsStringAsync()}");
+                var errorResponse = (await response.Content.ReadFromJsonAsync<ErrorResponse>())!;
+                apiResponse.ExceptionResult = errorResponse.ExceptionResult;
+                apiResponse.ErrorMessage = errorResponse.ErrorMessage;
+                Console.WriteLine($"[ClaimCodeAsync]-{response.StatusCode}-{apiResponse.ErrorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            apiResponse.ExceptionResult = ExceptionResult.InternalServerError500;
+            apiResponse.ErrorMessage = ex.Message;
+            Console.WriteLine($"[ClaimCodeAsync] {ex.Message}");
+        }
+        return apiResponse;
+    }
 }
