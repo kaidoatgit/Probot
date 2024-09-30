@@ -541,7 +541,7 @@ namespace Probot.Client
                     {
                         await args.Interaction.DeferAsync(true);
                         var userId = args.Interaction.User.Id;
-                        var user = _userManager.GetUserAsync(userId);
+                        var user = await _userManager.GetUserAsync(userId);
                         if(user == null)
                         {
                             var username = args.Interaction.User.Username;
@@ -569,6 +569,8 @@ namespace Probot.Client
                         {
                             var productKey = _mapper.MapToProductKey(productKeyResponse.Data);
                             await args.Interaction.NotifyWithProductKeyDetails(productKey, _probotSettings.ProRaffleChannelId);
+                            DiscordMember member = (DiscordMember)args.Interaction.User;
+                            await member.TryAddRoleAsync(args.Interaction.Guild.Roles, productKey.ProductRoleId!.Value);
                         }
                         break;
                     }

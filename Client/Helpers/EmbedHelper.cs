@@ -160,7 +160,7 @@ public static class EmbedHelper
         description.AppendLine($"**{totalProductKeys}** Product Key{(totalProductKeys > 1 ? "s" : "")} have been acquired.");
         if(channel != null)
         {
-            description.AppendLine($"Use command: `/product-keys`  in {channel.Mention} to view all purchased keys details.");
+            description.AppendLine($"Use command: `/pro-raffle product-keys`  in {channel.Mention} to view all purchased keys details.");
         }
 
         var embed = new DiscordEmbedBuilder
@@ -306,7 +306,7 @@ public static class EmbedHelper
         embed.Color = DiscordColor.Green;
         embed.AddField($"{EmojisHelper.Calendar_Spiral} Start Date", $"<t:{((DateTimeOffset)subscription.StartDate).ToUnixTimeSeconds()}:D>", true);
         embed.AddField($"{EmojisHelper.Calendar_Spiral} End Date", $"<t:{((DateTimeOffset)subscription.EndDate).ToUnixTimeSeconds()}:D>", true);
-        embed.AddField($"\u200B", $"**Activation Success {EmojisHelper.Tada}**\nUse command: `/bot-status` to view all the details of your subscriptions.");
+        embed.AddField($"\u200B", $"**Activation Success {EmojisHelper.Tada}**\nUse command: `/pro-raffle bot-status` to view all the details of your subscriptions.");
 
         return embed.Build();
     }
