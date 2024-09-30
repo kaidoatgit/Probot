@@ -7,4 +7,5 @@ public class ProductKeyResponse
 {
     public string Code { get; set; } = null!;
     public ProductOptionResponse ProductOption { get; set; } = null!;
+    public ulong? ProductRoleId { get; set; }
 }

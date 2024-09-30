@@ -9,7 +9,6 @@ public class UserRequest
     [Required]
     [StringLength(100, ErrorMessage = "Username length can't be more than 100.")]
     public string Username { get; set; } 
-    [Required]
-    public string WalletAddress { get; set; } 
+    public string WalletAddress { get; set; } = string.Empty;
     public string? Email { get; set; }
 }
